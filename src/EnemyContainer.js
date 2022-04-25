@@ -1,9 +1,12 @@
 import BaseContainer from "./BaseContainer";
 import * as PIXI from "pixi.js";
-import {DIRECTION, GRID_WIDTH} from "./constant";
+import {BASE, DIRECTION, GRID_WIDTH} from "./constant";
 import {AStarFinder} from "pathfinding";
 import MapGrid from "./MapGrid";
 import Money from "./Money";
+import Game from "./Game";
+import GameSound from "./GameSound";
+import MinMap from "./MinMap";
 
 
 export default class EnemyContainer extends BaseContainer{
@@ -19,13 +22,13 @@ export default class EnemyContainer extends BaseContainer{
     initBlood = () => {
         let bloodBg = new PIXI.Graphics();
         bloodBg.beginFill(0xD8BFD8);
-        bloodBg.drawRect(0, 0, GRID_WIDTH, 10);
+        bloodBg.drawRect(0, -10, GRID_WIDTH, 10);
         bloodBg.endFill();
         bloodBg.alpha = 1;
         this.container.addChild(bloodBg);
         this.bloodBox = new PIXI.Graphics();
         this.bloodBox.beginFill(0xDC143C);
-        this.bloodBox.drawRect(0, 0, GRID_WIDTH, 10);
+        this.bloodBox.drawRect(0, -10, GRID_WIDTH, 10);
         this.bloodBox.endFill();
         this.bloodBox.alpha = 1;
         this.container.addChild(this.bloodBox);
@@ -40,12 +43,17 @@ export default class EnemyContainer extends BaseContainer{
         this.bloodBox.width = this.bloodBox.width - reduceBlood;
         if(this.bloodBox.width <= 0){
             this.isDie = true;
+            GameSound.playBoom();
             Money.setTotalMoney(Money.getTotalMoney() + this.obj.money)
         }
     }
 
     //移动方向控制
     move = () => {
+        if(this.obj.gridX === BASE.gridX && this.obj.gridY === BASE.gridY){
+            Game.finishGame();
+            return;
+        }
         switch (this.direction){
             case DIRECTION.RIGHT:
                 this.moveRight();
@@ -73,7 +81,7 @@ export default class EnemyContainer extends BaseContainer{
         const finder = new AStarFinder({
             allowDiagonal: false
         });
-        let path = finder.findPath(this.obj.gridX, this.obj.gridY, 19, 5, MapGrid.getGrid().clone());
+        let path = finder.findPath(this.obj.gridX, this.obj.gridY, BASE.gridX, BASE.gridY, MapGrid.getGrid().clone());
 
         if(path.length <=1 ){
             return;

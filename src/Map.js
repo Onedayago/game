@@ -14,6 +14,8 @@ import ArmsContainer from './ArmsContainer';
 import ArmsBox from "./ArmsBox";
 import MapGrid from "./MapGrid";
 import Money from "./Money";
+import GameSound from "./GameSound";
+import MinMap from "./MinMap";
 
 export default class Map {
 
@@ -263,6 +265,7 @@ export default class Map {
                     this.moveArms.setGridXY(x_left, y_left);
                     Money.setTotalMoney(Money.getTotalMoney() - this.moveArms.obj.money);
                     this.liveArms.push(this.moveArms);
+                    GameSound.playAddArms();
                 }else{
                     this.map.removeChild(this.moveArms.getContainer());
                 }

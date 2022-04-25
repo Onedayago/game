@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import {GRID_HEIGHT, GRID_WIDTH} from "./constant";
+import {GRID_HEIGHT, GRID_WIDTH, MIN_MAP} from "./constant";
 
 
 export default class BaseContainer{

@@ -4,6 +4,7 @@ import * as PIXI from "pixi.js";
 import {ATTACK_RANGE_COLOR, GRID_HEIGHT, GRID_WIDTH} from "./constant";
 import Map from "./Map";
 import Money from "./Money";
+import GameSound from "./GameSound";
 
 export default class ArmsContainer extends BaseContainer{
     constructor(obj, map, grid) {
@@ -27,7 +28,7 @@ export default class ArmsContainer extends BaseContainer{
         if(this.circle.parent){
             return;
         }
-        const {levelObj} = this.getLevelObj();
+        const {levelObj} = this.getLevelObj(this.obj.levelNum);
         let money = levelObj.sailMoney+'';
         this.close.position.set(GRID_WIDTH+10, (GRID_HEIGHT-20)/2);
         this.close.text = '卖掉$'+ money;
@@ -42,7 +43,7 @@ export default class ArmsContainer extends BaseContainer{
         if(this.obj.levelNum >= this.obj.level.length -1){
             return;
         }
-        const {levelObj} = this.getLevelObj();
+        const {levelObj} = this.getLevelObj(this.obj.levelNum+1);
         let money = levelObj.upgradeMoney+'';
         this.upgrade.position.set(-(20*(Math.ceil(money.length/2))+60), (GRID_HEIGHT-20)/2);
         this.upgrade.text = '升级$'+ money;
@@ -177,8 +178,8 @@ export default class ArmsContainer extends BaseContainer{
     }
 
     //获取当前级别数据
-    getLevelObj = () => {
-        const levelObj = this.obj.level[this.obj.levelNum];
+    getLevelObj = (num) => {
+        const levelObj = this.obj.level[num];
         const levelBulletObj = levelObj.bullet;
         return {levelObj, levelBulletObj}
     }
@@ -189,7 +190,7 @@ export default class ArmsContainer extends BaseContainer{
             return;
         }
         this.attackEnemy = enemySprite;
-        const {levelObj, levelBulletObj} = this.getLevelObj();
+        const {levelObj, levelBulletObj} = this.getLevelObj(this.obj.levelNum);
         if(this.bulletArr.length >= levelBulletObj.maxBullet){
             return;
         }
@@ -221,7 +222,8 @@ export default class ArmsContainer extends BaseContainer{
             isDie: false,
             enemySprite
         }
-        this.bulletArr.push(bulletObj)
+        this.bulletArr.push(bulletObj);
+        GameSound.playShoot();
     }
 
     //移动子弹

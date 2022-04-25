@@ -9,7 +9,7 @@ export default class Money{
             fontSize: 25,
             fill: "black",
         });
-        this.totalMoney = 100;
+        this.totalMoney = 1000;
         this.money = new PIXI.Text("金币$"+this.totalMoney, style);
         this.money.position.set(MONEY_BOX.x, MONEY_BOX.y);
         return this.money;

@@ -7,17 +7,22 @@ import {
     GRID_HEIGHT,
     ATTACK_TIME,
     GAME_STATE,
+    BASE,
 } from "./constant/index";
 import {BULLET_ONE, BULLET_TWO, BULLET_THREE} from "./constant/bullet";
 import {ARMS_ONE, ARMS_TWO, ARMS_THREE} from "./constant/arms";
 import {ENEMY_ONE, ENEMY_PRODUCE, ENEMY_THREE, ENEMY_TWO} from "./constant/enemy";
 import EnemySprite from './EnemyContainer';
+import BaseSprite from './BaseContainer';
 import ArmsSprite from './ArmsContainer';
 import Map from "./Map";
 import ArmsBox from "./ArmsBox";
 import MapGrid from "./MapGrid";
 import Money from "./Money";
 import Game from "./Game";
+import GameSound from "./GameSound";
+import MinMap from "./MinMap";
+
 
 delete PIXI.Renderer.__plugins.interaction;
 //初始化画布
@@ -49,10 +54,12 @@ let enemyArr = [];
 //游戏当前时间
 let gameTime = 0;
 
-console.log()
+
+GameSound.initSound();
 
 app.loader
     .add(ENEMY_ONE.src)
+    .add(BASE.src)
     .add(ENEMY_TWO.src)
     .add(ENEMY_THREE.src)
     .add(ARMS_ONE.src)
@@ -67,6 +74,9 @@ app.loader
         const map = Map.initMap();
         //加载地图到画布
         app.stage.addChild(map);
+
+        const base = new BaseSprite(BASE);
+        map.addChild(base.getContainer());
 
         //初始化敌人
         let  enemySprite = new EnemySprite(ENEMY_ONE);
@@ -105,6 +115,9 @@ app.loader
         const game = Game.initGameState();
         app.stage.addChild(game);
 
+        const minMap = MinMap.drawMinMap();
+        app.stage.addChild(minMap);
+
         //处理触控开始事件
         app.stage.addEventListener('touchstart', (e) => {
             if(Map.onTouchStart(e)){
@@ -124,6 +137,7 @@ app.loader
             Map.onTouchEnd(e);
         }, false);
 
+
         function gameLoop(time){
             gameTime = (app.ticker.lastTime/1000).toFixed(0);
             enemyTouch();
@@ -133,7 +147,6 @@ app.loader
         }
 
         global.gameLoop = gameLoop;
-
 
         //增加敌人
         function addEnemy(){
@@ -161,10 +174,13 @@ app.loader
             enemyArr = arr;
         }
 
+
         //敌人进入武器攻击范围
         function enemyTouch(){
             attackTime++;
             if(attackTime >= ATTACK_TIME){
+
+                MinMap.updateMinMap();
                 for (let i = 0; i < Map.liveArms.length; i++){
                     const liveArms = Map.liveArms[i];
                     liveArms.attackEnemy = null;
@@ -184,7 +200,6 @@ app.loader
                         }
                     }
                 }
-                attackTime = 0;
             }
         }
 

@@ -12,20 +12,32 @@
             padding: 0;
             overflow: scroll;
         }
-        #openFullScreen{
+        .fullScreen{
             position: absolute;
             left: 0;
-            top: 0;
-        }
-        #exitFullScreen{
-            position: absolute;
-            right: 0;
             top: 0;
         }
     </style>
 </head>
 <body>
-<button onclick="document.documentElement.requestFullscreen();" id="openFullScreen">需要开启全屏</button>
-<button onclick="document.exitFullscreen();" id="exitFullScreen">退出全屏</button>
+<button onclick="document.documentElement.requestFullscreen();" class="fullScreen" id="open">开启全屏</button>
+<button onclick="document.exitFullscreen();" class="fullScreen" id="close" style="visibility: hidden">退出全屏</button>
+<script>
+    window.onload = function (){
+        let open = document.getElementById('open');
+        let close = document.getElementById('close');
+        document.addEventListener('fullscreenchange', event => {
+
+            if(document.fullscreen){
+                open.style.visibility = 'hidden';
+                close.style.visibility = 'visible';
+            }else{
+                open.style.visibility = 'visible';
+                close.style.visibility = 'hidden';
+            }
+        });
+    }
+</script>
+
 </body>
 </html>

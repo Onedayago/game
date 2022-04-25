@@ -1,7 +1,7 @@
 
 //画布长宽
-const CANVAS_WIDTH = window.screen.height;
-const CANVAS_HEIGHT= window.screen.width;
+const CANVAS_WIDTH = window.screen.width;
+const CANVAS_HEIGHT= window.screen.height;
 
 //方格的长宽和数量
 const GRID_WIDTH = 60;
@@ -22,7 +22,8 @@ const ATTACK_TIME = 30;
 //地图上物体类型
 const TYPE = {
     ENEMY: 'enemy',
-    ARMS: 'arms'
+    ARMS: 'arms',
+    BASE: 'base'
 }
 
 //武器容器
@@ -35,8 +36,8 @@ const ARMS_BOX = {
 
 //金币容器
 const MONEY_BOX = {
-    x: CANVAS_WIDTH-150,
-    y: 50,
+    x: CANVAS_WIDTH-200,
+    y: CANVAS_HEIGHT - 30,
 }
 
 //方向
@@ -46,6 +47,19 @@ const DIRECTION = {
     TOP: 'top',
     BOTTOM: 'bottom',
     STOP: 'stop'
+}
+
+//基地
+const BASE = {
+    x: 19*GRID_WIDTH,
+    y: 5*GRID_WIDTH,
+    src: './assets/myBase.png',
+    rect: [0, 0, 64, 62], //精灵图片绘制区域截图
+    type: TYPE.BASE,
+    gridX: 19,
+    gridY: 5,
+    srcRotate: 0,
+    originRotate: 0,
 }
 
 //背景
@@ -65,8 +79,15 @@ const GAME_STATE = {
 
 //游戏状态容器
 const GAME_BOX = {
-    x: CANVAS_WIDTH-150,
-    y: 10,
+    x: CANVAS_WIDTH-200,
+    y: CANVAS_HEIGHT - 60,
+}
+
+const MIN_MAP = {
+    x: CANVAS_WIDTH - MAP_WIDTH/5,
+    y: 0,
+    width: MAP_WIDTH/5,
+    height: MAP_HEIGHT/5,
 }
 
 export {
@@ -87,4 +108,6 @@ export {
     MONEY_BOX,
     GAME_STATE,
     GAME_BOX,
+    BASE,
+    MIN_MAP
 }
