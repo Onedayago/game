@@ -1,7 +1,7 @@
 
 //画布长宽
-const CANVAS_WIDTH = window.screen.width;
-const CANVAS_HEIGHT= window.screen.height;
+const CANVAS_WIDTH = 800;
+const CANVAS_HEIGHT= 400;
 
 //方格的长宽和数量
 const GRID_WIDTH = 60;
@@ -14,7 +14,10 @@ const MAP_WIDTH = GRID_WIDTH*GRID_COLUMN_NUM;
 const MAP_HEIGHT = GRID_HEIGHT*GRID_ROW_NUM;
 
 //武器攻击范围颜色
-const ATTACK_RANGE_COLOR = 0x9966FF;
+const ATTACK_RANGE_COLOR_NORMAL = 0x9966FF;
+
+//武器攻击范围不可放置
+const ATTACK_RANGE_COLOR_WARN = 0xDC143C;
 
 //碰撞检测的速度
 const ATTACK_TIME = 30;
@@ -101,7 +104,8 @@ export {
     GRID_ROW_NUM,
     GRID_COLUMN_NUM,
     ARMS_BOX,
-    ATTACK_RANGE_COLOR,
+    ATTACK_RANGE_COLOR_NORMAL,
+    ATTACK_RANGE_COLOR_WARN,
     ATTACK_TIME,
     TYPE,
     BG,

@@ -56,25 +56,24 @@ const ENEMY_PRODUCE = {
 for(let i=0; i<ENEMY_NUM;i++){
 
     if(i < 30){
-        let key = i*Math.floor(Math.random()*15);
+        let key = i*5;
         ENEMY_PRODUCE[key] = {
             enemy: ENEMY_ONE,
             isAdd: false
         }
     }else if(i < 60){
-        let key = i*Math.floor(Math.random()*10);
+        let key = i*8;
         ENEMY_PRODUCE[key] = {
             enemy: ENEMY_TWO,
             isAdd: false
         }
     }else{
-        let key = i*Math.floor(Math.random()*10);
+        let key = i*10;
         ENEMY_PRODUCE[key] = {
             enemy: ENEMY_THREE,
             isAdd: false
         }
     }
-
 }
 
 

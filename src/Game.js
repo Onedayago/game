@@ -5,16 +5,28 @@ import GameSound from "./GameSound";
 
 export default class Game {
 
+    static gameTime = 0;
+    static interval = null;
+
     static initGameState = () => {
+
+
         let style = new PIXI.TextStyle({
             fontSize: 25,
             fill: "black",
         });
-        this.gameState = GAME_STATE.PAUSE;
+        this.gameState = GAME_STATE.RUN;
         this.game = new PIXI.Text(this.gameState, style);
         this.game.interactive = true;
         this.game.position.set(GAME_BOX.x, GAME_BOX.y);
-        this.game.on('touchstart', (event) => {
+
+        this.interval = setInterval(()=>{
+            if(this.gameState === GAME_STATE.RUN){
+                this.gameTime++;
+            }
+        }, 1000);
+
+        this.game.on('mousedown', (event) => {
             if(this.gameState === GAME_STATE.RUN){
                 this.gameState = GAME_STATE.PAUSE;
                 this.game.text = this.gameState;

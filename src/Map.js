@@ -8,7 +8,9 @@ import {
     GRID_HEIGHT,
     CANVAS_WIDTH,
     CANVAS_HEIGHT,
-    TYPE, BG
+    TYPE, BG,
+    ATTACK_RANGE_COLOR_WARN,
+    ATTACK_RANGE_COLOR_NORMAL,
 } from "./constant";
 import ArmsContainer from './ArmsContainer';
 import ArmsBox from "./ArmsBox";
@@ -170,7 +172,7 @@ export default class Map {
             initArmsObj.x = x - this.map.x - GRID_WIDTH/2;
             initArmsObj.y = y -this.map.y - GRID_HEIGHT/2;
             const armsSprite = new ArmsContainer(initArmsObj);
-            armsSprite.drawCircle();
+            armsSprite.drawCircle(ATTACK_RANGE_COLOR_NORMAL);
             armsSprite.removeMoney();
             armsSprite.setInteractive(true);
             this.moveArms = armsSprite;
@@ -204,27 +206,10 @@ export default class Map {
         if(Boolean(x) && Boolean(y)){
             this.moveArms.setPosition(x - this.map.x - sprite.width/2 , y - this.map.y - sprite.height/2);
         }
-        let x_right = ((container.x/GRID_WIDTH).toFixed(2)).split(".")[1];
-        let y_right = ((container.y/GRID_HEIGHT).toFixed(2)).split(".")[1];
-        let x_left = parseInt(((container.x/GRID_WIDTH).toFixed(2)).split(".")[0]);
-        let y_left = parseInt(((container.y/GRID_HEIGHT).toFixed(2)).split(".")[0]);
-        if((x_right <= 10 || x_right>=90)&&(y_right <= 10 || y_right >=90)&&x_left >=2 && (y_left >=1 && y_left <= 8)){
-            if(x_right >= 90){
-                x_left++;
-            }
-            if(y_right >=90){
-                y_left++;
-            }
-            if(x_left <0){
-                x_left = 0;
-            }
-            if(y_left <0){
-                y_left = 0;
-            }
-            return {x_left, y_left, isOk: true};
-        }else{
-            return {isOk: false};
-        }
+
+        let desX = Math.round(container.x/GRID_WIDTH);
+        let desY = Math.round(container.y/GRID_HEIGHT);
+        return {desX, desY};
     }
 
     static onTouchMove = (e) => {
@@ -237,16 +222,12 @@ export default class Map {
             return true;
         }else if(this.moveArms){
             const {x, y } = e.data.global;
-            const {x_left, y_left, isOk} = this.getMoveArmsPosition(x, y);
-            if(isOk){
-                const node = MapGrid.getGrid().getNodeAt(x_left, y_left);
-                if(node.walkable){
-                    Map.drawLineByStatus(Map.LINE_STATUS.NORMAL);
-                }else{
-                    Map.drawLineByStatus(Map.LINE_STATUS.WARN);
-                }
+            const {desX, desY} = this.getMoveArmsPosition(x, y);
+            const node = MapGrid.getGrid().getNodeAt(desX, desY);
+            if(node.walkable){
+                this.moveArms.drawCircle(ATTACK_RANGE_COLOR_NORMAL);
             }else{
-                Map.drawLineByStatus(Map.LINE_STATUS.WARN);
+                this.moveArms.drawCircle(ATTACK_RANGE_COLOR_WARN);
             }
             return true;
         }
@@ -256,23 +237,19 @@ export default class Map {
     static onTouchEnd = (e) => {
         this.moveMap = null;
         if(this.moveArms){
-            const {x_left, y_left, isOk} = this.getMoveArmsPosition();
-            if(isOk){
-                const node = MapGrid.getGrid().getNodeAt(x_left, y_left);
-                if(node.walkable){
-                    MapGrid.getGrid().setWalkableAt(x_left, y_left, false);
-                    this.moveArms.removeCircle();
-                    this.moveArms.setGridXY(x_left, y_left);
-                    Money.setTotalMoney(Money.getTotalMoney() - this.moveArms.obj.money);
-                    this.liveArms.push(this.moveArms);
-                    GameSound.playAddArms();
-                }else{
-                    this.map.removeChild(this.moveArms.getContainer());
-                }
+            const {desX, desY} = this.getMoveArmsPosition();
+            const node = MapGrid.getGrid().getNodeAt(desX, desY);
+            if(node.walkable){
+                MapGrid.getGrid().setWalkableAt(desX, desY, false);
+                this.moveArms.removeCircle();
+                this.moveArms.setGridXY(desX, desY);
+                this.moveArms.setPosition(desX*GRID_WIDTH, desY*GRID_HEIGHT);
+                Money.setTotalMoney(Money.getTotalMoney() - this.moveArms.obj.money);
+                this.liveArms.push(this.moveArms);
+                GameSound.playAddArms();
             }else{
                 this.map.removeChild(this.moveArms.getContainer());
             }
-            Map.drawLineByStatus(Map.LINE_STATUS.HIDE);
             this.moveArms = null;
         }
     }

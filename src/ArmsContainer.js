@@ -1,7 +1,7 @@
 
 import BaseContainer from "./BaseContainer";
 import * as PIXI from "pixi.js";
-import {ATTACK_RANGE_COLOR, GRID_HEIGHT, GRID_WIDTH} from "./constant";
+import {GRID_HEIGHT, GRID_WIDTH} from "./constant";
 import Map from "./Map";
 import Money from "./Money";
 import GameSound from "./GameSound";
@@ -62,7 +62,7 @@ export default class ArmsContainer extends BaseContainer{
         this.container.addChild(this.close);
         this.close.visible = false;
         this.close.interactive = true;
-        this.close.on('touchstart', (event) => {
+        this.close.on('mousedown', (event) => {
             event.stopPropagation();
             Map.deleteLiveArms(this);
             let level = this.obj.level[this.obj.levelNum];
@@ -82,7 +82,7 @@ export default class ArmsContainer extends BaseContainer{
         this.container.addChild(this.upgrade);
         this.upgrade.visible = false;
         this.upgrade.interactive = true;
-        this.upgrade.on('touchstart', (event) => {
+        this.upgrade.on('mousedown', (event) => {
             event.stopPropagation();
             let level = this.obj.level[this.obj.levelNum+1];
             let money = level.upgradeMoney;
@@ -119,10 +119,11 @@ export default class ArmsContainer extends BaseContainer{
     }
 
     //绘制攻击范围
-    drawCircle = () => {
+    drawCircle = (color) => {
+        this.container.removeChild(this.circle);
         let level = this.obj.level[this.obj.levelNum];
         this.circle = new PIXI.Graphics();
-        this.circle.beginFill(ATTACK_RANGE_COLOR);
+        this.circle.beginFill(color);
         this.circle.drawCircle(0, 0, level.attackRange);
         this.circle.endFill();
         this.circle.x = 30;
@@ -139,13 +140,13 @@ export default class ArmsContainer extends BaseContainer{
     //获取两点之间的角度
     getAngle = (x1, y1, x2, y2) => {
         if(x1 === x2 && y2 > y1){
-            return {rotate: Math.PI, angle:Math.PI };
+            return {rotate: Math.PI, angle: Math.PI*0.5 };
         }else if(x1 === x2 && y2 < y1){
             return {rotate: 0, angle: 0 }
         }else if( y1 === y2 && x2 > x1){
-            return {rotate: Math.PI*0.5, angle:Math.PI*0.5 }
+            return {rotate: Math.PI*0.5, angle: Math.PI*0.5 }
         }else if(y1 === y2 && x2 < x1){
-            return {rotate: Math.PI*1.5, angle:Math.PI*1.5 }
+            return {rotate: Math.PI*1.5, angle: Math.PI*0.5 }
         }
 
         const a = Math.abs(y1-y2);
@@ -190,7 +191,7 @@ export default class ArmsContainer extends BaseContainer{
             return;
         }
         this.attackEnemy = enemySprite;
-        const {levelObj, levelBulletObj} = this.getLevelObj(this.obj.levelNum);
+        const {levelBulletObj} = this.getLevelObj(this.obj.levelNum);
         if(this.bulletArr.length >= levelBulletObj.maxBullet){
             return;
         }

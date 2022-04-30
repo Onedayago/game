@@ -6,8 +6,6 @@ import MapGrid from "./MapGrid";
 import Money from "./Money";
 import Game from "./Game";
 import GameSound from "./GameSound";
-import MinMap from "./MinMap";
-
 
 export default class EnemyContainer extends BaseContainer{
     constructor(obj) {
@@ -22,13 +20,13 @@ export default class EnemyContainer extends BaseContainer{
     initBlood = () => {
         let bloodBg = new PIXI.Graphics();
         bloodBg.beginFill(0xD8BFD8);
-        bloodBg.drawRect(0, -10, GRID_WIDTH, 10);
+        bloodBg.drawRect(0, -10, GRID_WIDTH, 5);
         bloodBg.endFill();
         bloodBg.alpha = 1;
         this.container.addChild(bloodBg);
         this.bloodBox = new PIXI.Graphics();
         this.bloodBox.beginFill(0xDC143C);
-        this.bloodBox.drawRect(0, -10, GRID_WIDTH, 10);
+        this.bloodBox.drawRect(0, -10, GRID_WIDTH, 5);
         this.bloodBox.endFill();
         this.bloodBox.alpha = 1;
         this.container.addChild(this.bloodBox);
