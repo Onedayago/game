@@ -20,6 +20,8 @@ export default class Game {
         this.game.interactive = true;
         this.game.position.set(GAME_BOX.x, GAME_BOX.y);
 
+        GameSound.playBg();
+
         this.interval = setInterval(()=>{
             if(this.gameState === GAME_STATE.RUN){
                 this.gameTime++;

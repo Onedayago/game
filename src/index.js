@@ -62,11 +62,6 @@ let style = new PIXI.TextStyle({
 let loadGame = new PIXI.Text("游戏加载中", style);
 loadGame.position.set(0, 70)
 
-// let bloodBg = new PIXI.Graphics();
-// bloodBg.beginFill(ATTACK_RANGE_COLOR_NORMAL);
-// bloodBg.drawRect(0, 100, 300, 20);
-// bloodBg.endFill();
-
 let loadProgress = new PIXI.Graphics();
 loadProgress.beginFill(ATTACK_RANGE_COLOR_WARN);
 loadProgress.drawRect(0, 100, 300, 20);
