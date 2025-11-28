@@ -42,11 +42,16 @@ export const WEAPON_MAX_HP = 5; // 每门武器的血量
 export const ENEMY_BULLET_DAMAGE = 1; // 敌人子弹对武器的伤害
 
 // 经济系统相关
-export const INITIAL_GOLD = 200; // 初始金币
+export const INITIAL_GOLD = 1000; // 初始金币
 export const WEAPON_BASE_COST = 80; // 放置一门武器的基础金币消耗
 export const WEAPON_UPGRADE_BASE_COST = 50; // 每级升级所需的基础金币
 export const WEAPON_SELL_BASE_GAIN = 40; // 每级卖掉返还的基础金币
 export const ENEMY_KILL_REWARD = 20; // 击杀一个敌人获得的金币
+
+// 火箭塔相关（第二种武器）
+export const ROCKET_BASE_COST = 120; // 放置一座火箭塔的基础金币
+export const ROCKET_UPGRADE_BASE_COST = 70; // 火箭塔升级基础金币
+export const ROCKET_SELL_BASE_GAIN = 60; // 火箭塔卖掉返还基础金币
 
 // 敌人攻击相关
 export const ENEMY_ATTACK_RANGE_CELLS = 3; // 敌人攻击范围（格子）

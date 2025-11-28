@@ -16,8 +16,9 @@ import {
   WEAPON_UPGRADE_BASE_COST,
   WEAPON_SELL_BASE_GAIN,
   WORLD_WIDTH,
+  ROCKET_BASE_COST,
 } from './constants';
-import { TankWeapon } from './tank';
+import { TankWeapon, RocketTower } from './tank';
 
 export class WeaponContainer {
   constructor(app, goldManager) {
@@ -25,6 +26,7 @@ export class WeaponContainer {
     this.goldManager = goldManager;
     this.weapons = [];
     this.dragSprite = null;
+    this.dragType = 'tank'; // 'tank' | 'rocket'
     this.selectedWeapon = null;
     this.upgradeButton = null;
     this.sellButton = null;
@@ -132,21 +134,141 @@ export class WeaponContainer {
     this.background.x = centerX;
     this.background.y = centerY;
 
-    // 武器图标（显示在容器中间，可被拖拽）——与实际坦克造型保持一致
-    const hullRadius = TANK_SIZE * 0.25;
+    // 武器图标（显示在容器中间，可被拖拽）——与实际坦克造型保持一致（美化版）
+    const hullRadius = TANK_SIZE * 0.24;
     const turretRadius = TANK_SIZE * 0.18;
     const barrelLength = TANK_SIZE * 0.75;
     const barrelHalfHeight = TANK_SIZE * 0.09;
+    const trackHeight = TANK_SIZE * 0.22;
 
-    this.icon = new Graphics()
-      .roundRect(-TANK_SIZE / 2, -TANK_SIZE / 2, TANK_SIZE, TANK_SIZE, hullRadius)
+    this.icon = new Graphics();
+
+    // 阴影
+    this.icon
+      .roundRect(
+        -TANK_SIZE / 2 + 4,
+        -TANK_SIZE / 2 + 6,
+        TANK_SIZE - 8,
+        TANK_SIZE - 4,
+        hullRadius,
+      )
+      .fill({ color: 0x000000, alpha: 0.22 });
+
+    // 上下履带
+    this.icon
+      .roundRect(
+        -TANK_SIZE / 2,
+        -TANK_SIZE / 2,
+        TANK_SIZE,
+        trackHeight,
+        trackHeight / 2,
+      )
+      .fill({ color: 0x111827 })
+      .roundRect(
+        -TANK_SIZE / 2,
+        TANK_SIZE / 2 - trackHeight,
+        TANK_SIZE,
+        trackHeight,
+        trackHeight / 2,
+      )
+      .fill({ color: 0x111827 });
+
+    // 简化轮子
+    const wheelRadius = trackHeight * 0.32;
+    const wheelCount = 4;
+    for (let i = 0; i < wheelCount; i += 1) {
+      const t = wheelCount === 1 ? 0.5 : i / (wheelCount - 1);
+      const wx = -TANK_SIZE / 2 + TANK_SIZE * (0.18 + 0.64 * t);
+      const wyTop = -TANK_SIZE / 2 + trackHeight / 2;
+      const wyBottom = TANK_SIZE / 2 - trackHeight / 2;
+      this.icon.circle(wx, wyTop, wheelRadius).fill({ color: 0x1f2937 });
+      this.icon.circle(wx, wyBottom, wheelRadius).fill({ color: 0x1f2937 });
+    }
+
+    // 主车体
+    this.icon
+      .roundRect(
+        -TANK_SIZE / 2 + 6,
+        -TANK_SIZE / 2 + trackHeight * 0.6,
+        TANK_SIZE - 12,
+        TANK_SIZE - trackHeight * 1.2,
+        hullRadius,
+      )
       .fill({ color: TANK_COLOR })
-      .circle(0, -TANK_SIZE * 0.08, turretRadius)
-      .fill({ color: TANK_BARREL_COLOR })
-      .roundRect(0, -barrelHalfHeight, barrelLength, barrelHalfHeight * 2, barrelHalfHeight)
-      .fill({ color: TANK_BARREL_COLOR });
+      .stroke({ width: 2, color: 0x15803d, alpha: 1 });
 
-    this.icon.x = centerX;
+    // 装甲亮面与分割线
+    this.icon
+      .roundRect(
+        -TANK_SIZE / 2 + 10,
+        -TANK_SIZE / 2 + trackHeight * 0.8,
+        TANK_SIZE - 20,
+        TANK_SIZE - trackHeight * 1.6,
+        hullRadius * 0.85,
+      )
+      .fill({ color: 0x34d399, alpha: 0.75 })
+      .rect(-TANK_SIZE / 2 + 12, 0, TANK_SIZE - 24, 2)
+      .fill({ color: 0x14532d, alpha: 0.45 });
+
+    // 前灯
+    const iconLightY = TANK_SIZE / 2 - trackHeight * 0.55;
+    const iconLightRadius = TANK_SIZE * 0.08;
+    this.icon
+      .circle(-TANK_SIZE * 0.2, iconLightY, iconLightRadius)
+      .fill({ color: 0xfef08a, alpha: 0.9 })
+      .circle(TANK_SIZE * 0.2, iconLightY, iconLightRadius)
+      .fill({ color: 0xfef3c7, alpha: 0.9 });
+
+    // 侧边防护条
+    this.icon
+      .roundRect(
+        -TANK_SIZE / 2 + 8,
+        -TANK_SIZE / 2 + trackHeight * 0.55,
+        6,
+        TANK_SIZE - trackHeight * 1.1,
+        3,
+      )
+      .fill({ color: 0x0f172a, alpha: 0.4 })
+      .roundRect(
+        TANK_SIZE / 2 - 14,
+        -TANK_SIZE / 2 + trackHeight * 0.55,
+        6,
+        TANK_SIZE - trackHeight * 1.1,
+        3,
+      )
+      .fill({ color: 0x0f172a, alpha: 0.4 });
+
+    // 炮塔 + 炮管
+    this.icon
+      .circle(0, -TANK_SIZE * 0.06, turretRadius * 1.05)
+      .fill({ color: 0x15803d })
+      .stroke({ width: 2, color: 0x0f172a, alpha: 0.6 })
+      .circle(0, -TANK_SIZE * 0.06, turretRadius)
+      .fill({ color: TANK_BARREL_COLOR })
+      .stroke({ width: 2, color: 0x14532d, alpha: 1 })
+      .roundRect(
+        -TANK_SIZE * 0.08,
+        -TANK_SIZE * 0.16,
+        TANK_SIZE * 0.16,
+        TANK_SIZE * 0.32,
+        TANK_SIZE * 0.04,
+      )
+      .fill({ color: 0x16a34a, alpha: 0.92 })
+      .roundRect(0, -barrelHalfHeight, barrelLength, barrelHalfHeight * 2, barrelHalfHeight)
+      .fill({ color: TANK_BARREL_COLOR })
+      .stroke({ width: 2, color: 0x0f172a, alpha: 0.5 })
+      .roundRect(
+        barrelLength * 0.35,
+        -barrelHalfHeight * 0.55,
+        barrelLength * 0.45,
+        barrelHalfHeight * 1.1,
+        barrelHalfHeight * 0.45,
+      )
+      .fill({ color: 0x16a34a, alpha: 0.85 })
+      .circle(barrelLength - barrelHalfHeight * 0.2, 0, barrelHalfHeight * 0.55)
+      .fill({ color: 0xfef08a, alpha: 0.95 });
+
+    this.icon.x = centerX - TANK_SIZE * 0.9;
     this.icon.y = centerY;
 
     // 容器武器价格显示（使用该武器需要的金币）
@@ -158,17 +280,154 @@ export class WeaponContainer {
       },
     });
     this.iconPriceLabel.anchor.set(0.5);
-    this.iconPriceLabel.x = centerX;
+    this.iconPriceLabel.x = this.icon.x;
     this.iconPriceLabel.y = centerY - TANK_SIZE * 0.7;
+
+    // 火箭塔图标（右侧）
+    const rocketRadius = TANK_SIZE * 0.18;
+    const rocketTrackHeight = TANK_SIZE * 0.24;
+    const rocketBaseWidth = TANK_SIZE * 0.7;
+    const rocketBaseHeight = TANK_SIZE * 0.24;
+    const rocketTowerWidth = TANK_SIZE * 0.32;
+    const rocketTowerHeight = TANK_SIZE * 0.78;
+
+    this.rocketIcon = new Graphics();
+    // 火箭塔底座
+    this.rocketIcon
+      .roundRect(
+        -rocketBaseWidth / 2,
+        TANK_SIZE * 0.18,
+        rocketBaseWidth,
+        rocketBaseHeight,
+        TANK_SIZE * 0.12,
+      )
+      .fill({ color: 0x1f2937 })
+      .stroke({ width: 2, color: 0x0f172a, alpha: 1 })
+      .roundRect(
+        -rocketBaseWidth / 2 + 6,
+        TANK_SIZE * 0.18 + rocketBaseHeight * 0.2,
+        rocketBaseWidth - 12,
+        rocketBaseHeight * 0.45,
+        rocketBaseHeight * 0.25,
+      )
+      .fill({ color: 0x475569, alpha: 0.9 });
+
+    const iconStripeWidth = rocketBaseWidth / 5;
+    for (let i = 0; i < 4; i += 1) {
+      const sx = -rocketBaseWidth / 2 + 6 + i * iconStripeWidth;
+      const color = i % 2 === 0 ? 0xfacc15 : 0x111827;
+      this.rocketIcon
+        .roundRect(
+          sx,
+          TANK_SIZE * 0.18 + rocketBaseHeight * 0.35,
+          iconStripeWidth * 0.5,
+          rocketBaseHeight * 0.4,
+          iconStripeWidth * 0.2,
+        )
+        .fill({ color, alpha: 0.85 });
+    }
+
+    // 塔身
+    this.rocketIcon
+      .roundRect(
+        -rocketTowerWidth / 2,
+        -rocketTowerHeight / 2,
+        rocketTowerWidth,
+        rocketTowerHeight,
+        TANK_SIZE * 0.12,
+      )
+      .fill({ color: 0x334155 })
+      .stroke({ width: 2, color: 0x0ea5e9, alpha: 1 });
+
+    // 塔身窗口
+    const iconWindowWidth = rocketTowerWidth * 0.28;
+    const iconWindowHeight = rocketTowerHeight * 0.16;
+    for (let i = 0; i < 3; i += 1) {
+      const wy = -rocketTowerHeight * 0.3 + i * iconWindowHeight * 1.2;
+      this.rocketIcon
+        .roundRect(
+          -iconWindowWidth / 2,
+          wy,
+          iconWindowWidth,
+          iconWindowHeight,
+          iconWindowHeight * 0.4,
+        )
+        .fill({ color: 0x38bdf8, alpha: 0.85 });
+    }
+
+    // 侧翼
+    const iconFinWidth = rocketTowerWidth * 0.24;
+    const iconFinHeight = rocketTowerHeight * 0.42;
+    const iconFinOffsetX = rocketTowerWidth * 0.72;
+    this.rocketIcon
+      .roundRect(
+        -iconFinOffsetX - iconFinWidth / 2,
+        -iconFinHeight / 2,
+        iconFinWidth,
+        iconFinHeight,
+        iconFinWidth * 0.5,
+      )
+      .fill({ color: 0x7c2d12, alpha: 0.9 })
+      .roundRect(
+        iconFinOffsetX - iconFinWidth / 2,
+        -iconFinHeight / 2,
+        iconFinWidth,
+        iconFinHeight,
+        iconFinWidth * 0.5,
+      )
+      .fill({ color: 0x7c2d12, alpha: 0.9 });
+
+    // 导轨与火箭头
+    this.rocketIcon
+      .roundRect(
+        -TANK_SIZE * 0.26,
+        -TANK_SIZE * 0.10,
+        TANK_SIZE * 0.52,
+        rocketTrackHeight,
+        rocketTrackHeight * 0.4,
+      )
+      .fill({ color: 0x0f172a })
+      .circle(TANK_SIZE * 0.16, -TANK_SIZE * 0.02, rocketRadius)
+      .fill({ color: 0xf97316 })
+      .circle(0, -rocketTowerHeight * 0.5, rocketTowerWidth * 0.2)
+      .fill({ color: 0xfef3c7, alpha: 0.95 });
+
+    this.rocketIcon.x = centerX + TANK_SIZE * 0.9;
+    this.rocketIcon.y = centerY;
+
+    this.rocketPriceLabel = new Text({
+      text: `${ROCKET_BASE_COST}`,
+      style: {
+        fill: 0xf97316,
+        fontSize: 16,
+      },
+    });
+    this.rocketPriceLabel.anchor.set(0.5);
+    this.rocketPriceLabel.x = this.rocketIcon.x;
+    this.rocketPriceLabel.y = centerY - TANK_SIZE * 0.7;
 
     // 设置交互，作为拖拽起点
     this.icon.eventMode = 'static';
     this.icon.cursor = 'grab';
-    this.icon.on('pointerdown', this.onIconPointerDown, this);
+    this.icon.on('pointerdown', (event) => {
+      const { x, y } = event.global;
+      this.dragType = 'tank';
+      this.startDrag(x, y);
+    });
+
+    this.rocketIcon.eventMode = 'static';
+    this.rocketIcon.cursor = 'grab';
+    this.rocketIcon.on('pointerdown', (event) => {
+      const { x, y } = event.global;
+      this.dragType = 'rocket';
+      this.startDrag(x, y);
+    });
 
     this.app.stage.addChild(this.background);
     this.app.stage.addChild(this.icon);
     this.app.stage.addChild(this.iconPriceLabel);
+    this.app.stage.addChild(this.rocketIcon);
+    this.app.stage.addChild(this.rocketPriceLabel);
   }
 
   setupStageEvents() {
@@ -180,30 +439,243 @@ export class WeaponContainer {
     this.app.stage.on('pointerupoutside', this.onPointerUp, this);
   }
 
-  onIconPointerDown(event) {
-    const { x, y } = event.global;
-    this.startDrag(x, y);
-  }
-
   startDrag(x, y) {
     if (this.dragSprite) {
       this.app.stage.removeChild(this.dragSprite);
       this.dragSprite = null;
     }
 
-    // 创建一个跟随鼠标移动的“幽灵武器”预览（与图标、实际坦克同造型）
-    const hullRadius = TANK_SIZE * 0.25;
-    const turretRadius = TANK_SIZE * 0.18;
-    const barrelLength = TANK_SIZE * 0.75;
-    const barrelHalfHeight = TANK_SIZE * 0.09;
+    let sprite;
+    if (this.dragType === 'rocket') {
+      // 火箭塔幽灵
+      const rocketRadius = TANK_SIZE * 0.18;
+      const rocketTrackHeight = TANK_SIZE * 0.24;
+      const rocketBaseWidth = TANK_SIZE * 0.7;
+      const rocketBaseHeight = TANK_SIZE * 0.24;
+      const rocketTowerWidth = TANK_SIZE * 0.32;
+      const rocketTowerHeight = TANK_SIZE * 0.78;
 
-    const sprite = new Graphics()
-      .roundRect(-TANK_SIZE / 2, -TANK_SIZE / 2, TANK_SIZE, TANK_SIZE, hullRadius)
-      .fill({ color: TANK_COLOR })
-      .circle(0, -TANK_SIZE * 0.08, turretRadius)
-      .fill({ color: TANK_BARREL_COLOR })
-      .roundRect(0, -barrelHalfHeight, barrelLength, barrelHalfHeight * 2, barrelHalfHeight)
-      .fill({ color: TANK_BARREL_COLOR });
+      sprite = new Graphics()
+        .roundRect(
+          -rocketBaseWidth / 2,
+          TANK_SIZE * 0.18,
+          rocketBaseWidth,
+          rocketBaseHeight,
+          TANK_SIZE * 0.12,
+        )
+        .fill({ color: 0x1f2937, alpha: 0.9 })
+        .roundRect(
+          -rocketBaseWidth / 2 + 6,
+          TANK_SIZE * 0.18 + rocketBaseHeight * 0.2,
+          rocketBaseWidth - 12,
+          rocketBaseHeight * 0.45,
+          rocketBaseHeight * 0.25,
+        )
+        .fill({ color: 0x475569, alpha: 0.9 });
+
+      const ghostStripeWidth = rocketBaseWidth / 5;
+      for (let i = 0; i < 4; i += 1) {
+        const sx = -rocketBaseWidth / 2 + 6 + i * ghostStripeWidth;
+        const color = i % 2 === 0 ? 0xfacc15 : 0x111827;
+        sprite
+          .roundRect(
+            sx,
+            TANK_SIZE * 0.18 + rocketBaseHeight * 0.35,
+            ghostStripeWidth * 0.5,
+            rocketBaseHeight * 0.4,
+            ghostStripeWidth * 0.2,
+          )
+          .fill({ color, alpha: 0.85 });
+      }
+
+      sprite
+        .roundRect(
+          -rocketTowerWidth / 2,
+          -rocketTowerHeight / 2,
+          rocketTowerWidth,
+          rocketTowerHeight,
+          TANK_SIZE * 0.12,
+        )
+        .fill({ color: 0x334155 })
+        .stroke({ width: 2, color: 0x0ea5e9, alpha: 1 });
+
+      const ghostWindowWidth = rocketTowerWidth * 0.28;
+      const ghostWindowHeight = rocketTowerHeight * 0.16;
+      for (let i = 0; i < 3; i += 1) {
+        const wy = -rocketTowerHeight * 0.3 + i * ghostWindowHeight * 1.2;
+        sprite
+          .roundRect(
+            -ghostWindowWidth / 2,
+            wy,
+            ghostWindowWidth,
+            ghostWindowHeight,
+            ghostWindowHeight * 0.4,
+          )
+          .fill({ color: 0x38bdf8, alpha: 0.85 });
+      }
+
+      const ghostFinWidth = rocketTowerWidth * 0.24;
+      const ghostFinHeight = rocketTowerHeight * 0.42;
+      const ghostFinOffsetX = rocketTowerWidth * 0.72;
+      sprite
+        .roundRect(
+          -ghostFinOffsetX - ghostFinWidth / 2,
+          -ghostFinHeight / 2,
+          ghostFinWidth,
+          ghostFinHeight,
+          ghostFinWidth * 0.5,
+        )
+        .fill({ color: 0x7c2d12, alpha: 0.9 })
+        .roundRect(
+          ghostFinOffsetX - ghostFinWidth / 2,
+          -ghostFinHeight / 2,
+          ghostFinWidth,
+          ghostFinHeight,
+          ghostFinWidth * 0.5,
+        )
+        .fill({ color: 0x7c2d12, alpha: 0.9 });
+
+      sprite
+        .roundRect(
+          -TANK_SIZE * 0.26,
+          -TANK_SIZE * 0.1,
+          TANK_SIZE * 0.52,
+          rocketTrackHeight,
+          rocketTrackHeight * 0.4,
+        )
+        .fill({ color: 0x0f172a })
+        .circle(TANK_SIZE * 0.16, -TANK_SIZE * 0.02, rocketRadius)
+        .fill({ color: 0xf97316 })
+        .circle(0, -rocketTowerHeight * 0.5, rocketTowerWidth * 0.2)
+        .fill({ color: 0xfef3c7, alpha: 0.95 });
+    } else {
+      // 坦克幽灵（与实际坦克一致造型）
+      const hullRadius = TANK_SIZE * 0.24;
+      const turretRadius = TANK_SIZE * 0.18;
+      const barrelLength = TANK_SIZE * 0.75;
+      const barrelHalfHeight = TANK_SIZE * 0.09;
+      const trackHeight = TANK_SIZE * 0.22;
+
+      sprite = new Graphics();
+      sprite
+        .roundRect(
+          -TANK_SIZE / 2 + 4,
+          -TANK_SIZE / 2 + 6,
+          TANK_SIZE - 8,
+          TANK_SIZE - 4,
+          hullRadius,
+        )
+        .fill({ color: 0x000000, alpha: 0.22 })
+        .roundRect(
+          -TANK_SIZE / 2,
+          -TANK_SIZE / 2,
+          TANK_SIZE,
+          trackHeight,
+          trackHeight / 2,
+        )
+        .fill({ color: 0x111827 })
+        .roundRect(
+          -TANK_SIZE / 2,
+          TANK_SIZE / 2 - trackHeight,
+          TANK_SIZE,
+          trackHeight,
+          trackHeight / 2,
+        )
+        .fill({ color: 0x111827 });
+
+      const wheelRadius = trackHeight * 0.32;
+      const wheelCount = 4;
+      for (let i = 0; i < wheelCount; i += 1) {
+        const t = wheelCount === 1 ? 0.5 : i / (wheelCount - 1);
+        const wx = -TANK_SIZE / 2 + TANK_SIZE * (0.18 + 0.64 * t);
+        const wyTop = -TANK_SIZE / 2 + trackHeight / 2;
+        const wyBottom = TANK_SIZE / 2 - trackHeight / 2;
+        sprite.circle(wx, wyTop, wheelRadius).fill({ color: 0x1f2937 });
+        sprite.circle(wx, wyBottom, wheelRadius).fill({ color: 0x1f2937 });
+      }
+
+      sprite
+        .roundRect(
+          -TANK_SIZE / 2 + 6,
+          -TANK_SIZE / 2 + trackHeight * 0.6,
+          TANK_SIZE - 12,
+          TANK_SIZE - trackHeight * 1.2,
+          hullRadius,
+        )
+        .fill({ color: TANK_COLOR })
+        .stroke({ width: 2, color: 0x15803d, alpha: 1 })
+        .roundRect(
+          -TANK_SIZE / 2 + 10,
+          -TANK_SIZE / 2 + trackHeight * 0.8,
+          TANK_SIZE - 20,
+          TANK_SIZE - trackHeight * 1.6,
+          hullRadius * 0.85,
+        )
+        .fill({ color: 0x34d399, alpha: 0.75 })
+        .rect(-TANK_SIZE / 2 + 12, 0, TANK_SIZE - 24, 2)
+        .fill({ color: 0x14532d, alpha: 0.45 });
+
+      const ghostLightY = TANK_SIZE / 2 - trackHeight * 0.55;
+      const ghostLightRadius = TANK_SIZE * 0.08;
+      sprite
+        .circle(-TANK_SIZE * 0.2, ghostLightY, ghostLightRadius)
+        .fill({ color: 0xfef08a, alpha: 0.9 })
+        .circle(TANK_SIZE * 0.2, ghostLightY, ghostLightRadius)
+        .fill({ color: 0xfef3c7, alpha: 0.9 });
+
+      sprite
+        .roundRect(
+          -TANK_SIZE / 2 + 8,
+          -TANK_SIZE / 2 + trackHeight * 0.55,
+          6,
+          TANK_SIZE - trackHeight * 1.1,
+          3,
+        )
+        .fill({ color: 0x0f172a, alpha: 0.4 })
+        .roundRect(
+          TANK_SIZE / 2 - 14,
+          -TANK_SIZE / 2 + trackHeight * 0.55,
+          6,
+          TANK_SIZE - trackHeight * 1.1,
+          3,
+        )
+        .fill({ color: 0x0f172a, alpha: 0.4 });
+
+      sprite
+        .circle(0, -TANK_SIZE * 0.06, turretRadius * 1.05)
+        .fill({ color: 0x15803d })
+        .stroke({ width: 2, color: 0x0f172a, alpha: 0.6 })
+        .circle(0, -TANK_SIZE * 0.06, turretRadius)
+        .fill({ color: TANK_BARREL_COLOR })
+        .stroke({ width: 2, color: 0x14532d, alpha: 1 })
+        .roundRect(
+          -TANK_SIZE * 0.08,
+          -TANK_SIZE * 0.16,
+          TANK_SIZE * 0.16,
+          TANK_SIZE * 0.32,
+          TANK_SIZE * 0.04,
+        )
+        .fill({ color: 0x16a34a, alpha: 0.92 })
+        .roundRect(
+          0,
+          -barrelHalfHeight,
+          barrelLength,
+          barrelHalfHeight * 2,
+          barrelHalfHeight,
+        )
+        .fill({ color: TANK_BARREL_COLOR })
+        .stroke({ width: 2, color: 0x0f172a, alpha: 0.5 })
+        .roundRect(
+          barrelLength * 0.35,
+          -barrelHalfHeight * 0.55,
+          barrelLength * 0.45,
+          barrelHalfHeight * 1.1,
+          barrelHalfHeight * 0.45,
+        )
+        .fill({ color: 0x16a34a, alpha: 0.85 })
+        .circle(barrelLength - barrelHalfHeight * 0.2, 0, barrelHalfHeight * 0.55)
+        .fill({ color: 0xfef08a, alpha: 0.95 });
+    }
 
     sprite.alpha = 0.85;
     sprite.x = x;
@@ -255,22 +727,36 @@ export class WeaponContainer {
     const cellCenterX = col * CELL_SIZE + CELL_SIZE / 2;
     const cellCenterY = row * CELL_SIZE + CELL_SIZE / 2;
 
-    // 使用金币放置武器
+    // 使用金币放置武器（根据拖拽类型区分）
     const level = 1;
-    const cost = level * WEAPON_BASE_COST;
+    let cost = level * WEAPON_BASE_COST;
+    if (this.dragType === 'rocket') {
+      cost = level * ROCKET_BASE_COST;
+    }
+
     if (this.goldManager && !this.goldManager.spend(cost)) {
       // 金币不够，放置失败
       return;
     }
 
-    // 创建一个坦克武器，后续由更新逻辑决定攻击哪个敌人
-    const weapon = new TankWeapon(
-      this.app,
-      col,
-      row,
-      cellCenterX,
-      cellCenterY,
-    );
+    let weapon;
+    if (this.dragType === 'rocket') {
+      weapon = new RocketTower(
+        this.app,
+        col,
+        row,
+        cellCenterX,
+        cellCenterY,
+      );
+    } else {
+      weapon = new TankWeapon(
+        this.app,
+        col,
+        row,
+        cellCenterX,
+        cellCenterY,
+      );
+    }
     this.weapons.push(weapon);
 
     // 允许点击画布上的坦克进行选中/升级/卖掉
@@ -404,8 +890,15 @@ export class WeaponContainer {
       this.sellLabel.text = `卖掉 ${sellGain}`;
     }
 
-    const canUpgrade = level < maxLevel;
-    if (this.upgradeButton) this.upgradeButton.visible = canUpgrade;
+    // 只有在未满级且金币足够时才显示升级按钮
+    const canUpgradeByLevel = level < maxLevel;
+    const canAfford =
+      !this.goldManager ||
+      (typeof this.goldManager.canAfford === 'function'
+        && this.goldManager.canAfford(upgradeCost));
+    const showUpgrade = canUpgradeByLevel && canAfford;
+
+    if (this.upgradeButton) this.upgradeButton.visible = showUpgrade;
     if (this.sellButton) this.sellButton.visible = true;
   }
 }

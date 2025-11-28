@@ -21,6 +21,11 @@ import {
   WORLD_WIDTH,
 } from './constants';
 import { soundManager } from './soundManager';
+import {
+  createSoftShadow,
+  getPerspectiveByY,
+  updateShadowTransform,
+} from './depthUtils';
 
 class EnemyBullet {
   constructor(app, x, y, angle) {
@@ -66,49 +71,100 @@ class EnemyTank {
     this.app = app;
     this.gridCol = gridCol;
     this.gridRow = gridRow;
+    this.perspectiveScale = 1;
+    this.visualScale = 1;
 
     const centerX = gridCol * CELL_SIZE + CELL_SIZE / 2;
     const centerY = gridRow * CELL_SIZE + CELL_SIZE / 2;
 
     const hullRadius = ENEMY_SIZE * 0.25;
-    const treadHeight = ENEMY_SIZE * 0.22;
-    const treadOffsetY = ENEMY_SIZE * 0.24;
+    const trackHeight = ENEMY_SIZE * 0.22;
     const turretRadius = ENEMY_SIZE * 0.22;
-    const barrelLength = ENEMY_SIZE * 0.7;
+    const barrelLength = ENEMY_SIZE * 0.78;
     const barrelHalfHeight = ENEMY_SIZE * 0.08;
 
-    this.sprite = new Graphics()
-      // 车体
+    this.sprite = new Graphics();
+
+    // 阴影
+    this.sprite
+      .roundRect(
+        -ENEMY_SIZE / 2 + 4,
+        -ENEMY_SIZE / 2 + 6,
+        ENEMY_SIZE - 8,
+        ENEMY_SIZE - 6,
+        hullRadius,
+      )
+      .fill({ color: 0x000000, alpha: 0.24 });
+
+    // 上下履带
+    this.sprite
       .roundRect(
         -ENEMY_SIZE / 2,
         -ENEMY_SIZE / 2,
         ENEMY_SIZE,
+        trackHeight,
+        trackHeight / 2,
+      )
+      .fill({ color: 0x0f172a })
+      .roundRect(
+        -ENEMY_SIZE / 2,
+        ENEMY_SIZE / 2 - trackHeight,
         ENEMY_SIZE,
+        trackHeight,
+        trackHeight / 2,
+      )
+      .fill({ color: 0x0f172a });
+
+    // 履带滚轮
+    const wheelRadius = trackHeight * 0.32;
+    const wheelCount = 4;
+    for (let i = 0; i < wheelCount; i += 1) {
+      const t = wheelCount === 1 ? 0.5 : i / (wheelCount - 1);
+      const wx = -ENEMY_SIZE / 2 + ENEMY_SIZE * (0.18 + 0.64 * t);
+      const wyTop = -ENEMY_SIZE / 2 + trackHeight / 2;
+      const wyBottom = ENEMY_SIZE / 2 - trackHeight / 2;
+      this.sprite.circle(wx, wyTop, wheelRadius).fill({ color: 0x1f2937 });
+      this.sprite.circle(wx, wyBottom, wheelRadius).fill({ color: 0x1f2937 });
+    }
+
+    // 主车体
+    this.sprite
+      .roundRect(
+        -ENEMY_SIZE / 2 + 6,
+        -ENEMY_SIZE / 2 + trackHeight * 0.65,
+        ENEMY_SIZE - 12,
+        ENEMY_SIZE - trackHeight * 1.3,
         hullRadius,
       )
       .fill({ color: ENEMY_COLOR })
-      // 左履带
+      .stroke({ width: 2, color: 0x7f1d1d, alpha: 1 });
+
+    // 前装甲条与徽记
+    this.sprite
       .roundRect(
-        -ENEMY_SIZE / 2,
-        -treadOffsetY,
-        ENEMY_SIZE * 0.3,
-        treadHeight,
-        treadHeight / 2,
+        -ENEMY_SIZE / 2 + 10,
+        -ENEMY_SIZE * 0.08,
+        ENEMY_SIZE - 20,
+        ENEMY_SIZE * 0.18,
+        ENEMY_SIZE * 0.05,
       )
-      .fill({ color: 0x111827 })
-      // 右履带
-      .roundRect(
-        ENEMY_SIZE / 2 - ENEMY_SIZE * 0.3,
-        -treadOffsetY,
-        ENEMY_SIZE * 0.3,
-        treadHeight,
-        treadHeight / 2,
-      )
-      .fill({ color: 0x111827 })
-      // 炮塔
-      .circle(0, -ENEMY_SIZE * 0.1, turretRadius)
+      .fill({ color: 0x991b1b, alpha: 0.9 })
+      .circle(-ENEMY_SIZE * 0.18, -ENEMY_SIZE * 0.02, ENEMY_SIZE * 0.07)
+      .fill({ color: 0xfda4af });
+
+    // 炮塔与炮口
+    this.sprite
+      .circle(0, -ENEMY_SIZE * 0.05, turretRadius)
       .fill({ color: 0x7f1d1d })
-      // 炮管
+      .stroke({ width: 2, color: 0x450a0a, alpha: 1 })
+      .roundRect(
+        -ENEMY_SIZE * 0.08,
+        -ENEMY_SIZE * 0.18,
+        ENEMY_SIZE * 0.16,
+        ENEMY_SIZE * 0.36,
+        ENEMY_SIZE * 0.06,
+      )
+      .fill({ color: 0xb91c1c, alpha: 0.95 })
       .roundRect(
         0,
         -barrelHalfHeight,
@@ -122,6 +178,10 @@ class EnemyTank {
     this.sprite.y = centerY;
 
     const world = this.app.world || this.app.stage;
+    this.shadow = createSoftShadow(ENEMY_SIZE * 0.42);
+    this.shadow.eventMode = 'none';
+    this.shadow.zIndex = 0;
+    world.addChild(this.shadow);
     world.addChild(this.sprite);
 
     this.targetCol = gridCol;
@@ -139,6 +199,7 @@ class EnemyTank {
     world.addChild(this.hpBarFill);
 
     this.updateHpBar();
+    this.refreshDepthVisual();
 
     // 当前规划路径（按格子坐标序列）
     this.path = [];
@@ -432,12 +493,14 @@ class EnemyTank {
     });
 
     this.bullets = aliveBullets;
+    this.refreshDepthVisual();
   }
 
   destroy() {
     this.bullets.forEach((b) => b.destroy());
     this.bullets = [];
     const world = this.app.world || this.app.stage;
+    if (this.shadow) world.removeChild(this.shadow);
     if (this.hpBarBg) world.removeChild(this.hpBarBg);
     if (this.hpBarFill) world.removeChild(this.hpBarFill);
     world.removeChild(this.sprite);
@@ -480,6 +543,17 @@ class EnemyTank {
         .fill({ color: 0x22c55e });
       this.hpBarFill.position.set(this.sprite.x, this.sprite.y - offsetY);
     }
+  }
+
+  applyCombinedScale() {
+    this.sprite.scale.set(this.perspectiveScale * this.visualScale);
+  }
+
+  refreshDepthVisual() {
+    const perspective = getPerspectiveByY(this.sprite.y);
+    this.perspectiveScale = perspective.scale;
+    this.applyCombinedScale();
+    updateShadowTransform(this.shadow, this.sprite.x, this.sprite.y, perspective);
   }
 }
 
