@@ -364,8 +364,10 @@ export class EnemyTank {
     if (inAttackRange && closest) {
       const sx = this.sprite.x;
       const sy = this.sprite.y;
-      const tx = closest.turret.x;
-      const ty = closest.turret.y;
+      // TankWeapon使用turretHead，其他武器使用turret或container
+      const targetDisplay = closest.turret || closest.turretHead || closest.container;
+      const tx = targetDisplay.x;
+      const ty = targetDisplay.y;
       const angle = Math.atan2(ty - sy, tx - sx);
 
       this.sprite.rotation = angle;
@@ -478,9 +480,11 @@ export class EnemyTank {
 
       let hit = false;
       for (const weapon of weapons) {
-        if (!weapon || !weapon.turret) continue;
-        const dx = bullet.sprite.x - weapon.turret.x;
-        const dy = bullet.sprite.y - weapon.turret.y;
+        // TankWeapon使用turretHead，其他武器使用turret或container
+        const targetDisplay = weapon.turret || weapon.turretHead || weapon.container;
+        if (!weapon || !targetDisplay) continue;
+        const dx = bullet.sprite.x - targetDisplay.x;
+        const dy = bullet.sprite.y - targetDisplay.y;
         const distSq = dx * dx + dy * dy;
         const hitRadius = bullet.radius + TANK_SIZE * 0.4;
         if (distSq <= hitRadius * hitRadius) {

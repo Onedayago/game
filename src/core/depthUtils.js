@@ -35,7 +35,7 @@ export function createSoftShadow(radius = CELL_SIZE * 0.45) {
     .ellipse(0, 0, radius, radius * 0.55)
     .fill({ color: 0x000000, alpha: 0.8 });
   const blur = new BlurFilter();
-  blur.blur = 4;
+  blur.strength = 4;
   shadow.filters = [blur];
   shadow.alpha = 0.5;
   return shadow;
