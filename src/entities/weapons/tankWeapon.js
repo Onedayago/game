@@ -296,14 +296,28 @@ export class TankWeapon {
     this.shadow.zIndex = 0;
     this.shadow.eventMode = 'none';
     world.addChild(this.shadow);
-    world.addChild(this.turret);
-
-    // 选中高亮圈
+    
+    // 选中高亮圈 - 霓虹多层效果（先添加，在turret下面）
     this.selectionRing = new Graphics()
+      // 外层光晕
+      .circle(0, 0, TANK_SIZE * 0.85)
+      .stroke({ width: 2, color: COLORS.GOLD, alpha: 0.3 })
+      // 中层光晕
+      .circle(0, 0, TANK_SIZE * 0.75)
+      .stroke({ width: 3, color: COLORS.GOLD, alpha: 0.6 })
+      // 内层主光环
       .circle(0, 0, TANK_SIZE * 0.7)
-      .stroke({ width: 3, color: COLORS.GOLD, alpha: 1 });
+      .stroke({ width: 4, color: COLORS.GOLD, alpha: 1 })
+      // 内圈细节
+      .circle(0, 0, TANK_SIZE * 0.65)
+      .stroke({ width: 1, color: 0xfef3c7, alpha: 0.8 });
+    this.selectionRing.x = x;
+    this.selectionRing.y = y;
     this.selectionRing.visible = false;
-    this.turret.addChildAt(this.selectionRing, 0);
+    this.selectionRing.eventMode = 'none';
+    world.addChild(this.selectionRing);
+    
+    world.addChild(this.turret);
 
     // 血条显示（单独添加到舞台，保持始终在武器上方且不随旋转缩放）
     this.hpBarBg = new Graphics();
@@ -357,6 +371,7 @@ export class TankWeapon {
     this.bullets = [];
     const world = this.app.world || this.app.stage;
     if (this.shadow) world.removeChild(this.shadow);
+    if (this.selectionRing) world.removeChild(this.selectionRing);
     if (this.hpBarBg) world.removeChild(this.hpBarBg);
     if (this.hpBarFill) world.removeChild(this.hpBarFill);
     world.removeChild(this.turret);
@@ -580,7 +595,11 @@ export class TankWeapon {
   }
 
   applyCombinedScale() {
-    this.turret.scale.set(this.perspectiveScale * this.visualScale);
+    const finalScale = this.perspectiveScale * this.visualScale;
+    this.turret.scale.set(finalScale);
+    if (this.selectionRing) {
+      this.selectionRing.scale.set(finalScale);
+    }
   }
 
   refreshDepthVisual() {

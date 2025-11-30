@@ -17,6 +17,9 @@ import {
   WEAPON_SELL_BASE_GAIN,
   WORLD_WIDTH,
   ROCKET_BASE_COST,
+  LASER_BASE_COST,
+  LASER_UPGRADE_BASE_COST,
+  LASER_SELL_BASE_GAIN,
   COLORS,
   BATTLE_ROWS,
   BATTLE_HEIGHT,
@@ -28,6 +31,7 @@ import {
 } from '../constants';
 import { TankWeapon } from '../entities/weapons/tankWeapon';
 import { RocketTower } from '../entities/weapons/rocketTower';
+import { LaserTower } from '../entities/weapons/laserTower';
 
 export class WeaponContainer {
   constructor(app, goldManager) {
@@ -35,13 +39,13 @@ export class WeaponContainer {
     this.goldManager = goldManager;
     this.weapons = [];
     this.dragSprite = null;
-    this.dragType = 'tank'; // 'tank' | 'rocket'
+    this.dragType = 'tank'; // 'tank' | 'rocket' | 'laser'
     this.selectedWeapon = null;
     this.upgradeButton = null;
     this.sellButton = null;
     this.upgradeLabel = null;
     this.sellLabel = null;
-
+    
     this.createContainer();
     this.setupStageEvents();
 
@@ -56,17 +60,29 @@ export class WeaponContainer {
     const buttonHeight = ACTION_BUTTON_HEIGHT;
     const radius = ACTION_BUTTON_RADIUS;
 
-    // 升级按钮
+    // 升级按钮 - 霓虹绿色主题
     this.upgradeButton = new Graphics()
+      // 外部光晕
+      .roundRect(-buttonWidth / 2 - 2, -buttonHeight / 2 - 2, buttonWidth + 4, buttonHeight + 4, radius + 2)
+      .fill({ color: COLORS.SUCCESS, alpha: 0.2 })
+      // 主体
       .roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, radius)
-      .fill({ color: COLORS.SUCCESS })
-      .stroke({ width: ACTION_BUTTON_STROKE_WIDTH, color: 0x15803d, alpha: 1 });
+      .fill({ color: COLORS.SUCCESS, alpha: 0.9 })
+      .stroke({ width: ACTION_BUTTON_STROKE_WIDTH, color: COLORS.SUCCESS, alpha: 1 })
+      // 内部高光
+      .roundRect(-buttonWidth / 2 + 2, -buttonHeight / 2 + 2, buttonWidth - 4, buttonHeight - 4, radius - 2)
+      .stroke({ width: 1, color: 0xffffff, alpha: 0.4 });
 
     this.upgradeLabel = new Text({
-      text: '升级',
+      text: '⬆️ 升级',
       style: {
         fill: COLORS.TEXT_MAIN,
         fontSize: ACTION_BUTTON_FONT_SIZE,
+        fontWeight: 'bold',
+        dropShadow: true,
+        dropShadowColor: COLORS.SUCCESS,
+        dropShadowBlur: 4,
+        dropShadowDistance: 0,
       },
     });
     this.upgradeLabel.anchor.set(0.5);
@@ -75,6 +91,14 @@ export class WeaponContainer {
     this.upgradeButton.eventMode = 'static';
     this.upgradeButton.cursor = 'pointer';
     this.upgradeButton.visible = false;
+    
+    // Hover效果
+    this.upgradeButton.on('pointerover', () => {
+      this.upgradeButton.alpha = 1.2;
+    });
+    this.upgradeButton.on('pointerout', () => {
+      this.upgradeButton.alpha = 1;
+    });
     this.upgradeButton.on('pointerdown', (event) => {
       if (event && typeof event.stopPropagation === 'function') {
         event.stopPropagation();
@@ -85,7 +109,15 @@ export class WeaponContainer {
       const maxLevel = this.selectedWeapon.maxLevel ?? 1;
       if (level >= maxLevel) return;
 
-      const upgradeCost = level * WEAPON_UPGRADE_BASE_COST;
+      // 根据武器类型确定升级成本
+      let upgradeBaseCost = WEAPON_UPGRADE_BASE_COST;
+      if (this.selectedWeapon instanceof RocketTower) {
+        upgradeBaseCost = ROCKET_UPGRADE_BASE_COST;
+      } else if (this.selectedWeapon instanceof LaserTower) {
+        upgradeBaseCost = LASER_UPGRADE_BASE_COST;
+      }
+      
+      const upgradeCost = level * upgradeBaseCost;
       // 点击按钮升级同样要走金币扣除逻辑
       if (!this.goldManager || this.goldManager.spend(upgradeCost)) {
         this.selectedWeapon.upgrade();
@@ -94,17 +126,29 @@ export class WeaponContainer {
       }
     });
 
-    // 卖掉按钮
+    // 卖掉按钮 - 霓虹红色主题
     this.sellButton = new Graphics()
+      // 外部光晕
+      .roundRect(-buttonWidth / 2 - 2, -buttonHeight / 2 - 2, buttonWidth + 4, buttonHeight + 4, radius + 2)
+      .fill({ color: COLORS.DANGER, alpha: 0.2 })
+      // 主体
       .roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, radius)
-      .fill({ color: COLORS.DANGER })
-      .stroke({ width: ACTION_BUTTON_STROKE_WIDTH, color: 0xb91c1c, alpha: 1 });
+      .fill({ color: COLORS.DANGER, alpha: 0.9 })
+      .stroke({ width: ACTION_BUTTON_STROKE_WIDTH, color: COLORS.DANGER, alpha: 1 })
+      // 内部高光
+      .roundRect(-buttonWidth / 2 + 2, -buttonHeight / 2 + 2, buttonWidth - 4, buttonHeight - 4, radius - 2)
+      .stroke({ width: 1, color: 0xffffff, alpha: 0.4 });
 
     this.sellLabel = new Text({
-      text: '卖掉',
+      text: '💰 出售',
       style: {
         fill: COLORS.TEXT_MAIN,
         fontSize: ACTION_BUTTON_FONT_SIZE,
+        fontWeight: 'bold',
+        dropShadow: true,
+        dropShadowColor: COLORS.DANGER,
+        dropShadowBlur: 4,
+        dropShadowDistance: 0,
       },
     });
     this.sellLabel.anchor.set(0.5);
@@ -113,6 +157,15 @@ export class WeaponContainer {
     this.sellButton.eventMode = 'static';
     this.sellButton.cursor = 'pointer';
     this.sellButton.visible = false;
+    
+    // Hover效果
+    this.sellButton.on('pointerover', () => {
+      this.sellButton.alpha = 1.2;
+    });
+    this.sellButton.on('pointerout', () => {
+      this.sellButton.alpha = 1;
+    });
+    
     this.sellButton.on('pointerdown', (event) => {
       if (event && typeof event.stopPropagation === 'function') {
         event.stopPropagation();
@@ -130,15 +183,29 @@ export class WeaponContainer {
     const centerX = APP_WIDTH / 2;
     const centerY = APP_HEIGHT - WEAPON_CONTAINER_MARGIN_BOTTOM - height / 2;
 
-    // 背景条
+    // 霓虹外光晕
+    const glowRadius = 16;
+    const glowColor = COLORS.ALLY_BODY;
+
     this.background = new Graphics()
+      // 外部光晕层
+      .roundRect(-width / 2 - glowRadius, -height / 2 - glowRadius, 
+                 width + glowRadius * 2, height + glowRadius * 2, 20)
+      .fill({ color: glowColor, alpha: 0.08 })
+      .roundRect(-width / 2 - glowRadius / 2, -height / 2 - glowRadius / 2, 
+                 width + glowRadius, height + glowRadius, 18)
+      .fill({ color: glowColor, alpha: 0.12 })
+      // 边框
       .roundRect(-width / 2, -height / 2, width, height, 16)
-      .fill({ color: WEAPON_CONTAINER_BG_COLOR })
-      .stroke({
-        width: WEAPON_CONTAINER_BORDER_WIDTH,
-        color: WEAPON_CONTAINER_BORDER_COLOR,
-        alpha: 1,
-      });
+      .fill({ color: WEAPON_CONTAINER_BG_COLOR, alpha: 0.95 })
+      .stroke({ width: WEAPON_CONTAINER_BORDER_WIDTH + 2, color: glowColor, alpha: 0.6 })
+      .stroke({ width: WEAPON_CONTAINER_BORDER_WIDTH, color: WEAPON_CONTAINER_BORDER_COLOR, alpha: 0.9 })
+      // 内部光晕边框
+      .roundRect(-width / 2 + 4, -height / 2 + 4, width - 8, height - 8, 14)
+      .stroke({ width: 1, color: glowColor, alpha: 0.4 })
+      // 顶部装饰条
+      .roundRect(-width / 2 + 12, -height / 2 + 12, width - 24, height * 0.08, 8)
+      .fill({ color: glowColor, alpha: 0.15 });
 
     this.background.x = centerX;
     this.background.y = centerY;
@@ -153,48 +220,111 @@ export class WeaponContainer {
     this.innerGlass.y = centerY;
     this.innerGlass.eventMode = 'none';
 
-    // 顶部标题
+    // 顶部标题 - 添加霓虹效果
     this.header = new Text({
-      text: '武器库',
+      text: '⚔️ 武器库 ⚔️',
       style: {
-        fill: COLORS.GOLD,
+        fill: 0xf9fafb,
         fontSize: 22,
         fontWeight: 'bold',
+        dropShadow: true,
+        dropShadowColor: glowColor,
+        dropShadowBlur: 8,
+        dropShadowDistance: 0,
       },
     });
-    this.header.anchor.set(0.5, 0);
-    this.header.position.set(centerX, centerY - height / 2 + 8);
+    this.header.anchor.set(0.5, 0.5);
+    this.header.position.set(centerX, centerY - height / 2 + 32);
 
     this.subHeader = new Text({
-      text: '拖拽至战场以部署',
+      text: '点击图标拖拽部署武器  |  点击武器进行升级/出售',
       style: {
         fill: COLORS.TEXT_SUB,
-        fontSize: 14,
+        fontSize: 12,
+        dropShadow: true,
+        dropShadowColor: 0x000000,
+        dropShadowBlur: 4,
+        dropShadowDistance: 1,
       },
     });
     this.subHeader.anchor.set(0.5, 0);
-    this.subHeader.position.set(centerX, centerY - height / 2 + 32);
+    this.subHeader.position.set(centerX, centerY - height / 2 + 52);
 
-    // 左右卡片背景
-    const cardWidth = width / 2 - 24;
-    const cardHeight = height - 56;
+    // 三列卡片布局
+    const cardWidth = width / 3 - 20;
+    const cardHeight = height - 72;
     const cardPadding = 18;
     const iconAreaWidth = TANK_SIZE * 1.6;
     const textAreaWidth = cardWidth - iconAreaWidth - cardPadding * 2;
+    const cardSpacing = 14;
+    
+    // 左侧坦克卡片（青色主题）
+    const tankColor = COLORS.ALLY_BODY;
     this.leftCard = new Graphics()
+      // 外部光晕
+      .roundRect(-cardWidth / 2 - 3, -cardHeight / 2 - 3, cardWidth + 6, cardHeight + 6, 16)
+      .fill({ color: tankColor, alpha: 0.12 })
+      // 边框
+      .roundRect(-cardWidth / 2 - 2, -cardHeight / 2 - 2, cardWidth + 4, cardHeight + 4, 15)
+      .stroke({ width: 2, color: tankColor, alpha: 0.4 })
+      // 主背景
       .roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 14)
-      .fill({ color: 0x111827, alpha: 0.85 })
-      .stroke({ width: 1, color: 0x1f2937, alpha: 0.9 });
-    this.leftCard.x = centerX - cardWidth / 2 - 8;
-    this.leftCard.y = centerY + 12;
+      .fill({ color: 0x111827, alpha: 0.9 })
+      .stroke({ width: 2, color: 0x0a1929, alpha: 0.6 })
+      // 内部光晕
+      .roundRect(-cardWidth / 2 + 2, -cardHeight / 2 + 2, cardWidth - 4, cardHeight - 4, 12)
+      .stroke({ width: 1, color: tankColor, alpha: 0.35 })
+      // 顶部装饰条
+      .roundRect(-cardWidth / 2 + 8, -cardHeight / 2 + 8, cardWidth - 16, cardHeight * 0.15, 8)
+      .fill({ color: tankColor, alpha: 0.15 });
+    this.leftCard.x = centerX - cardWidth - cardSpacing;
+    this.leftCard.y = centerY + 20;
     this.leftCard.eventMode = 'none';
 
-    this.rightCard = new Graphics()
+    // 中间激光塔卡片（绿色主题）
+    const laserColor = COLORS.LASER_BODY;
+    this.middleCard = new Graphics()
+      // 外部光晕
+      .roundRect(-cardWidth / 2 - 3, -cardHeight / 2 - 3, cardWidth + 6, cardHeight + 6, 16)
+      .fill({ color: laserColor, alpha: 0.12 })
+      // 边框
+      .roundRect(-cardWidth / 2 - 2, -cardHeight / 2 - 2, cardWidth + 4, cardHeight + 4, 15)
+      .stroke({ width: 2, color: laserColor, alpha: 0.4 })
+      // 主背景
       .roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 14)
-      .fill({ color: 0x111827, alpha: 0.85 })
-      .stroke({ width: 1, color: 0x1f2937, alpha: 0.9 });
-    this.rightCard.x = centerX + cardWidth / 2 + 8;
-    this.rightCard.y = centerY + 12;
+      .fill({ color: 0x111827, alpha: 0.9 })
+      .stroke({ width: 2, color: 0x0a1a0f, alpha: 0.6 })
+      // 内部光晕
+      .roundRect(-cardWidth / 2 + 2, -cardHeight / 2 + 2, cardWidth - 4, cardHeight - 4, 12)
+      .stroke({ width: 1, color: laserColor, alpha: 0.35 })
+      // 顶部装饰条
+      .roundRect(-cardWidth / 2 + 8, -cardHeight / 2 + 8, cardWidth - 16, cardHeight * 0.15, 8)
+      .fill({ color: laserColor, alpha: 0.15 });
+    this.middleCard.x = centerX;
+    this.middleCard.y = centerY + 20;
+    this.middleCard.eventMode = 'none';
+
+    // 右侧火箭塔卡片（紫色主题）
+    const rocketColor = COLORS.ROCKET_BODY;
+    this.rightCard = new Graphics()
+      // 外部光晕
+      .roundRect(-cardWidth / 2 - 3, -cardHeight / 2 - 3, cardWidth + 6, cardHeight + 6, 16)
+      .fill({ color: rocketColor, alpha: 0.12 })
+      // 边框
+      .roundRect(-cardWidth / 2 - 2, -cardHeight / 2 - 2, cardWidth + 4, cardHeight + 4, 15)
+      .stroke({ width: 2, color: rocketColor, alpha: 0.4 })
+      // 主背景
+      .roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 14)
+      .fill({ color: 0x111827, alpha: 0.9 })
+      .stroke({ width: 2, color: 0x1a0a29, alpha: 0.6 })
+      // 内部光晕
+      .roundRect(-cardWidth / 2 + 2, -cardHeight / 2 + 2, cardWidth - 4, cardHeight - 4, 12)
+      .stroke({ width: 1, color: rocketColor, alpha: 0.35 })
+      // 顶部装饰条
+      .roundRect(-cardWidth / 2 + 8, -cardHeight / 2 + 8, cardWidth - 16, cardHeight * 0.15, 8)
+      .fill({ color: rocketColor, alpha: 0.15 });
+    this.rightCard.x = centerX + cardWidth + cardSpacing;
+    this.rightCard.y = centerY + 20;
     this.rightCard.eventMode = 'none';
 
     // 武器图标（显示在容器中间，可被拖拽）——与实际坦克造型保持一致（美化版）
@@ -333,30 +463,54 @@ export class WeaponContainer {
 
     const iconY = centerY + 8;
     const leftIconX = this.leftCard.x + cardWidth / 2 - iconAreaWidth / 2;
+    
+    // 添加图标背景光晕
+    this.iconGlow = new Graphics()
+      .circle(0, 0, TANK_SIZE * 0.65)
+      .fill({ color: COLORS.ALLY_BODY, alpha: 0.15 })
+      .circle(0, 0, TANK_SIZE * 0.55)
+      .fill({ color: COLORS.ALLY_BODY, alpha: 0.1 })
+      .circle(0, 0, TANK_SIZE * 0.5)
+      .stroke({ width: 2, color: COLORS.ALLY_DETAIL, alpha: 0.4 })
+      .circle(0, 0, TANK_SIZE * 0.45)
+      .stroke({ width: 1, color: COLORS.ALLY_BODY, alpha: 0.3 });
+    this.iconGlow.x = leftIconX;
+    this.iconGlow.y = iconY;
+    this.iconGlow.eventMode = 'none';
+    
     this.icon.x = leftIconX;
     this.icon.y = iconY;
     this.icon.scale.x = -1;
 
-    // 容器武器价格显示（使用该武器需要的金币）
+    // 容器武器价格显示（使用该武器需要的金币）- 美化版
     this.iconPriceLabel = new Text({
-      text: `${WEAPON_BASE_COST}`,
+      text: `💰 ${WEAPON_BASE_COST}`,
       style: {
         fill: COLORS.GOLD,
-        fontSize: 15,
-      },
-    });
+        fontSize: 16,
+        fontWeight: 'bold',
+        dropShadow: true,
+        dropShadowColor: COLORS.GOLD,
+        dropShadowBlur: 4,
+        dropShadowDistance: 0,
+        },
+      });
     this.iconPriceLabel.anchor.set(0, 0);
     this.iconPriceLabel.x = this.leftCard.x - cardWidth / 2 + cardPadding;
-    this.iconPriceLabel.y = this.leftCard.y - cardHeight / 2 + cardPadding - 4;
+    this.iconPriceLabel.y = this.leftCard.y - cardHeight / 2 + cardPadding;
 
     this.iconDesc = new Text({
-      text: '标准坦克·均衡射速\n适合前线压制',
+      text: '⚔️ 标准坦克·均衡射速\n适合前线压制敌军',
       style: {
         fill: COLORS.TEXT_SUB,
         fontSize: 13,
         lineHeight: 18,
         wordWrap: true,
         wordWrapWidth: textAreaWidth,
+        dropShadow: true,
+        dropShadowColor: 0x000000,
+        dropShadowBlur: 2,
+        dropShadowDistance: 1,
       },
     });
     this.iconDesc.anchor.set(0, 0);
@@ -474,30 +628,55 @@ export class WeaponContainer {
       .circle(0, -rocketTowerHeight * 0.5, rocketTowerWidth * 0.2)
       .fill({ color: 0xfef3c7, alpha: 0.95 });
 
+    const middleIconX = this.middleCard.x + cardWidth / 2 - iconAreaWidth / 2;
     const rightIconX = this.rightCard.x + cardWidth / 2 - iconAreaWidth / 2;
+    
+    // 火箭塔图标背景光晕
+    this.rocketIconGlow = new Graphics()
+      .circle(0, 0, TANK_SIZE * 0.65)
+      .fill({ color: COLORS.ROCKET_BODY, alpha: 0.15 })
+      .circle(0, 0, TANK_SIZE * 0.55)
+      .fill({ color: COLORS.ROCKET_BODY, alpha: 0.1 })
+      .circle(0, 0, TANK_SIZE * 0.5)
+      .stroke({ width: 2, color: COLORS.ROCKET_DETAIL, alpha: 0.4 })
+      .circle(0, 0, TANK_SIZE * 0.45)
+      .stroke({ width: 1, color: COLORS.ROCKET_BODY, alpha: 0.3 });
+    this.rocketIconGlow.x = rightIconX;
+    this.rocketIconGlow.y = iconY;
+    this.rocketIconGlow.eventMode = 'none';
+    
     this.rocketIcon.x = rightIconX;
     this.rocketIcon.y = iconY;
     this.rocketIcon.scale.x = -1;
 
     this.rocketPriceLabel = new Text({
-      text: `${ROCKET_BASE_COST}`,
+      text: `💰 ${ROCKET_BASE_COST}`,
       style: {
-        fill: COLORS.ROCKET_BODY,
-        fontSize: 15,
+        fill: COLORS.GOLD,
+        fontSize: 16,
+        fontWeight: 'bold',
+        dropShadow: true,
+        dropShadowColor: COLORS.GOLD,
+        dropShadowBlur: 4,
+        dropShadowDistance: 0,
       },
     });
     this.rocketPriceLabel.anchor.set(0, 0);
     this.rocketPriceLabel.x = this.rightCard.x - cardWidth / 2 + cardPadding;
-    this.rocketPriceLabel.y = this.rightCard.y - cardHeight / 2 + cardPadding - 4;
+    this.rocketPriceLabel.y = this.rightCard.y - cardHeight / 2 + cardPadding;
 
     this.rocketDesc = new Text({
-      text: '追踪火箭·爆炸溅射\n擅长远距离收割',
+      text: '🚀 追踪火箭·高爆溅射\n有效打击集群敌人',
       style: {
         fill: COLORS.TEXT_SUB,
         fontSize: 13,
         lineHeight: 18,
         wordWrap: true,
         wordWrapWidth: textAreaWidth,
+        dropShadow: true,
+        dropShadowColor: 0x000000,
+        dropShadowBlur: 2,
+        dropShadowDistance: 1,
       },
     });
     this.rocketDesc.anchor.set(0, 0);
@@ -506,9 +685,137 @@ export class WeaponContainer {
       this.rocketPriceLabel.y + 26,
     );
 
+    // 激光塔图标（中间）
+    this.laserIcon = new Graphics();
+    const towerRadius = TANK_SIZE * 0.20;
+    const coreRadius = TANK_SIZE * 0.12;
+    
+    // 基座（六边形）
+    const baseSize = TANK_SIZE * 0.4;
+    const hexPoints = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i;
+      hexPoints.push(Math.cos(angle) * baseSize);
+      hexPoints.push(Math.sin(angle) * baseSize);
+    }
+    this.laserIcon
+      .poly(hexPoints)
+      .fill({ color: COLORS.LASER_BODY, alpha: 0.9 })
+      .stroke({ width: 2, color: COLORS.LASER_DETAIL, alpha: 0.7 });
+    
+    // 内层六边形装饰
+    const innerHexPoints = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i + Math.PI / 6;
+      innerHexPoints.push(Math.cos(angle) * baseSize * 0.6);
+      innerHexPoints.push(Math.sin(angle) * baseSize * 0.6);
+    }
+    this.laserIcon
+      .poly(innerHexPoints)
+      .fill({ color: 0x0a1a0f, alpha: 0.8 })
+      .stroke({ width: 1, color: COLORS.LASER_DETAIL, alpha: 0.5 });
+    
+    // 中央能量核心（圆形发光）
+    this.laserIcon
+      .circle(0, 0, coreRadius * 1.6)
+      .fill({ color: COLORS.LASER_DETAIL, alpha: 0.3 })
+      .circle(0, 0, coreRadius * 1.2)
+      .fill({ color: COLORS.LASER_DETAIL, alpha: 0.5 })
+      .circle(0, 0, coreRadius)
+      .fill({ color: COLORS.LASER_BEAM, alpha: 0.95 });
+    
+    // 顶部霓虹细节点（6个小光点）
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i;
+      const dotX = Math.cos(angle) * baseSize * 0.75;
+      const dotY = Math.sin(angle) * baseSize * 0.75;
+      this.laserIcon
+        .circle(dotX, dotY, 3)
+        .fill({ color: COLORS.LASER_DETAIL, alpha: 0.8 });
+    }
+    
+    // 激光发射器（4个小圆柱）
+    const emitterDist = baseSize * 0.85;
+    for (let i = 0; i < 4; i++) {
+      const angle = (Math.PI / 2) * i;
+      const emitX = Math.cos(angle) * emitterDist;
+      const emitY = Math.sin(angle) * emitterDist;
+      this.laserIcon
+        .roundRect(emitX - 2, emitY - 4, 4, 8, 2)
+        .fill({ color: COLORS.LASER_BEAM, alpha: 0.7 });
+    }
+    
+    // 激光塔图标背景光晕
+    this.laserIconGlow = new Graphics()
+      .circle(0, 0, TANK_SIZE * 0.65)
+      .fill({ color: COLORS.LASER_BODY, alpha: 0.15 })
+      .circle(0, 0, TANK_SIZE * 0.55)
+      .fill({ color: COLORS.LASER_BODY, alpha: 0.1 })
+      .circle(0, 0, TANK_SIZE * 0.5)
+      .stroke({ width: 2, color: COLORS.LASER_DETAIL, alpha: 0.4 })
+      .circle(0, 0, TANK_SIZE * 0.45)
+      .stroke({ width: 1, color: COLORS.LASER_BODY, alpha: 0.3 });
+    this.laserIconGlow.x = middleIconX;
+    this.laserIconGlow.y = iconY;
+    this.laserIconGlow.eventMode = 'none';
+    
+    this.laserIcon.x = middleIconX;
+    this.laserIcon.y = iconY;
+    
+    this.laserPriceLabel = new Text({
+      text: `💰 ${LASER_BASE_COST}`,
+      style: {
+        fill: COLORS.GOLD,
+        fontSize: 16,
+        fontWeight: 'bold',
+        dropShadow: true,
+        dropShadowColor: COLORS.GOLD,
+        dropShadowBlur: 4,
+        dropShadowDistance: 0,
+      },
+    });
+    this.laserPriceLabel.anchor.set(0, 0);
+    this.laserPriceLabel.x = this.middleCard.x - cardWidth / 2 + cardPadding;
+    this.laserPriceLabel.y = this.middleCard.y - cardHeight / 2 + cardPadding;
+    
+    this.laserDesc = new Text({
+      text: '⚡ 激光塔·持续射线\n高射速远距离攻击',
+      style: {
+        fill: COLORS.TEXT_SUB,
+        fontSize: 13,
+        lineHeight: 18,
+        wordWrap: true,
+        wordWrapWidth: textAreaWidth,
+        dropShadow: true,
+        dropShadowColor: 0x000000,
+        dropShadowBlur: 2,
+        dropShadowDistance: 1,
+      },
+    });
+    this.laserDesc.anchor.set(0, 0);
+    this.laserDesc.position.set(
+      this.laserPriceLabel.x,
+      this.laserPriceLabel.y + 26,
+    );
+
     // 设置交互，作为拖拽起点
     this.icon.eventMode = 'static';
     this.icon.cursor = 'grab';
+    
+    // 添加hover效果
+    this.icon.on('pointerover', () => {
+      this.icon.alpha = 1;
+      if (this.iconGlow) {
+        this.iconGlow.alpha = 1.5;
+      }
+    });
+    this.icon.on('pointerout', () => {
+      this.icon.alpha = 1;
+      if (this.iconGlow) {
+        this.iconGlow.alpha = 1;
+      }
+    });
+    
     this.icon.on('pointerdown', (event) => {
       const { x, y } = event.global;
       this.dragType = 'tank';
@@ -517,23 +824,69 @@ export class WeaponContainer {
 
     this.rocketIcon.eventMode = 'static';
     this.rocketIcon.cursor = 'grab';
+    
+    // 添加hover效果
+    this.rocketIcon.on('pointerover', () => {
+      this.rocketIcon.alpha = 1;
+      if (this.rocketIconGlow) {
+        this.rocketIconGlow.alpha = 1.5;
+      }
+    });
+    this.rocketIcon.on('pointerout', () => {
+      this.rocketIcon.alpha = 1;
+      if (this.rocketIconGlow) {
+        this.rocketIconGlow.alpha = 1;
+      }
+    });
+    
     this.rocketIcon.on('pointerdown', (event) => {
       const { x, y } = event.global;
       this.dragType = 'rocket';
       this.startDrag(x, y);
     });
 
+    this.laserIcon.eventMode = 'static';
+    this.laserIcon.cursor = 'grab';
+    
+    // 添加hover效果
+    this.laserIcon.on('pointerover', () => {
+      this.laserIcon.alpha = 1;
+      if (this.laserIconGlow) {
+        this.laserIconGlow.alpha = 1.5;
+      }
+    });
+    this.laserIcon.on('pointerout', () => {
+      this.laserIcon.alpha = 1;
+      if (this.laserIconGlow) {
+        this.laserIconGlow.alpha = 1;
+      }
+    });
+    
+    this.laserIcon.on('pointerdown', (event) => {
+      const { x, y } = event.global;
+      this.dragType = 'laser';
+      this.startDrag(x, y);
+    });
+
     this.app.stage.addChild(this.background);
     this.app.stage.addChild(this.innerGlass);
     this.app.stage.addChild(this.leftCard);
+    this.app.stage.addChild(this.middleCard);
     this.app.stage.addChild(this.rightCard);
+    // 先添加光晕，再添加图标
+    this.app.stage.addChild(this.iconGlow);
     this.app.stage.addChild(this.icon);
-    this.app.stage.addChild(this.iconPriceLabel);
+    this.app.stage.addChild(this.laserIconGlow);
+    this.app.stage.addChild(this.laserIcon);
+    this.app.stage.addChild(this.rocketIconGlow);
     this.app.stage.addChild(this.rocketIcon);
+    this.app.stage.addChild(this.iconPriceLabel);
+    this.app.stage.addChild(this.laserPriceLabel);
     this.app.stage.addChild(this.rocketPriceLabel);
     this.app.stage.addChild(this.header);
     this.app.stage.addChild(this.subHeader);
     this.app.stage.addChild(this.iconDesc);
+    this.app.stage.addChild(this.laserDesc);
     this.app.stage.addChild(this.rocketDesc);
   }
 
@@ -548,12 +901,94 @@ export class WeaponContainer {
 
   startDrag(x, y) {
     if (this.dragSprite) {
-      this.app.stage.removeChild(this.dragSprite);
-      this.dragSprite = null;
+        this.app.stage.removeChild(this.dragSprite);
+        this.dragSprite = null;
+    }
+    if (this.dragGlow) {
+        this.app.stage.removeChild(this.dragGlow);
+        this.dragGlow = null;
     }
 
+    // 创建拖拽光晕背景
+    let glowColor = COLORS.ALLY_BODY;
+    if (this.dragType === 'rocket') glowColor = COLORS.ROCKET_BODY;
+    else if (this.dragType === 'laser') glowColor = COLORS.LASER_BODY;
+    this.dragGlow = new Graphics()
+      .circle(0, 0, TANK_SIZE * 0.8)
+      .fill({ color: glowColor, alpha: 0.2 })
+      .circle(0, 0, TANK_SIZE * 0.65)
+      .fill({ color: glowColor, alpha: 0.15 })
+      .circle(0, 0, TANK_SIZE * 0.55)
+      .stroke({ width: 3, color: glowColor, alpha: 0.5 })
+      .circle(0, 0, TANK_SIZE * 0.5)
+      .stroke({ width: 2, color: glowColor, alpha: 0.3 });
+    this.dragGlow.x = x;
+    this.dragGlow.y = y;
+    this.app.stage.addChild(this.dragGlow);
+
     let sprite;
-    if (this.dragType === 'rocket') {
+    if (this.dragType === 'laser') {
+      // 激光塔幽灵
+      const towerRadius = TANK_SIZE * 0.20;
+      const coreRadius = TANK_SIZE * 0.12;
+      const baseSize = TANK_SIZE * 0.4;
+      
+      sprite = new Graphics();
+      
+      // 基座（六边形）
+      const hexPoints = [];
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        hexPoints.push(Math.cos(angle) * baseSize);
+        hexPoints.push(Math.sin(angle) * baseSize);
+      }
+      sprite
+        .poly(hexPoints)
+        .fill({ color: COLORS.LASER_BODY, alpha: 0.7 })
+        .stroke({ width: 2, color: COLORS.LASER_DETAIL, alpha: 0.5 });
+      
+      // 内层六边形装饰
+      const innerHexPoints = [];
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i + Math.PI / 6;
+        innerHexPoints.push(Math.cos(angle) * baseSize * 0.6);
+        innerHexPoints.push(Math.sin(angle) * baseSize * 0.6);
+      }
+      sprite
+        .poly(innerHexPoints)
+        .fill({ color: 0x0a1a0f, alpha: 0.6 })
+        .stroke({ width: 1, color: COLORS.LASER_DETAIL, alpha: 0.4 });
+      
+      // 中央能量核心
+      sprite
+        .circle(0, 0, coreRadius * 1.6)
+        .fill({ color: COLORS.LASER_DETAIL, alpha: 0.3 })
+        .circle(0, 0, coreRadius * 1.2)
+        .fill({ color: COLORS.LASER_DETAIL, alpha: 0.5 })
+        .circle(0, 0, coreRadius)
+        .fill({ color: COLORS.LASER_BEAM, alpha: 0.8 });
+      
+      // 顶部霓虹细节点
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        const dotX = Math.cos(angle) * baseSize * 0.75;
+        const dotY = Math.sin(angle) * baseSize * 0.75;
+        sprite
+          .circle(dotX, dotY, 3)
+          .fill({ color: COLORS.LASER_DETAIL, alpha: 0.7 });
+      }
+      
+      // 激光发射器
+      const emitterDist = baseSize * 0.85;
+      for (let i = 0; i < 4; i++) {
+        const angle = (Math.PI / 2) * i;
+        const emitX = Math.cos(angle) * emitterDist;
+        const emitY = Math.sin(angle) * emitterDist;
+        sprite
+          .roundRect(emitX - 2, emitY - 4, 4, 8, 2)
+          .fill({ color: COLORS.LASER_BEAM, alpha: 0.6 });
+      }
+    } else if (this.dragType === 'rocket') {
       // 火箭塔幽灵
       const rocketRadius = TANK_SIZE * 0.18;
       const rocketTrackHeight = TANK_SIZE * 0.24;
@@ -786,7 +1221,7 @@ export class WeaponContainer {
       sprite.rotation = Math.PI;
     }
 
-    sprite.alpha = 0.85;
+    sprite.alpha = 0.9;
     sprite.x = x;
     sprite.y = y;
 
@@ -798,10 +1233,16 @@ export class WeaponContainer {
     if (!this.dragSprite) return;
     const { x, y } = event.global;
     
+    // 光晕跟随
+    if (this.dragGlow) {
+      this.dragGlow.x = x;
+      this.dragGlow.y = y;
+    }
+    
     // 默认跟随鼠标
     this.dragSprite.x = x;
     this.dragSprite.y = y;
-    this.dragSprite.alpha = 0.8;
+    this.dragSprite.alpha = 0.85;
     this.dragSprite.tint = 0xFFFFFF; // 重置颜色
 
     // 尝试计算网格位置，进行吸附与有效性提示
@@ -832,6 +1273,12 @@ export class WeaponContainer {
       const snappedGlobal = world.toGlobal({ x: cellCenterX, y: cellCenterY });
       this.dragSprite.x = snappedGlobal.x;
       this.dragSprite.y = snappedGlobal.y;
+      
+      // 光晕也要跟随吸附
+      if (this.dragGlow) {
+        this.dragGlow.x = snappedGlobal.x;
+        this.dragGlow.y = snappedGlobal.y;
+      }
 
       // 检查是否可放置
       let valid = true;
@@ -846,21 +1293,37 @@ export class WeaponContainer {
       let cost = level * WEAPON_BASE_COST;
       if (this.dragType === 'rocket') {
         cost = level * ROCKET_BASE_COST;
+      } else if (this.dragType === 'laser') {
+        cost = level * LASER_BASE_COST;
       }
       if (this.goldManager && !this.goldManager.canAfford(cost)) {
         valid = false;
       }
 
-      // 根据有效性改变颜色
+      // 根据有效性改变颜色和光晕
       if (valid) {
         this.dragSprite.tint = COLORS.SUCCESS; // 绿色，表示可放
+        this.dragSprite.alpha = 0.95;
+        if (this.dragGlow) {
+          this.dragGlow.tint = COLORS.SUCCESS;
+          this.dragGlow.alpha = 1.2;
+        }
       } else {
         this.dragSprite.tint = COLORS.DANGER; // 红色，表示不可放
+        this.dragSprite.alpha = 0.7;
+        if (this.dragGlow) {
+          this.dragGlow.tint = COLORS.DANGER;
+          this.dragGlow.alpha = 0.8;
+        }
       }
     } else {
-      // 即使不在网格内，如果是在 UI 区域，也显示红色提示无法放置
+      // 即使不在网格内，如果是在 UI 区域，也显示半透明
       this.dragSprite.tint = 0xFFFFFF;
-      this.dragSprite.alpha = 0.5;
+      this.dragSprite.alpha = 0.6;
+      if (this.dragGlow) {
+        this.dragGlow.tint = 0xFFFFFF;
+        this.dragGlow.alpha = 0.5;
+      }
     }
   }
 
@@ -872,9 +1335,13 @@ export class WeaponContainer {
     // 尝试将武器放置到网格中
     this.placeWeaponAt(x, y);
 
-    // 删除幽灵武器
+    // 删除幽灵武器和光晕
     this.app.stage.removeChild(this.dragSprite);
     this.dragSprite = null;
+    if (this.dragGlow) {
+      this.app.stage.removeChild(this.dragGlow);
+      this.dragGlow = null;
+    }
   }
 
   placeWeaponAt(x, y) {
@@ -908,6 +1375,8 @@ export class WeaponContainer {
     let cost = level * WEAPON_BASE_COST;
     if (this.dragType === 'rocket') {
       cost = level * ROCKET_BASE_COST;
+    } else if (this.dragType === 'laser') {
+      cost = level * LASER_BASE_COST;
     }
 
     // 再次检查占用（防止并发问题或鼠标快速移动的边缘情况）
@@ -923,6 +1392,14 @@ export class WeaponContainer {
     let weapon;
     if (this.dragType === 'rocket') {
       weapon = new RocketTower(
+      this.app,
+      col,
+      row,
+      cellCenterX,
+        cellCenterY,
+      );
+    } else if (this.dragType === 'laser') {
+      weapon = new LaserTower(
         this.app,
         col,
         row,
@@ -938,7 +1415,7 @@ export class WeaponContainer {
         cellCenterY,
       );
     }
-    this.weapons.push(weapon);
+      this.weapons.push(weapon);
 
     // 允许点击画布上的坦克进行选中/升级/卖掉
     weapon.turret.eventMode = 'static';
@@ -1000,7 +1477,15 @@ export class WeaponContainer {
     }
     // 卖掉返还金币
     const level = target.level ?? 1;
-    const sellGain = level * WEAPON_SELL_BASE_GAIN;
+    let sellBaseGain = WEAPON_SELL_BASE_GAIN;
+    
+    if (target instanceof RocketTower) {
+      sellBaseGain = ROCKET_SELL_BASE_GAIN;
+    } else if (target instanceof LaserTower) {
+      sellBaseGain = LASER_SELL_BASE_GAIN;
+    }
+    
+    const sellGain = level * sellBaseGain;
     if (this.goldManager) {
       this.goldManager.add(sellGain);
     }
@@ -1014,10 +1499,18 @@ export class WeaponContainer {
     const key = event.key;
     if (key === 'u' || key === 'U') {
       if (this.selectedWeapon.upgrade) {
-        const level = this.selectedWeapon.level ?? 1;
-        const maxLevel = this.selectedWeapon.maxLevel ?? 1;
+    const level = this.selectedWeapon.level ?? 1;
+    const maxLevel = this.selectedWeapon.maxLevel ?? 1;
         if (level < maxLevel) {
-          const upgradeCost = level * WEAPON_UPGRADE_BASE_COST;
+          // 根据武器类型确定升级成本
+          let upgradeBaseCost = WEAPON_UPGRADE_BASE_COST;
+          if (this.selectedWeapon instanceof RocketTower) {
+            upgradeBaseCost = ROCKET_UPGRADE_BASE_COST;
+          } else if (this.selectedWeapon instanceof LaserTower) {
+            upgradeBaseCost = LASER_UPGRADE_BASE_COST;
+          }
+          
+          const upgradeCost = level * upgradeBaseCost;
           if (!this.goldManager || this.goldManager.spend(upgradeCost)) {
             this.selectedWeapon.upgrade();
             this.updateActionButtonsForSelection();
@@ -1063,18 +1556,29 @@ export class WeaponContainer {
       this.setActionButtonsVisible(false);
       return;
     }
-
+    
     const level = this.selectedWeapon.level ?? 1;
     const maxLevel = this.selectedWeapon.maxLevel ?? 1;
 
-    // 简单的金币公式：升级花费 WEAPON_UPGRADE_BASE_COST * 当前等级，卖掉获得 WEAPON_SELL_BASE_GAIN * 当前等级
-    const upgradeCost = level * WEAPON_UPGRADE_BASE_COST;
-    const sellGain = level * WEAPON_SELL_BASE_GAIN;
+    // 根据武器类型确定升级成本和出售收益
+    let upgradeBaseCost = WEAPON_UPGRADE_BASE_COST;
+    let sellBaseGain = WEAPON_SELL_BASE_GAIN;
+    
+    if (this.selectedWeapon instanceof RocketTower) {
+      upgradeBaseCost = ROCKET_UPGRADE_BASE_COST;
+      sellBaseGain = ROCKET_SELL_BASE_GAIN;
+    } else if (this.selectedWeapon instanceof LaserTower) {
+      upgradeBaseCost = LASER_UPGRADE_BASE_COST;
+      sellBaseGain = LASER_SELL_BASE_GAIN;
+    }
+    
+    const upgradeCost = level * upgradeBaseCost;
+    const sellGain = level * sellBaseGain;
 
     if (this.upgradeLabel) {
       if (level < maxLevel) {
         this.upgradeLabel.text = `升级 ${upgradeCost}`;
-      } else {
+    } else {
         this.upgradeLabel.text = '已满级';
       }
     }

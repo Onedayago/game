@@ -224,13 +224,27 @@ export class RocketTower {
     this.shadow = createSoftShadow(TANK_SIZE * 0.5);
     this.shadow.eventMode = 'none';
     world.addChild(this.shadow);
-    world.addChild(this.turret);
-
+    // 选中高亮圈 - 霓虹多层效果（紫色主题）（先添加，在turret下面）
     this.selectionRing = new Graphics()
+      // 外层光晕
+      .circle(0, 0, TANK_SIZE * 0.85)
+      .stroke({ width: 2, color: COLORS.ROCKET_DETAIL, alpha: 0.3 })
+      // 中层光晕
+      .circle(0, 0, TANK_SIZE * 0.75)
+      .stroke({ width: 3, color: COLORS.ROCKET_DETAIL, alpha: 0.6 })
+      // 内层主光环
       .circle(0, 0, TANK_SIZE * 0.7)
-      .stroke({ width: 3, color: COLORS.ROCKET_BULLET, alpha: 1 });
+      .stroke({ width: 4, color: COLORS.ROCKET_BULLET, alpha: 1 })
+      // 内圈细节
+      .circle(0, 0, TANK_SIZE * 0.65)
+      .stroke({ width: 1, color: 0xfbbf24, alpha: 0.8 });
+    this.selectionRing.x = x;
+    this.selectionRing.y = y;
     this.selectionRing.visible = false;
-    this.turret.addChildAt(this.selectionRing, 0);
+    this.selectionRing.eventMode = 'none';
+    world.addChild(this.selectionRing);
+    
+    world.addChild(this.turret);
 
     this.hpBarBg = new Graphics();
     this.hpBarFill = new Graphics();
@@ -275,6 +289,7 @@ export class RocketTower {
     this.bullets = [];
     const world = this.app.world || this.app.stage;
     if (this.shadow) world.removeChild(this.shadow);
+    if (this.selectionRing) world.removeChild(this.selectionRing);
     if (this.hpBarBg) world.removeChild(this.hpBarBg);
     if (this.hpBarFill) world.removeChild(this.hpBarFill);
     world.removeChild(this.turret);
@@ -459,7 +474,11 @@ export class RocketTower {
   }
 
   applyCombinedScale() {
-    this.turret.scale.set(this.perspectiveScale * this.visualScale);
+    const finalScale = this.perspectiveScale * this.visualScale;
+    this.turret.scale.set(finalScale);
+    if (this.selectionRing) {
+      this.selectionRing.scale.set(finalScale);
+    }
   }
 
   refreshDepthVisual() {

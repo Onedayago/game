@@ -58,6 +58,11 @@ export const COLORS = {
   ROCKET_DETAIL: 0xd946ff,  // 火箭塔高光（亮紫霓虹）
   ROCKET_BULLET: 0xc026d3,  // 火箭弹体色（紫色脉冲）
 
+  // 激光塔 (Neon Green/Lime)
+  LASER_BODY: 0x00ff41,     // 激光塔主体色（霓虹绿）
+  LASER_DETAIL: 0x39ff14,   // 激光塔高光（亮绿霓虹）
+  LASER_BEAM: 0x00ff88,     // 激光束色（青绿脉冲）
+
   // UI & System (Cyberpunk Neon)
   GOLD: 0xffff00,           // 金币数值色（霓虹黄）
   UI_BG: 0x0a0a14,          // UI 背景色（深紫黑）
@@ -102,6 +107,15 @@ export const ROCKET_BASE_COST = 120; // 火箭塔造价
 export const ROCKET_UPGRADE_BASE_COST = 70; // 火箭塔升级成本
 export const ROCKET_SELL_BASE_GAIN = 60; // 火箭塔出售返还
 
+// 激光塔相关
+export const LASER_BASE_COST = 100; // 激光塔造价
+export const LASER_UPGRADE_BASE_COST = 60; // 激光塔升级成本
+export const LASER_SELL_BASE_GAIN = 50; // 激光塔出售返还
+export const LASER_FIRE_INTERVAL = 300; // 激光塔射速（ms，比坦克快）
+export const LASER_ATTACK_RANGE_CELLS = 5; // 激光塔攻击范围（格，比坦克远）
+export const LASER_DAMAGE = 2; // 激光伤害（比子弹高）
+export const LASER_BEAM_DURATION = 150; // 激光束持续时间（ms）
+
 // 敌人攻击相关
 export const ENEMY_ATTACK_RANGE_CELLS = 3; // 敌军攻击范围（格）
 export const ENEMY_FIRE_INTERVAL = 1000; // 敌军射速（ms）
@@ -110,7 +124,7 @@ export const ENEMY_BULLET_RADIUS = CELL_SIZE * 0.12; // 敌军子弹半径
 export const ENEMY_BULLET_COLOR = COLORS.ENEMY_BULLET; // 敌军子弹颜色
 
 // 武器容器相关常量
-export const WEAPON_CONTAINER_WIDTH = CELL_SIZE * 7; // 底部武器库宽度
+export const WEAPON_CONTAINER_WIDTH = CELL_SIZE * 10; // 底部武器库宽度（扩展以容纳3个武器）
 export const WEAPON_CONTAINER_HEIGHT = CELL_SIZE * 2.5; // 底部武器库高度
 export const WEAPON_CONTAINER_MARGIN_BOTTOM = CELL_SIZE * 0.2; // 武器库距底部间距
 export const WEAPON_CONTAINER_BG_COLOR = COLORS.UI_BG; // 武器库背景色
