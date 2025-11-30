@@ -1,13 +1,7 @@
 import { Graphics, BlurFilter } from 'pixi.js';
-import {
-  APP_HEIGHT,
-  CELL_SIZE,
-  WEAPON_CONTAINER_HEIGHT,
-  WEAPON_CONTAINER_MARGIN_BOTTOM,
-} from './constants';
+import { CELL_SIZE, BATTLE_HEIGHT } from '../constants';
 
-const PLAYABLE_HEIGHT =
-  APP_HEIGHT - WEAPON_CONTAINER_HEIGHT - WEAPON_CONTAINER_MARGIN_BOTTOM * 2;
+const PLAYABLE_HEIGHT = BATTLE_HEIGHT;
 
 const BASE_SCALE = 0.9;
 const SCALE_RANGE = 0.22;

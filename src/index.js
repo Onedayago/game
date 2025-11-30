@@ -1,4 +1,4 @@
-import { Application, Container } from 'pixi.js';
+import { Application, Container, Graphics } from 'pixi.js';
 import {
   APP_WIDTH,
   APP_HEIGHT,
@@ -9,13 +9,18 @@ import {
   WEAPON_CONTAINER_HEIGHT,
   WEAPON_CONTAINER_MARGIN_BOTTOM,
   WORLD_WIDTH,
+  TOP_UI_HEIGHT,
+  BATTLE_HEIGHT,
+  TOP_UI_BG_COLOR,
+  BOTTOM_UI_BG_COLOR,
 } from './constants';
-import { GridBackground } from './background';
-import { WeaponContainer } from './weaponContainer';
-import { EnemyManager } from './enemyManager';
-import { GoldManager } from './goldManager';
-import { GameUI } from './gameUI';
-import { soundManager } from './soundManager';
+import { GridBackground } from './systems/background';
+import { WeaponContainer } from './ui/weaponContainer';
+import { EnemyManager } from './systems/enemyManager';
+import { GoldManager } from './ui/goldManager';
+import { GameUI } from './ui/gameUI';
+import { soundManager } from './core/soundManager';
+import { particleSystem } from './core/particleSystem';
 
 async function main() {
   // 创建 PIXI 应用（画布）—— 使用新推荐的 init API，避免过时构造函数
@@ -34,32 +39,55 @@ async function main() {
   // 初始化声音系统
   soundManager.init();
 
+  // 背景分区：顶部金币区、中部战场、底部武器库
+  const layoutBackground = new Graphics();
+  layoutBackground.zIndex = -500;
+  const topHeight = TOP_UI_HEIGHT;
+  const middleHeight = BATTLE_HEIGHT;
+  const bottomHeight = APP_HEIGHT - topHeight - middleHeight;
+  layoutBackground
+    .rect(0, 0, APP_WIDTH, topHeight)
+    .fill({ color: TOP_UI_BG_COLOR });
+  layoutBackground
+    .rect(0, topHeight, APP_WIDTH, middleHeight)
+    .fill({ color: APP_BACKGROUND });
+  layoutBackground
+    .rect(0, topHeight + middleHeight, APP_WIDTH, bottomHeight)
+    .fill({ color: BOTTOM_UI_BG_COLOR });
+  app.stage.addChild(layoutBackground);
+
   // 创建世界容器：中间战场区域的所有元素（背景、敌人、武器等）都放在这里
   // 通过平移 worldContainer 来实现视野左右拖拽，而顶部金币和底部武器容器保持固定
   const worldContainer = new Container();
   worldContainer.x = 0;
-  worldContainer.y = 0;
+  worldContainer.y = topHeight;
+  // 允许根据 zIndex 排序，便于将粒子层永远放在背景之上
+  worldContainer.sortableChildren = true;
   // 挂到 app 上，方便其它模块访问
   // eslint-disable-next-line no-param-reassign
   app.world = worldContainer;
   // 放到最底层，后续的 UI（金币条、武器容器、开始界面等）会覆盖在上面
   app.stage.addChildAt(worldContainer, 0);
+  // 不再使用裁剪遮罩，允许特效超出战场可视高度
+
+  // 初始化粒子系统
+  particleSystem.init(worldContainer);
 
   // 金币管理与展示（画布最上方一行）
-  const goldManager = new GoldManager(app);
+  const goldManager = new GoldManager(app, worldContainer);
 
   let gameStarted = false;
   let weaponContainer = null;
   let enemyManager = null;
+  let gridBackground = null;
 
   // 视野拖拽（只允许在中间战场区域左右拖动）
   let isPanning = false;
   let panStartX = 0;
   let worldStartX = 0;
 
-  const playableTop = CELL_SIZE; // 顶部一行用于金币展示
-  const playableBottom =
-    APP_HEIGHT - WEAPON_CONTAINER_HEIGHT - WEAPON_CONTAINER_MARGIN_BOTTOM * 2;
+  const playableTop = topHeight; // 战场起始于中间区域
+  const playableBottom = topHeight + middleHeight;
 
   app.stage.eventMode = 'static';
   app.stage.hitArea = app.screen;
@@ -102,7 +130,7 @@ async function main() {
     soundManager.playBackground();
 
     // 创建网格背景（会自动加到 app.world 中）
-    new GridBackground(app);
+    gridBackground = new GridBackground(app);
 
     // 创建武器容器（底部中间），从中拖拽坦克武器到网格格子
     weaponContainer = new WeaponContainer(app, goldManager);
@@ -125,6 +153,10 @@ async function main() {
     const deltaMS = app.ticker.deltaMS;
     enemyManager.update(delta, deltaMS);
     weaponContainer.update(delta, deltaMS, enemyManager.getEnemies());
+    particleSystem.update(deltaMS);
+    if (gridBackground) {
+      gridBackground.update(deltaMS);
+    }
     // 同步更新右上角缩略小地图
     goldManager.updateMiniMap(
       enemyManager.getEnemies(),
