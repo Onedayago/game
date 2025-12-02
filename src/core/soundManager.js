@@ -1,54 +1,72 @@
-/* 简单声音管理器：
+/**
+ * 音效管理器
+ * 负责管理游戏中的所有音频播放
+ * 
+ * 功能：
  * - 背景音乐（循环播放）
- * - 武器开火音效
- * - 敌人死亡音效
- *
- * 实现基于浏览器原生 Audio。
- * 实际音频文件请放到 src/audio/ 目录中，webpack 构建时会自动复制到 dist/audio/：
- *   - src/audio/bg.wav       →  /audio/bg.wav          （背景音乐）
- *   - src/audio/shoot.wav    →  /audio/shoot.wav       （武器开火）
- *   - src/audio/boom.wav     →  /audio/boom.wav        （敌人死亡爆炸）
- *
- * 如果文件不存在或加载失败，代码会自动忽略，不会影响游戏运行。
+ * - 武器开火音效（音效池）
+ * - 敌人死亡音效（音效池）
+ * 
+ * 实现基于浏览器原生 Audio API
+ * 音频文件路径（webpack 构建时会自动复制）：
+ *   - src/audio/bg.wav    → /audio/bg.wav    （背景音乐）
+ *   - src/audio/shoot.wav → /audio/shoot.wav （武器开火）
+ *   - src/audio/boom.wav  → /audio/boom.wav  （敌人死亡爆炸）
+ * 
+ * 特点：
+ * - 使用音效池避免同一音效同时播放时的冲突
+ * - 自动容错，音频加载失败不会影响游戏运行
+ * - 兼容浏览器自动播放策略
  */
 
 class SoundManager {
+  /**
+   * 构造函数
+   */
   constructor() {
-    this.initialized = false;
-    this.bgAudio = null;
-    this.fireAudioPool = [];
-    this.deathAudioPool = [];
-    this.poolSize = 6;
+    this.initialized = false;    // 是否已初始化
+    this.bgAudio = null;          // 背景音乐Audio对象
+    this.fireAudioPool = [];      // 开火音效池
+    this.deathAudioPool = [];     // 死亡音效池
+    this.poolSize = 6;            // 音效池大小
   }
 
+  /**
+   * 初始化音频系统
+   * 加载所有音频文件并创建音效池
+   */
   init() {
+    // 防止重复初始化
     if (this.initialized) return;
+    
+    // 非浏览器环境检查（例如服务端渲染或构建时）
     if (typeof Audio === 'undefined') {
-      // 非浏览器环境（例如构建时），直接跳过
       return;
     }
 
-    // 背景音乐（循环）
+    // === 初始化背景音乐 ===
     try {
       this.bgAudio = new Audio('/audio/bg.wav');
-      this.bgAudio.loop = true;
-      this.bgAudio.volume = 0.35;
+      this.bgAudio.loop = true;      // 循环播放
+      this.bgAudio.volume = 0.35;    // 音量设置为35%
     } catch (e) {
+      // 加载失败则置空，后续播放时会自动跳过
       this.bgAudio = null;
     }
 
-    // 武器开火音效池
+    // === 创建武器开火音效池 ===
+    // 使用音效池可以同时播放多个开火音效而不互相干扰
     for (let i = 0; i < this.poolSize; i += 1) {
       try {
         const a = new Audio('/audio/shoot.wav');
         a.volume = 0.5;
         this.fireAudioPool.push(a);
       } catch (e) {
-        break;
+        break; // 加载失败则停止创建
       }
     }
 
-    // 敌人死亡音效池
+    // === 创建敌人死亡音效池 ===
     for (let i = 0; i < this.poolSize; i += 1) {
       try {
         const a = new Audio('/audio/boom.wav');
@@ -62,55 +80,84 @@ class SoundManager {
     this.initialized = true;
   }
 
+  /**
+   * 播放背景音乐
+   * 应在用户交互后调用（如点击"开始游戏"按钮）
+   * 以符合浏览器的自动播放策略
+   */
   playBackground() {
     if (!this.bgAudio) return;
     try {
-      // 为了兼容浏览器“用户交互后才能播放”的限制，应在点击“开始游戏”后调用
+      // 重置播放位置到开始
       this.bgAudio.currentTime = 0;
+      
+      // 播放音乐
       const p = this.bgAudio.play();
-      // 某些浏览器中 play() 返回的 Promise 会在资源缺失/不支持时 reject，这里统一吞掉
+      
+      // play() 返回 Promise，捕获可能的错误
+      // 某些浏览器在资源缺失或不支持时会 reject
       if (p && typeof p.catch === 'function') {
-        p.catch(() => {});
+        p.catch(() => {}); // 忽略错误
       }
     } catch (e) {
       // 忽略播放失败
     }
   }
 
+  /**
+   * 停止背景音乐
+   */
   stopBackground() {
     if (!this.bgAudio) return;
     try {
       this.bgAudio.pause();
     } catch (e) {
-      // ignore
+      // 忽略错误
     }
   }
 
+  /**
+   * 从音效池中播放音效
+   * 优先使用空闲的 Audio 对象，如果都在播放则使用第一个
+   * 
+   * @param {Array<Audio>} pool - 音效池
+   */
   playFromPool(pool) {
     if (!pool || !pool.length) return;
+    
+    // 查找空闲的 Audio 对象（已暂停的）
     const audio = pool.find((a) => a.paused);
+    
+    // 如果都在播放，使用第一个（会中断当前播放）
     const target = audio || pool[0];
+    
     try {
-      target.currentTime = 0;
+      target.currentTime = 0; // 重置到开始
       const p = target.play();
       if (p && typeof p.catch === 'function') {
-        p.catch(() => {});
+        p.catch(() => {}); // 忽略错误
       }
     } catch (e) {
-      // ignore
+      // 忽略播放失败
     }
   }
 
+  /**
+   * 播放武器开火音效
+   */
   playFire() {
     this.playFromPool(this.fireAudioPool);
   }
 
+  /**
+   * 播放敌人死亡音效
+   */
   playEnemyDeath() {
     this.playFromPool(this.deathAudioPool);
   }
 }
 
-// 全局单例
+// 导出全局单例
 export const soundManager = new SoundManager();
 
 

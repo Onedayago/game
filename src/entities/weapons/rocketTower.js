@@ -12,11 +12,6 @@ import {
 } from '../../constants';
 import { soundManager } from '../../core/soundManager';
 import { particleSystem } from '../../core/particleSystem';
-import {
-  createSoftShadow,
-  getPerspectiveByY,
-  updateShadowTransform,
-} from '../../core/depthUtils';
 import { HomingRocket } from './homingRocket';
 
 export class RocketTower {
@@ -38,7 +33,6 @@ export class RocketTower {
     this.bulletRadius = BULLET_RADIUS * 1.05;
     this.bulletSpeed = BULLET_SPEED * 1.1;
     this.bulletColor = COLORS.ROCKET_BULLET;
-    this.perspectiveScale = 1;
     this.visualScale = 1;
 
     const baseWidth = TANK_SIZE * 0.7;
@@ -221,9 +215,6 @@ export class RocketTower {
     this.turret.y = y;
 
     const world = this.app.world || this.app.stage;
-    this.shadow = createSoftShadow(TANK_SIZE * 0.5);
-    this.shadow.eventMode = 'none';
-    world.addChild(this.shadow);
     // 选中高亮圈 - 霓虹多层效果（紫色主题）（先添加，在turret下面）
     this.selectionRing = new Graphics()
       // 外层光晕
@@ -253,7 +244,6 @@ export class RocketTower {
 
     this.updateHpBar();
     this.applyLevelStats();
-    this.refreshDepthVisual();
   }
 
   applyLevelStats() {
@@ -288,7 +278,6 @@ export class RocketTower {
     this.bullets.forEach((b) => b.destroy());
     this.bullets = [];
     const world = this.app.world || this.app.stage;
-    if (this.shadow) world.removeChild(this.shadow);
     if (this.selectionRing) world.removeChild(this.selectionRing);
     if (this.hpBarBg) world.removeChild(this.hpBarBg);
     if (this.hpBarFill) world.removeChild(this.hpBarFill);
@@ -305,21 +294,26 @@ export class RocketTower {
       const t = Math.max(0, 1 - this.upgradeFlashTimer / 260);
       const pulse = 1 + 0.18 * Math.sin(t * Math.PI);
       this.visualScale = pulse;
-      this.applyCombinedScale();
+      this.turret.scale.set(this.visualScale);
       if (this.selectionRing) {
         this.selectionRing.alpha = 0.6 + 0.4 * Math.sin(t * Math.PI);
+        this.selectionRing.scale.set(this.visualScale);
       }
       if (this.upgradeFlashTimer <= 0) {
         this.visualScale = 1;
-        this.applyCombinedScale();
+        this.turret.scale.set(this.visualScale);
         if (this.selectionRing) {
           this.selectionRing.alpha = 1;
+          this.selectionRing.scale.set(this.visualScale);
         }
       }
     } else {
       // 应用待机呼吸效果
       this.visualScale = idlePulse;
-      this.applyCombinedScale();
+      this.turret.scale.set(this.visualScale);
+      if (this.selectionRing) {
+        this.selectionRing.scale.set(this.visualScale);
+      }
     }
 
     if (this.hitFlashTimer > 0) {
@@ -403,8 +397,6 @@ export class RocketTower {
         this.timeSinceLastFire = 0;
       }
     }
-
-    this.refreshDepthVisual();
   }
 
   fire(angle, target) {
@@ -471,21 +463,6 @@ export class RocketTower {
         .fill({ color: 0xffffff, alpha: 0.2 });
       this.hpBarFill.position.set(this.turret.x, this.turret.y - offsetY);
     }
-  }
-
-  applyCombinedScale() {
-    const finalScale = this.perspectiveScale * this.visualScale;
-    this.turret.scale.set(finalScale);
-    if (this.selectionRing) {
-      this.selectionRing.scale.set(finalScale);
-    }
-  }
-
-  refreshDepthVisual() {
-    const perspective = getPerspectiveByY(this.turret.y);
-    this.perspectiveScale = perspective.scale;
-    this.applyCombinedScale();
-    updateShadowTransform(this.shadow, this.turret.x, this.turret.y, perspective);
   }
 }
 

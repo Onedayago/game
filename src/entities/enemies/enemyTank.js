@@ -14,11 +14,6 @@ import {
 } from '../../constants';
 import { soundManager } from '../../core/soundManager';
 import { particleSystem } from '../../core/particleSystem';
-import {
-  createSoftShadow,
-  getPerspectiveByY,
-  updateShadowTransform,
-} from '../../core/depthUtils';
 import { EnemyBullet } from './enemyBullet';
 
 /**
@@ -29,8 +24,6 @@ export class EnemyTank {
     this.app = app;
     this.gridCol = gridCol;
     this.gridRow = gridRow;
-    this.perspectiveScale = 1;
-    this.visualScale = 1;
 
     const centerX = gridCol * CELL_SIZE + CELL_SIZE / 2;
     const centerY = gridRow * CELL_SIZE + CELL_SIZE / 2;
@@ -215,10 +208,6 @@ export class EnemyTank {
     this.sprite.y = centerY;
 
     const world = this.app.world || this.app.stage;
-    this.shadow = createSoftShadow(ENEMY_SIZE * 0.42);
-    this.shadow.eventMode = 'none';
-    this.shadow.zIndex = 0;
-    world.addChild(this.shadow);
     world.addChild(this.sprite);
 
     this.targetCol = gridCol;
@@ -234,7 +223,6 @@ export class EnemyTank {
     world.addChild(this.hpBarFill);
 
     this.updateHpBar();
-    this.refreshDepthVisual();
 
     this.path = [];
     this.bullets = [];
@@ -513,14 +501,12 @@ export class EnemyTank {
     });
 
     this.bullets = aliveBullets;
-    this.refreshDepthVisual();
   }
 
   destroy() {
     this.bullets.forEach((b) => b.destroy());
     this.bullets = [];
     const world = this.app.world || this.app.stage;
-    if (this.shadow) world.removeChild(this.shadow);
     if (this.hpBarBg) world.removeChild(this.hpBarBg);
     if (this.hpBarFill) world.removeChild(this.hpBarFill);
     world.removeChild(this.sprite);
@@ -577,17 +563,6 @@ export class EnemyTank {
         .fill({ color: 0xffffff, alpha: 0.2 });
       this.hpBarFill.position.set(this.sprite.x, this.sprite.y - offsetY);
     }
-  }
-
-  applyCombinedScale() {
-    this.sprite.scale.set(this.perspectiveScale * this.visualScale);
-  }
-
-  refreshDepthVisual() {
-    const perspective = getPerspectiveByY(this.sprite.y);
-    this.perspectiveScale = perspective.scale;
-    this.applyCombinedScale();
-    updateShadowTransform(this.shadow, this.sprite.x, this.sprite.y, perspective);
   }
 }
 

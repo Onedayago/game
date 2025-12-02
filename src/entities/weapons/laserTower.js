@@ -12,11 +12,6 @@ import {
 } from '../../constants';
 import { soundManager } from '../../core/soundManager';
 import { particleSystem } from '../../core/particleSystem';
-import {
-  createSoftShadow,
-  getPerspectiveByY,
-  updateShadowTransform,
-} from '../../core/depthUtils';
 
 /**
  * 激光塔武器：发射持续性激光束，快速攻击，中等伤害
@@ -42,7 +37,6 @@ export class LaserTower {
     this.fireInterval = LASER_FIRE_INTERVAL;
     this.damage = LASER_DAMAGE;
     this.beamDuration = LASER_BEAM_DURATION;
-    this.perspectiveScale = 1;
     this.visualScale = 1;
 
     // 创建激光塔炮塔
@@ -133,11 +127,6 @@ export class LaserTower {
     this.turret.cursor = 'pointer';
 
     const world = this.app.world || this.app.stage;
-
-    // 深度阴影
-    this.shadow = createSoftShadow(TANK_SIZE * 0.5);
-    this.shadow.eventMode = 'none';
-    world.addChild(this.shadow);
     
     // 选中高亮圈 - 霓虹绿色多层效果（先添加，在turret下面）
     this.selectionRing = new Graphics()
@@ -166,23 +155,7 @@ export class LaserTower {
     world.addChild(this.hpBarBg);
     world.addChild(this.hpBarFill);
 
-    this.updatePerspectiveScale(y);
     this.updateHpBar();
-  }
-
-  updatePerspectiveScale(y) {
-    const perspective = getPerspectiveByY(y);
-    this.perspectiveScale = perspective.scale;
-    this.applyCombinedScale();
-    updateShadowTransform(this.shadow, this.turret.x, this.turret.y, perspective);
-  }
-
-  applyCombinedScale() {
-    const finalScale = this.perspectiveScale * this.visualScale;
-    this.turret.scale.set(finalScale, finalScale);
-    if (this.selectionRing) {
-      this.selectionRing.scale.set(finalScale, finalScale);
-    }
   }
 
   applyLevelUpgrades() {
@@ -233,7 +206,6 @@ export class LaserTower {
 
   destroy() {
     const world = this.app.world;
-    if (this.shadow) world.removeChild(this.shadow);
     if (this.selectionRing) world.removeChild(this.selectionRing);
     if (this.hpBarBg) world.removeChild(this.hpBarBg);
     if (this.hpBarFill) world.removeChild(this.hpBarFill);
@@ -260,20 +232,25 @@ export class LaserTower {
       const t = Math.max(0, 1 - this.upgradeFlashTimer / 260);
       const pulse = 1 + 0.18 * Math.sin(t * Math.PI);
       this.visualScale = pulse;
-      this.applyCombinedScale();
+      this.turret.scale.set(this.visualScale);
       if (this.selectionRing) {
         this.selectionRing.alpha = 0.6 + 0.4 * Math.sin(t * Math.PI);
+        this.selectionRing.scale.set(this.visualScale);
       }
       if (this.upgradeFlashTimer <= 0) {
         this.visualScale = 1;
-        this.applyCombinedScale();
+        this.turret.scale.set(this.visualScale);
         if (this.selectionRing) {
           this.selectionRing.alpha = 1;
+          this.selectionRing.scale.set(this.visualScale);
         }
       }
     } else {
       this.visualScale = idlePulse;
-      this.applyCombinedScale();
+      this.turret.scale.set(this.visualScale);
+      if (this.selectionRing) {
+        this.selectionRing.scale.set(this.visualScale);
+      }
     }
 
     // 受击闪烁

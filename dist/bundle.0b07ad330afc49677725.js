@@ -74608,22 +74608,55 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   GameContext: () => (/* binding */ GameContext)
 /* harmony export */ });
+/**
+ * 游戏上下文管理器
+ * 负责管理游戏的全局状态、系统实例和生命周期
+ * 
+ * 主要职责：
+ * - 存储PixiJS应用实例和世界容器
+ * - 管理游戏状态（如是否已开始）
+ * - 注册和获取各种管理器（managers）和系统（systems）
+ * - 管理清理函数，确保资源正确释放
+ */
 class GameContext {
+  /**
+   * 构造函数 - 初始化游戏上下文
+   */
   constructor() {
+    // PixiJS应用实例
     this.app = null;
+    
+    // 世界容器，包含所有游戏对象
     this.world = null;
+    
+    // 游戏状态
     this.state = {
-      gameStarted: false,
+      gameStarted: false, // 游戏是否已开始
     };
+    
+    // 管理器映射表，存储各种游戏管理器实例
     this.managers = new Map();
+    
+    // 系统映射表，存储各种游戏系统实例
     this.systems = new Map();
+    
+    // 清理函数数组，用于资源释放
     this.cleanups = [];
   }
 
+  /**
+   * 设置PixiJS应用实例
+   * @param {Application} app - PixiJS应用实例
+   */
   setApp(app) {
     this.app = app;
   }
 
+  /**
+   * 设置世界容器
+   * 同时将世界容器挂载到app对象上，方便访问
+   * @param {Container} world - 世界容器实例
+   */
   setWorld(world) {
     this.world = world;
     if (this.app) {
@@ -74632,30 +74665,62 @@ class GameContext {
     }
   }
 
+  /**
+   * 注册管理器
+   * @param {string} key - 管理器的唯一标识
+   * @param {*} instance - 管理器实例
+   * @returns {*} 返回管理器实例，方便链式调用
+   */
   registerManager(key, instance) {
     this.managers.set(key, instance);
     return instance;
   }
 
+  /**
+   * 获取管理器
+   * @param {string} key - 管理器的唯一标识
+   * @returns {*} 管理器实例，如果不存在则返回undefined
+   */
   getManager(key) {
     return this.managers.get(key);
   }
 
+  /**
+   * 注册系统
+   * @param {string} key - 系统的唯一标识
+   * @param {*} instance - 系统实例
+   * @returns {*} 返回系统实例，方便链式调用
+   */
   registerSystem(key, instance) {
     this.systems.set(key, instance);
     return instance;
   }
 
+  /**
+   * 获取系统
+   * @param {string} key - 系统的唯一标识
+   * @returns {*} 系统实例，如果不存在则返回undefined
+   */
   getSystem(key) {
     return this.systems.get(key);
   }
 
+  /**
+   * 附加清理函数
+   * 这些函数将在dispose时被调用，用于释放资源
+   * @param {Function} fn - 清理函数
+   */
   attachCleanup(fn) {
     if (typeof fn === 'function') {
       this.cleanups.push(fn);
     }
   }
 
+  /**
+   * 释放所有资源
+   * 按照后进先出的顺序调用所有清理函数
+   * 确保即使某个清理函数失败，其他清理函数仍能执行
+   */
   dispose() {
     while (this.cleanups.length) {
       const fn = this.cleanups.pop();
@@ -74686,31 +74751,71 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   attachGameLoop: () => (/* binding */ attachGameLoop)
 /* harmony export */ });
 /* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/particleSystem */ "./src/core/particleSystem.js");
+/**
+ * 游戏主循环附加器
+ * 负责将游戏更新逻辑附加到PixiJS的ticker上
+ * 
+ * 主循环执行的任务：
+ * - 更新敌人状态（移动、攻击等）
+ * - 更新武器状态（瞄准、射击等）
+ * - 更新粒子系统（特效动画）
+ * - 更新网格背景
+ * - 更新小地图显示
+ */
 
 
+
+/**
+ * 附加游戏主循环
+ * 
+ * @param {GameContext} context - 游戏上下文实例
+ * @returns {Function} 清理函数，用于移除ticker监听器
+ * @throws {Error} 如果context.app未初始化
+ */
 function attachGameLoop(context) {
   const { app } = context;
+  
+  // 确保app已初始化
   if (!app) {
     throw new Error('[attachGameLoop] context.app 未初始化');
   }
 
+  /**
+   * 游戏主循环函数
+   * 每帧都会被调用，负责更新游戏中的所有动态元素
+   * 
+   * @param {number} delta - 帧数增量（通常为1）
+   */
   const tickerFn = (delta) => {
+    // 游戏未开始时不执行更新
     if (!context.state.gameStarted) return;
 
+    // 获取核心管理器
     const enemyManager = context.getManager('enemies');
     const weaponContainer = context.getManager('weapons');
+    
+    // 如果管理器未初始化，跳过本帧更新
     if (!enemyManager || !weaponContainer) return;
 
+    // 获取毫秒级时间增量，用于基于时间的动画
     const deltaMS = app.ticker.deltaMS;
+    
+    // 更新敌人管理器（移动、攻击、检测死亡等）
     enemyManager.update(delta, deltaMS);
+    
+    // 更新武器容器（瞄准、射击、子弹移动等）
     weaponContainer.update(delta, deltaMS, enemyManager.getEnemies());
+    
+    // 更新粒子系统（爆炸、烟雾等特效）
     _core_particleSystem__WEBPACK_IMPORTED_MODULE_0__.particleSystem.update(deltaMS);
 
+    // 更新网格背景（如果有动画效果）
     const gridBackground = context.getSystem('gridBackground');
     if (gridBackground && typeof gridBackground.update === 'function') {
       gridBackground.update(deltaMS);
     }
 
+    // 更新小地图显示
     const goldManager = context.getManager('gold');
     if (goldManager && typeof goldManager.updateMiniMap === 'function') {
       goldManager.updateMiniMap(
@@ -74721,8 +74826,13 @@ function attachGameLoop(context) {
     }
   };
 
+  // 将主循环函数添加到ticker
   app.ticker.add(tickerFn);
 
+  /**
+   * 返回清理函数
+   * 用于从ticker中移除主循环函数
+   */
   return () => {
     app.ticker.remove(tickerFn);
   };
@@ -74746,20 +74856,41 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/**
+ * PixiJS应用创建器
+ * 负责创建和配置PixiJS应用实例
+ */
 
 
 
+
+/**
+ * 创建PixiJS应用实例
+ * 
+ * 执行步骤：
+ * 1. 创建Application实例
+ * 2. 使用配置参数初始化应用（宽度、高度、背景色、抗锯齿等）
+ * 3. 设置页面样式并将canvas添加到DOM
+ * 
+ * @returns {Promise<Application>} 初始化完成的PixiJS应用实例
+ */
 async function createPixiApp() {
+  // 创建PixiJS应用实例
   const app = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Application();
+  
+  // 初始化应用配置
   await app.init({
-    width: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH,
-    height: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT,
-    background: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_BACKGROUND,
-    antialias: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_ANTIALIAS,
+    width: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH,           // 应用宽度
+    height: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT,         // 应用高度
+    background: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_BACKGROUND, // 背景颜色
+    antialias: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_ANTIALIAS,   // 抗锯齿设置
   });
 
+  // 在浏览器环境中，将canvas添加到页面
   if (typeof document !== 'undefined' && document.body) {
+    // 设置页面边距
     document.body.style.margin = _constants__WEBPACK_IMPORTED_MODULE_1__.BODY_MARGIN;
+    // 将canvas元素添加到body
     document.body.appendChild(app.canvas);
   }
 
@@ -74784,35 +74915,64 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/**
+ * 世界图层创建器
+ * 负责创建游戏的布局背景和世界容器
+ * 将屏幕分为三个区域：顶部UI区、战斗区、底部UI区
+ */
 
 
 
+
+/**
+ * 创建世界图层
+ * 
+ * 屏幕布局：
+ * - 顶部区域：显示金币、波数等游戏信息
+ * - 中间区域：战斗场景，包含塔、敌人等游戏对象
+ * - 底部区域：武器选择和放置界面
+ * 
+ * @param {Application} app - PixiJS应用实例
+ * @returns {Object} 包含布局背景和世界容器的对象
+ */
 function createWorldLayers(app) {
+  // 创建布局背景图形，用于绘制三个区域的背景色
   const layoutBackground = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
-  layoutBackground.zIndex = -500;
+  layoutBackground.zIndex = -500; // 设置为最底层
 
-  const topHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.TOP_UI_HEIGHT;
-  const middleHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_HEIGHT;
-  const bottomHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT - topHeight - middleHeight;
+  // 计算三个区域的高度
+  const topHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.TOP_UI_HEIGHT;                          // 顶部UI高度
+  const middleHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_HEIGHT;                       // 战斗区域高度
+  const bottomHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT - topHeight - middleHeight; // 底部UI高度
 
+  // 绘制顶部UI区域背景
   layoutBackground.rect(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH, topHeight).fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.TOP_UI_BG_COLOR });
+  
+  // 绘制中间战斗区域背景
   layoutBackground
     .rect(0, topHeight, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH, middleHeight)
     .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_BACKGROUND });
+  
+  // 绘制底部UI区域背景
   layoutBackground
     .rect(0, topHeight + middleHeight, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH, bottomHeight)
     .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.BOTTOM_UI_BG_COLOR });
+  
+  // 将背景添加到舞台
   app.stage.addChild(layoutBackground);
 
+  // 创建世界容器，所有游戏对象都将添加到这个容器中
   const worldContainer = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Container();
   worldContainer.x = 0;
-  worldContainer.y = topHeight;
-  worldContainer.sortableChildren = true;
+  worldContainer.y = topHeight; // 从顶部UI下方开始
+  worldContainer.sortableChildren = true; // 启用子元素排序，用于控制渲染顺序
+  
+  // 将世界容器添加到舞台的最底层（索引0）
   app.stage.addChildAt(worldContainer, 0);
 
   return {
-    layoutBackground,
-    worldContainer,
+    layoutBackground,  // 布局背景
+    worldContainer,    // 世界容器
   };
 }
 
@@ -74833,48 +74993,95 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   setupStagePanning: () => (/* binding */ setupStagePanning)
 /* harmony export */ });
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/**
+ * 舞台平移设置器
+ * 实现拖动场景的功能，允许玩家查看整个游戏世界
+ * 
+ * 功能特点：
+ * - 只在战斗区域内响应拖动
+ * - 限制拖动范围，防止场景移出可视区域
+ * - 提供清理函数，用于移除事件监听器
+ */
 
 
+
+/**
+ * 设置舞台平移功能
+ * 
+ * @param {Application} app - PixiJS应用实例
+ * @param {Container} worldContainer - 世界容器，将被拖动的对象
+ * @returns {Function} 清理函数，用于移除所有事件监听器
+ */
 function setupStagePanning(app, worldContainer) {
-  let isPanning = false;
-  let panStartX = 0;
-  let worldStartX = 0;
+  // 平移状态
+  let isPanning = false;      // 是否正在拖动
+  let panStartX = 0;          // 拖动开始时的鼠标X坐标
+  let worldStartX = 0;        // 拖动开始时世界容器的X坐标
 
+  // 可拖动区域的边界（只在战斗区域内响应拖动）
   const playableTop = _constants__WEBPACK_IMPORTED_MODULE_0__.TOP_UI_HEIGHT;
   const playableBottom = _constants__WEBPACK_IMPORTED_MODULE_0__.TOP_UI_HEIGHT + _constants__WEBPACK_IMPORTED_MODULE_0__.BATTLE_HEIGHT;
 
+  /**
+   * 指针按下事件处理
+   * 检查点击位置是否在战斗区域内，如果是则开始拖动
+   */
   const onPointerDown = (event) => {
     const { x, y } = event.global;
+    // 只在战斗区域内响应
     if (y >= playableTop && y <= playableBottom) {
       isPanning = true;
-      panStartX = x;
-      worldStartX = worldContainer.x;
+      panStartX = x;                    // 记录起始X坐标
+      worldStartX = worldContainer.x;   // 记录世界容器起始位置
     }
   };
 
+  /**
+   * 指针移动事件处理
+   * 计算拖动距离并更新世界容器位置，同时限制在有效范围内
+   */
   const onPointerMove = (event) => {
     if (!isPanning) return;
+    
+    // 计算鼠标移动距离
     const dx = event.global.x - panStartX;
+    
+    // 计算世界容器新位置
     let nextX = worldStartX + dx;
-    const minX = _constants__WEBPACK_IMPORTED_MODULE_0__.APP_WIDTH - _constants__WEBPACK_IMPORTED_MODULE_0__.WORLD_WIDTH;
-    const maxX = 0;
+    
+    // 限制拖动范围
+    const minX = _constants__WEBPACK_IMPORTED_MODULE_0__.APP_WIDTH - _constants__WEBPACK_IMPORTED_MODULE_0__.WORLD_WIDTH; // 最小X值（向左拖动的极限）
+    const maxX = 0;                       // 最大X值（向右拖动的极限）
+    
     if (nextX < minX) nextX = minX;
     if (nextX > maxX) nextX = maxX;
+    
+    // 更新世界容器位置
     worldContainer.x = nextX;
   };
 
+  /**
+   * 停止拖动
+   * 在指针抬起时调用
+   */
   const stopPanning = () => {
     isPanning = false;
   };
 
+  // 设置舞台为可交互
   app.stage.eventMode = 'static';
-  app.stage.hitArea = app.screen;
+  app.stage.hitArea = app.screen; // 设置整个屏幕为可点击区域
 
-  app.stage.on('pointerdown', onPointerDown);
-  app.stage.on('pointermove', onPointerMove);
-  app.stage.on('pointerup', stopPanning);
-  app.stage.on('pointerupoutside', stopPanning);
+  // 注册事件监听器
+  app.stage.on('pointerdown', onPointerDown);      // 指针按下
+  app.stage.on('pointermove', onPointerMove);      // 指针移动
+  app.stage.on('pointerup', stopPanning);          // 指针抬起
+  app.stage.on('pointerupoutside', stopPanning);   // 指针在外部抬起
 
+  /**
+   * 返回清理函数
+   * 用于移除所有事件监听器，防止内存泄漏
+   */
   return () => {
     app.stage.off('pointerdown', onPointerDown);
     app.stage.off('pointermove', onPointerMove);
@@ -74899,32 +75106,42 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   COLORS: () => (/* binding */ COLORS)
 /* harmony export */ });
+/**
+ * 游戏配色方案配置
+ * 主题：赛博朋克 / 霓虹风格 (Cyberpunk/Neon Theme)
+ * 
+ * 设计理念：
+ * - 使用高饱和度的霓虹色彩，营造赛博朋克氛围
+ * - 友方使用冷色调（青色系），敌方使用暖色调（洋红系）
+ * - 不同类型武器使用不同霓虹色进行区分
+ */
+
 // === 配色方案 (Cyberpunk/Neon Theme) ===
 const COLORS = {
-  // 友方 (Neon Cyan/Electric Blue)
+  // === 友方单位配色 (Neon Cyan/Electric Blue) ===
   ALLY_BODY: 0x00d9ff,      // 友军主体色（霓虹青色）
   ALLY_BODY_DARK: 0x0a1929, // 友军阴影色（深蓝黑）
   ALLY_BARREL: 0x006b7d,    // 炮管色（深青色）
   ALLY_DETAIL: 0x00ffff,    // 友军高光/灯效（纯青霓虹）
   ALLY_BULLET: 0x00ffff,    // 友军子弹能量色（青色脉冲）
   
-  // 敌人 (Neon Magenta/Hot Pink)
+  // === 敌方单位配色 (Neon Magenta/Hot Pink) ===
   ENEMY_BODY: 0xff006e,     // 敌军主体色（霓虹洋红）
   ENEMY_BODY_DARK: 0x1a0a14,// 敌军阴影色（深紫黑）
   ENEMY_DETAIL: 0xff0080,   // 敌军细节/灯效（粉红霓虹）
   ENEMY_BULLET: 0xff00ff,   // 敌军子弹色（紫红脉冲）
 
-  // 火箭塔 (Neon Purple/Violet)
+  // === 火箭塔配色 (Neon Purple/Violet) ===
   ROCKET_BODY: 0x9d00ff,    // 火箭塔主体色（霓虹紫）
   ROCKET_DETAIL: 0xd946ff,  // 火箭塔高光（亮紫霓虹）
   ROCKET_BULLET: 0xc026d3,  // 火箭弹体色（紫色脉冲）
 
-  // 激光塔 (Neon Green/Lime)
+  // === 激光塔配色 (Neon Green/Lime) ===
   LASER_BODY: 0x00ff41,     // 激光塔主体色（霓虹绿）
   LASER_DETAIL: 0x39ff14,   // 激光塔高光（亮绿霓虹）
   LASER_BEAM: 0x00ff88,     // 激光束色（青绿脉冲）
 
-  // UI & System (Cyberpunk Neon)
+  // === UI 和系统配色 (Cyberpunk Neon) ===
   GOLD: 0xffff00,           // 金币数值色（霓虹黄）
   UI_BG: 0x0a0a14,          // UI 背景色（深紫黑）
   UI_BORDER: 0x00ffff,      // UI 边框色（青色霓虹）
@@ -74961,22 +75178,28 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var _colors__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./colors */ "./src/config/colors.js");
 /* harmony import */ var _layout__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./layout */ "./src/config/layout.js");
+/**
+ * 敌人配置
+ * 定义敌方单位的属性和行为参数
+ * 包括敌人外观、移动、攻击、生命值等数据
+ */
 
 
 
-// 敌人相关常量
-const ENEMY_SIZE = _layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.7; // 敌军尺寸
-const ENEMY_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.ENEMY_BODY; // 敌军颜色
-const ENEMY_MOVE_SPEED = 50; // 敌军前进速度（px/s）
-const ENEMY_SPAWN_INTERVAL = 2000; // 基础刷怪间隔（ms）
 
-const ENEMY_MAX_HP = 10; // 敌军初始生命
-const ENEMY_BULLET_DAMAGE = 1; // 敌军子弹伤害
+// === 敌人基础属性 ===
+const ENEMY_SIZE = _layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.7;         // 敌军尺寸（相对格子大小）
+const ENEMY_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.ENEMY_BODY;      // 敌军主体颜色
+const ENEMY_MOVE_SPEED = 50;                // 敌军前进速度（像素/秒）
+const ENEMY_SPAWN_INTERVAL = 2000;          // 基础刷怪间隔（毫秒）
 
-// 敌人攻击相关
-const ENEMY_ATTACK_RANGE_CELLS = 3; // 敌军攻击范围（格）
-const ENEMY_FIRE_INTERVAL = 1000; // 敌军射速（ms）
-const ENEMY_BULLET_SPEED = 160; // 敌军子弹速度（px/s）
+const ENEMY_MAX_HP = 10;                    // 敌军初始生命值
+const ENEMY_BULLET_DAMAGE = 1;              // 敌军子弹对我方武器的伤害
+
+// === 敌人攻击相关 ===
+const ENEMY_ATTACK_RANGE_CELLS = 3;         // 敌军攻击范围（格子数）
+const ENEMY_FIRE_INTERVAL = 1000;           // 敌军射速（毫秒）
+const ENEMY_BULLET_SPEED = 160;             // 敌军子弹速度（像素/秒）
 const ENEMY_BULLET_RADIUS = _layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.12; // 敌军子弹半径
 const ENEMY_BULLET_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.ENEMY_BULLET; // 敌军子弹颜色
 
@@ -75022,43 +75245,50 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var _colors__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./colors */ "./src/config/colors.js");
 /* harmony import */ var _layout__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./layout */ "./src/config/layout.js");
+/**
+ * 游戏玩法配置
+ * 定义游戏平衡性相关的数值参数
+ * 包括武器属性、伤害、射速、经济系统等核心玩法数据
+ */
 
 
 
-// 坦克与武器相关常量
-const TANK_SIZE = _layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.8; // 坦克整体尺寸
-const TANK_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.ALLY_BODY; // 坦克涂装颜色
+
+// === 基础坦克武器相关常量 ===
+const TANK_SIZE = _layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.8;          // 坦克整体尺寸（相对格子大小）
+const TANK_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.ALLY_BODY;        // 坦克涂装颜色
 const TANK_BARREL_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.ALLY_BARREL; // 炮管颜色
-const TANK_FIRE_INTERVAL = 500; // 坦克默认射速（ms）
-const TANK_ATTACK_RANGE_CELLS = 4; // 坦克攻击范围（格）
+const TANK_FIRE_INTERVAL = 500;             // 坦克默认射速（毫秒）
+const TANK_ATTACK_RANGE_CELLS = 4;          // 坦克攻击范围（格子数）
 
-const BULLET_SPEED = 200; // 坦克子弹速度（px/s）
-const BULLET_RADIUS = _layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.11; // 子弹半径（稍小，视觉更轻巧）
-const BULLET_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.ALLY_BULLET; // 子弹能量色
-const BULLET_DAMAGE = 1; // 玩家子弹伤害
-const WEAPON_MAX_HP = 5; // 武器耐久（被敌人击毁前的血量）
+// === 子弹相关 ===
+const BULLET_SPEED = 200;                   // 坦克子弹速度（像素/秒）
+const BULLET_RADIUS = _layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.11;     // 子弹半径（稍小，视觉更轻巧）
+const BULLET_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.ALLY_BULLET;    // 子弹能量色
+const BULLET_DAMAGE = 1;                    // 玩家子弹伤害值
+const WEAPON_MAX_HP = 5;                    // 武器耐久（被敌人击毁前的血量）
 
-// 火箭塔相关
-const ROCKET_BASE_COST = 120; // 火箭塔造价
-const ROCKET_UPGRADE_BASE_COST = 70; // 火箭塔升级成本
-const ROCKET_SELL_BASE_GAIN = 60; // 火箭塔出售返还
-const ROCKET_BULLET_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.ROCKET_BULLET;
+// === 火箭塔相关 ===
+const ROCKET_BASE_COST = 120;               // 火箭塔建造价格
+const ROCKET_UPGRADE_BASE_COST = 70;        // 火箭塔升级成本（每级）
+const ROCKET_SELL_BASE_GAIN = 60;           // 火箭塔出售返还金币
+const ROCKET_BULLET_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.ROCKET_BULLET; // 火箭弹颜色
 
-// 激光塔相关
-const LASER_BASE_COST = 100; // 激光塔造价
-const LASER_UPGRADE_BASE_COST = 60; // 激光塔升级成本
-const LASER_SELL_BASE_GAIN = 50; // 激光塔出售返还
-const LASER_FIRE_INTERVAL = 400; // 激光塔射速（ms，稍慢一点）
-const LASER_ATTACK_RANGE_CELLS = 4; // 激光塔攻击范围（格，与坦克相同）
-const LASER_DAMAGE = 1; // 激光伤害（降低为1）
-const LASER_BEAM_DURATION = 150; // 激光束持续时间（ms）
+// === 激光塔相关 ===
+const LASER_BASE_COST = 100;                // 激光塔建造价格
+const LASER_UPGRADE_BASE_COST = 60;         // 激光塔升级成本（每级）
+const LASER_SELL_BASE_GAIN = 50;            // 激光塔出售返还金币
+const LASER_FIRE_INTERVAL = 400;            // 激光塔射速（毫秒，比普通坦克快）
+const LASER_ATTACK_RANGE_CELLS = 4;         // 激光塔攻击范围（格子数）
+const LASER_DAMAGE = 1;                     // 激光伤害值
+const LASER_BEAM_DURATION = 150;            // 激光束视觉效果持续时间（毫秒）
 
-// 经济系统相关
-const INITIAL_GOLD = 1000; // 开局金币
-const WEAPON_BASE_COST = 80; // 坦克基础造价
-const WEAPON_UPGRADE_BASE_COST = 50; // 坦克升级单级成本
-const WEAPON_SELL_BASE_GAIN = 40; // 出售武器返还金币
-const ENEMY_KILL_REWARD = 20; // 击杀敌人奖励
+// === 经济系统相关 ===
+const INITIAL_GOLD = 1000;                  // 开局初始金币
+const WEAPON_BASE_COST = 80;                // 普通坦克基础造价
+const WEAPON_UPGRADE_BASE_COST = 50;        // 坦克升级单级成本
+const WEAPON_SELL_BASE_GAIN = 40;           // 出售武器返还金币基础值
+const ENEMY_KILL_REWARD = 20;               // 击杀每个敌人的金币奖励
 
 
 
@@ -75097,43 +75327,64 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   WORLD_WIDTH: () => (/* binding */ WORLD_WIDTH)
 /* harmony export */ });
 /* harmony import */ var _colors__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./colors */ "./src/config/colors.js");
+/**
+ * 游戏布局配置
+ * 定义游戏画布、网格、战场等空间布局相关的常量
+ * 
+ * 布局结构：
+ * ┌─────────────────────┐
+ * │    顶部 UI 区域      │ TOP_UI_HEIGHT
+ * ├─────────────────────┤
+ * │                     │
+ * │     战斗区域        │ BATTLE_HEIGHT
+ * │   (可拖动滚动)       │
+ * │                     │
+ * ├─────────────────────┤
+ * │   底部武器选择区     │ WEAPON_CONTAINER_HEIGHT
+ * └─────────────────────┘
+ */
 
 
-// 画布相关常量
-const APP_WIDTH = 1600; // PIXI 画布宽度（px）
-const APP_HEIGHT = 640; // PIXI 画布高度（px）
-const APP_BACKGROUND = 0x0a0014; // 全局默认背景色（深紫黑赛博朋克）
-const APP_ANTIALIAS = true; // 是否开启抗锯齿
-const TOP_UI_BG_COLOR = 0x0f0a1f; // 顶部 UI 区域背景色（深紫）
+
+// === 画布相关常量 ===
+const APP_WIDTH = 1600;              // PIXI 画布宽度（px）
+const APP_HEIGHT = 640;              // PIXI 画布高度（px）
+const APP_BACKGROUND = 0x0a0014;     // 全局默认背景色（深紫黑赛博朋克）
+const APP_ANTIALIAS = true;          // 是否开启抗锯齿
+const TOP_UI_BG_COLOR = 0x0f0a1f;    // 顶部 UI 区域背景色（深紫）
 const BOTTOM_UI_BG_COLOR = 0x0a0a1a; // 底部武器库背景色（深蓝紫）
 
-// DOM 相关常量
+// === DOM 相关常量 ===
 const BODY_MARGIN = '0'; // <body> 外边距（避免滚动条白边）
 
-// 网格与线条相关常量
-const CELL_SIZE = 80; // 每个格子的边长
-const GRID_LINE_WIDTH = 1; // 网格线宽度
-const GRID_LINE_COLOR = 0x00ffff; // 网格线颜色（霓虹青色）
-const GRID_LINE_ALPHA = 0.3; // 网格线透明度
+// === 网格与线条相关常量 ===
+const CELL_SIZE = 80;               // 每个格子的边长（px）
+const GRID_LINE_WIDTH = 1;          // 网格线宽度（px）
+const GRID_LINE_COLOR = 0x00ffff;   // 网格线颜色（霓虹青色）
+const GRID_LINE_ALPHA = 0.3;        // 网格线透明度（0-1）
 
-// 武器容器相关常量
-const WEAPON_CONTAINER_WIDTH = CELL_SIZE * 10; // 底部武器库宽度（扩展以容纳3个武器）
-const WEAPON_CONTAINER_HEIGHT = CELL_SIZE * 2.5; // 底部武器库高度
-const WEAPON_CONTAINER_MARGIN_BOTTOM = CELL_SIZE * 0.2; // 武器库距底部间距
-const WEAPON_CONTAINER_BG_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.UI_BG; // 武器库背景色
-const WEAPON_CONTAINER_BORDER_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.UI_BORDER; // 武器库边框颜色
-const WEAPON_CONTAINER_BORDER_WIDTH = 2; // 武器库边框线宽
+// === 武器容器相关常量 ===
+const WEAPON_CONTAINER_WIDTH = CELL_SIZE * 10;           // 底部武器库宽度（扩展以容纳多个武器）
+const WEAPON_CONTAINER_HEIGHT = CELL_SIZE * 2.5;         // 底部武器库高度
+const WEAPON_CONTAINER_MARGIN_BOTTOM = CELL_SIZE * 0.2;  // 武器库距底部间距
+const WEAPON_CONTAINER_BG_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.UI_BG;          // 武器库背景色
+const WEAPON_CONTAINER_BORDER_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.UI_BORDER;  // 武器库边框颜色
+const WEAPON_CONTAINER_BORDER_WIDTH = 2;                 // 武器库边框线宽
 
-// 战场垂直布局
+// === 战场垂直布局 ===
 const TOP_UI_HEIGHT = CELL_SIZE; // 顶部金币/信息栏高度
-const RAW_BATTLE_SPACE =
-  APP_HEIGHT - TOP_UI_HEIGHT - (WEAPON_CONTAINER_HEIGHT + WEAPON_CONTAINER_MARGIN_BOTTOM * 2); // 战场原始可用高度
-const BATTLE_ROWS = Math.max(1, Math.floor(RAW_BATTLE_SPACE / CELL_SIZE)); // 战场可容纳的行数
-const BATTLE_HEIGHT = BATTLE_ROWS * CELL_SIZE; // 战场像素高度
 
-// 世界（战场）横向总宽度：为画布宽度的 2 倍，便于横向拖拽
+// 计算战场可用高度：总高度 - 顶部UI - 底部武器区
+const RAW_BATTLE_SPACE =
+  APP_HEIGHT - TOP_UI_HEIGHT - (WEAPON_CONTAINER_HEIGHT + WEAPON_CONTAINER_MARGIN_BOTTOM * 2);
+
+const BATTLE_ROWS = Math.max(1, Math.floor(RAW_BATTLE_SPACE / CELL_SIZE)); // 战场可容纳的行数
+const BATTLE_HEIGHT = BATTLE_ROWS * CELL_SIZE;                              // 战场实际像素高度
+
+// === 世界（战场）横向总宽度 ===
+// 为画布宽度的 2 倍，便于横向拖拽查看更大的战场
 const WORLD_COLS = Math.ceil((APP_WIDTH * 2) / CELL_SIZE); // 战场列数
-const WORLD_WIDTH = WORLD_COLS * CELL_SIZE; // 战场像素宽度
+const WORLD_WIDTH = WORLD_COLS * CELL_SIZE;                 // 战场像素宽度
 
 
 
@@ -75171,33 +75422,42 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var _colors__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./colors */ "./src/config/colors.js");
 /* harmony import */ var _layout__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./layout */ "./src/config/layout.js");
+/**
+ * UI 配置
+ * 定义游戏用户界面相关的视觉参数
+ * 包括金币显示、小地图、按钮等UI元素的样式配置
+ */
 
 
 
-// 顶部 UI / 金币条参数
-const GOLD_TEXT_FONT_SIZE = 20; // 顶部金币字体大小
-const GOLD_TEXT_PADDING_X = 16; // 金币文本左侧内边距
 
-// 小地图参数
-const MINIMAP_WIDTH = 220; // 小地图宽度
-const MINIMAP_HEIGHT_PADDING = 10; // 小地图相对顶部栏高度的扣减
-const MINIMAP_HORIZONTAL_MARGIN = 10; // 小地图距右侧间距
-const MINIMAP_VERTICAL_MARGIN = 5; // 小地图距顶部间距
-const MINIMAP_CORNER_RADIUS = 10; // 小地图圆角半径
-const MINIMAP_BORDER_WIDTH = 1; // 小地图描边宽度
-const MINIMAP_ENEMY_DOT_RADIUS = 2.5; // 敌人点半径
-const MINIMAP_WEAPON_DOT_RADIUS = 2.2; // 我方点半径
-const MINIMAP_VIEWPORT_STROKE_WIDTH = 2; // 视口描边宽度
-const MINIMAP_VIEWPORT_COLOR = 0xf9fafb; // 视口描边颜色
-const MINIMAP_VIEWPORT_ALPHA = 0.9; // 视口描边透明度
-const WAVE_TEXT_FONT_SIZE = 16; // 波次文字字号
-const WAVE_TEXT_OFFSET_Y = -6; // 波次文字 Y 偏移
+// === 顶部 UI / 金币条参数 ===
+const GOLD_TEXT_FONT_SIZE = 20;     // 顶部金币字体大小（px）
+const GOLD_TEXT_PADDING_X = 16;     // 金币文本左侧内边距（px）
 
-const ACTION_BUTTON_WIDTH = 72; // 升级/卖掉按钮宽度
-const ACTION_BUTTON_HEIGHT = 26; // 升级/卖掉按钮高度
-const ACTION_BUTTON_RADIUS = 8; // 按钮圆角
-const ACTION_BUTTON_FONT_SIZE = 14; // 按钮文字大小
-const ACTION_BUTTON_STROKE_WIDTH = 2; // 按钮描边线宽
+// === 小地图参数 ===
+const MINIMAP_WIDTH = 220;                      // 小地图宽度（px）
+const MINIMAP_HEIGHT_PADDING = 10;              // 小地图相对顶部栏高度的扣减（px）
+const MINIMAP_HORIZONTAL_MARGIN = 10;           // 小地图距右侧间距（px）
+const MINIMAP_VERTICAL_MARGIN = 5;              // 小地图距顶部间距（px）
+const MINIMAP_CORNER_RADIUS = 10;               // 小地图圆角半径（px）
+const MINIMAP_BORDER_WIDTH = 1;                 // 小地图描边宽度（px）
+const MINIMAP_ENEMY_DOT_RADIUS = 2.5;           // 敌人标记点半径（px）
+const MINIMAP_WEAPON_DOT_RADIUS = 2.2;          // 我方武器标记点半径（px）
+const MINIMAP_VIEWPORT_STROKE_WIDTH = 2;        // 视口矩形描边宽度（px）
+const MINIMAP_VIEWPORT_COLOR = 0xf9fafb;        // 视口矩形描边颜色
+const MINIMAP_VIEWPORT_ALPHA = 0.9;             // 视口矩形描边透明度（0-1）
+
+// === 波次显示参数 ===
+const WAVE_TEXT_FONT_SIZE = 16;     // 波次文字字号（px）
+const WAVE_TEXT_OFFSET_Y = -6;      // 波次文字 Y 轴偏移（px）
+
+// === 操作按钮参数 ===
+const ACTION_BUTTON_WIDTH = 72;             // 升级/卖掉按钮宽度（px）
+const ACTION_BUTTON_HEIGHT = 26;            // 升级/卖掉按钮高度（px）
+const ACTION_BUTTON_RADIUS = 8;             // 按钮圆角半径（px）
+const ACTION_BUTTON_FONT_SIZE = 14;         // 按钮文字大小（px）
+const ACTION_BUTTON_STROKE_WIDTH = 2;       // 按钮描边线宽（px）
 
 
 
@@ -75223,6 +75483,7 @@ __webpack_require__.r(__webpack_exports__);
 /**
  * 武器类型配置
  * 统一管理所有武器的基础配置信息
+ * 包括武器的ID、名称、图标、描述、成本、颜色等元数据
  */
 const WEAPON_TYPES = {
   ROCKET: {
@@ -75253,20 +75514,25 @@ const WEAPON_TYPES = {
 
 /**
  * 武器配置工具类
+ * 提供武器配置相关的查询和计算功能
  */
 class WeaponConfig {
   /**
-   * 根据武器实例获取配置
+   * 根据武器实例获取对应的配置
+   * @param {Object} weapon - 武器实例
+   * @returns {Object} 武器配置对象
    */
   static getConfigByInstance(weapon) {
     const className = weapon.constructor.name;
     if (className === 'RocketTower') return WEAPON_TYPES.ROCKET;
     if (className === 'LaserTower') return WEAPON_TYPES.LASER;
-    return WEAPON_TYPES.ROCKET; // 默认返回火箭塔
+    return WEAPON_TYPES.ROCKET; // 默认返回火箭塔配置
   }
 
   /**
-   * 根据类型ID获取配置
+   * 根据类型ID获取武器配置
+   * @param {string} typeId - 武器类型ID（如 'rocket', 'laser'）
+   * @returns {Object} 武器配置对象
    */
   static getConfigById(typeId) {
     return Object.values(WEAPON_TYPES).find(t => t.id === typeId) || WEAPON_TYPES.ROCKET;
@@ -75274,6 +75540,10 @@ class WeaponConfig {
 
   /**
    * 计算武器放置成本
+   * 成本会随等级线性增长
+   * @param {string} typeId - 武器类型ID
+   * @param {number} level - 武器等级（默认为1）
+   * @returns {number} 放置成本
    */
   static getPlacementCost(typeId, level = 1) {
     const config = this.getConfigById(typeId);
@@ -75282,6 +75552,9 @@ class WeaponConfig {
 
   /**
    * 计算武器升级成本
+   * 升级成本随当前等级增加
+   * @param {Object} weapon - 武器实例
+   * @returns {number} 升级所需金币
    */
   static getUpgradeCost(weapon) {
     const config = this.getConfigByInstance(weapon);
@@ -75291,6 +75564,9 @@ class WeaponConfig {
 
   /**
    * 计算武器出售收益
+   * 出售价格随等级增加
+   * @param {Object} weapon - 武器实例
+   * @returns {number} 出售可获得的金币
    */
   static getSellGain(weapon) {
     const config = this.getConfigByInstance(weapon);
@@ -75299,7 +75575,8 @@ class WeaponConfig {
   }
 
   /**
-   * 获取所有武器类型
+   * 获取所有武器类型配置
+   * @returns {Array} 武器配置数组
    */
   static getAllTypes() {
     return Object.values(WEAPON_TYPES);
@@ -75408,81 +75685,27 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _config_gameplay__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./config/gameplay */ "./src/config/gameplay.js");
 /* harmony import */ var _config_enemies__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./config/enemies */ "./src/config/enemies.js");
 /* harmony import */ var _config_weaponTypes__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./config/weaponTypes */ "./src/config/weaponTypes.js");
-
-
-
-
-
-
-
-
-/***/ }),
-
-/***/ "./src/core/depthUtils.js":
-/*!********************************!*\
-  !*** ./src/core/depthUtils.js ***!
-  \********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   createSoftShadow: () => (/* binding */ createSoftShadow),
-/* harmony export */   getPerspectiveByY: () => (/* binding */ getPerspectiveByY),
-/* harmony export */   updateShadowTransform: () => (/* binding */ updateShadowTransform)
-/* harmony export */ });
-/* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
-/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
-
-
-
-const PLAYABLE_HEIGHT = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_HEIGHT;
-
-const BASE_SCALE = 0.9;
-const SCALE_RANGE = 0.22;
-
 /**
- * 根据当前 Y 坐标计算透视缩放和阴影参数
+ * 游戏常量统一导出文件
+ * 集中导出所有配置文件中定义的常量，方便其他模块引用
  */
-function getPerspectiveByY(y = 0) {
-  const normalized = Math.min(Math.max(y / PLAYABLE_HEIGHT, 0), 1);
-  const scale = BASE_SCALE + normalized * SCALE_RANGE;
-  const shadowOffsetY = 6 + normalized * 10;
-  const shadowOffsetX = -8 + normalized * 6;
-  const shadowScaleX = 1 + normalized * 0.35;
-  const shadowScaleY = 0.55 + normalized * 0.12;
-  const shadowAlpha = 0.35 + normalized * 0.35;
-  return {
-    scale,
-    shadowOffsetX,
-    shadowOffsetY,
-    shadowScaleX,
-    shadowScaleY,
-    shadowAlpha,
-  };
-}
 
-/**
- * 创建一个柔和的椭圆阴影，用于放在坦克 / 敌人底部
- */
-function createSoftShadow(radius = _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.45) {
-  const shadow = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-    .ellipse(0, 0, radius, radius * 0.55)
-    .fill({ color: 0x000000, alpha: 0.8 });
-  const blur = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.BlurFilter();
-  blur.strength = 4;
-  shadow.filters = [blur];
-  shadow.alpha = 0.5;
-  return shadow;
-}
+// 导出颜色配置常量
 
-function updateShadowTransform(shadow, x, y, perspective) {
-  if (!shadow || !perspective) return;
-  shadow.x = x + perspective.shadowOffsetX;
-  shadow.y = y + perspective.shadowOffsetY;
-  shadow.alpha = perspective.shadowAlpha;
-  shadow.scale.set(perspective.shadowScaleX, perspective.shadowScaleY);
-}
+
+// 导出布局配置常量
+
+
+// 导出UI配置常量
+
+
+// 导出游戏玩法配置常量
+
+
+// 导出敌人配置常量
+
+
+// 导出武器类型配置常量
 
 
 
@@ -75500,10 +75723,35 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   Particle: () => (/* binding */ Particle)
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
+/**
+ * 粒子类
+ * 单个粒子对象，用于创建各种视觉特效
+ * 
+ * 特点：
+ * - 支持生命周期管理
+ * - 支持透明度和缩放动画
+ * - 支持速度和旋转
+ * - 自动渐变效果（从起始状态到结束状态）
+ */
+
 
 
 /**
- * 基础粒子对象，供 ParticleSystem 复用。
+ * 粒子构造函数
+ * @param {*} texture - 纹理对象（可选，通常为null）
+ * @param {number} x - 初始X坐标
+ * @param {number} y - 初始Y坐标
+ * @param {Object} options - 粒子配置选项
+ * @param {string} options.type - 粒子类型（'circle'或'rect'）
+ * @param {number} options.color - 粒子颜色（十六进制）
+ * @param {number} options.size - 粒子大小
+ * @param {number} options.life - 生命时长（秒）
+ * @param {Object} options.velocity - 速度向量 {x, y}
+ * @param {number} options.alphaStart - 起始透明度（0-1）
+ * @param {number} options.alphaEnd - 结束透明度（0-1）
+ * @param {number} options.scaleStart - 起始缩放
+ * @param {number} options.scaleEnd - 结束缩放
+ * @param {number} options.rotationSpeed - 旋转速度（弧度/秒）
  */
 class Particle {
   constructor(texture, x, y, options = {}) {
@@ -75513,26 +75761,39 @@ class Particle {
       this.sprite = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
     }
 
-    this.type = options.type || 'circle';
-    this.color = options.color || 0xffffff;
-    this.size = options.size || 5;
-    this.life = options.life || 1.0;
-    this.maxLife = this.life;
-    this.velocity = options.velocity || { x: 0, y: 0 };
-    this.alphaStart = options.alphaStart ?? 1;
-    this.alphaEnd = options.alphaEnd ?? 0;
-    this.scaleStart = options.scaleStart ?? 1;
-    this.scaleEnd = options.scaleEnd ?? 0;
-    this.rotationSpeed = options.rotationSpeed || 0;
+    // 粒子外观属性
+    this.type = options.type || 'circle';              // 粒子形状
+    this.color = options.color || 0xffffff;            // 粒子颜色
+    this.size = options.size || 5;                     // 粒子大小
+    
+    // 生命周期属性
+    this.life = options.life || 1.0;                   // 剩余生命（秒）
+    this.maxLife = this.life;                          // 最大生命（用于计算进度）
+    
+    // 运动属性
+    this.velocity = options.velocity || { x: 0, y: 0 }; // 速度向量
+    this.rotationSpeed = options.rotationSpeed || 0;   // 旋转速度
+    
+    // 动画属性（从起始值渐变到结束值）
+    this.alphaStart = options.alphaStart ?? 1;         // 起始透明度
+    this.alphaEnd = options.alphaEnd ?? 0;             // 结束透明度
+    this.scaleStart = options.scaleStart ?? 1;         // 起始缩放
+    this.scaleEnd = options.scaleEnd ?? 0;             // 结束缩放
 
+    // 绘制粒子图形
     this.draw();
 
+    // 设置初始位置和状态
     this.sprite.x = x;
     this.sprite.y = y;
     this.sprite.alpha = this.alphaStart;
     this.sprite.scale.set(this.scaleStart);
   }
 
+  /**
+   * 绘制粒子图形
+   * 根据类型绘制圆形或矩形
+   */
   draw() {
     this.sprite.clear();
     if (this.type === 'circle') {
@@ -75544,24 +75805,46 @@ class Particle {
     }
   }
 
+  /**
+   * 更新粒子状态
+   * 每帧调用，更新位置、旋转、透明度和缩放
+   * 
+   * @param {number} deltaMS - 距上一帧的时间（毫秒）
+   * @returns {boolean} 粒子是否仍然存活
+   */
   update(deltaMS) {
+    // 转换为秒
     const dt = deltaMS / 1000;
+    
+    // 减少生命值
     this.life -= dt;
 
+    // 更新位置（根据速度）
     this.sprite.x += this.velocity.x * dt;
     this.sprite.y += this.velocity.y * dt;
+    
+    // 更新旋转
     this.sprite.rotation += this.rotationSpeed * dt;
 
+    // 计算生命周期进度（0到1）
     const progress = 1 - this.life / this.maxLife;
 
+    // 根据进度在起始值和结束值之间插值
+    // 透明度渐变
     this.sprite.alpha = this.alphaStart + (this.alphaEnd - this.alphaStart) * progress;
 
+    // 缩放渐变
     const currentScale = this.scaleStart + (this.scaleEnd - this.scaleStart) * progress;
     this.sprite.scale.set(currentScale);
 
+    // 返回粒子是否仍然存活
     return this.life > 0;
   }
 
+  /**
+   * 销毁粒子
+   * 从父容器中移除并释放资源
+   */
   destroy() {
     if (this.sprite.parent) {
       this.sprite.parent.removeChild(this.sprite);
@@ -75589,35 +75872,56 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _particle__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./particle */ "./src/core/particle.js");
-
-
-
 /**
- * Lightweight particle instance used by ParticleSystem.
- * texture 参数仅在想要克隆已有 Graphics 几何体时使用，
- * 常规情况直接生成新的 Graphics 即可。
+ * 粒子系统
+ * 负责管理场景中所有一次性视觉特效
+ * 
+ * 主要功能：
+ * - 集中管理所有粒子的生命周期
+ * - 提供各种预设特效（爆炸、枪口火光、击中火花等）
+ * - 自动清理过期粒子，控制性能
+ * - 支持粒子池，避免频繁创建销毁对象
  */
+
+
+
+
 /**
- * 粒子系统：负责管理场景中所有一次性特效
- * （炮口闪光、爆炸、火花等），集中更新与销毁。
+ * 粒子系统类
  */
 class ParticleSystem {
+  /**
+   * 构造函数
+   * @param {Application} app - PixiJS应用实例
+   */
   constructor(app) {
     this.app = app;
-    this.container = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Container();
-    this.particles = [];
-    this.maxParticles = 300;
+    this.container = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Container();      // 粒子容器
+    this.particles = [];                   // 活跃粒子数组
+    this.maxParticles = 300;               // 最大粒子数量限制
   }
 
+  /**
+   * 初始化粒子系统
+   * 将粒子容器添加到世界容器中
+   * @param {Container} worldContainer - 世界容器
+   */
   init(worldContainer) {
-    this.container.zIndex = 1000;
-    this.container.eventMode = 'none';
+    this.container.zIndex = 1000;          // 设置为高层级，确保粒子在最上层显示
+    this.container.eventMode = 'none';     // 禁用交互，粒子不响应鼠标事件
     worldContainer.addChild(this.container);
   }
 
+  /**
+   * 更新所有粒子
+   * 每帧调用，更新粒子状态并清理死亡粒子
+   * @param {number} deltaMS - 距上一帧的时间（毫秒）
+   */
   update(deltaMS) {
+    // 反向遍历，方便删除元素
     for (let i = this.particles.length - 1; i >= 0; i -= 1) {
       const particle = this.particles[i];
+      // 如果粒子已死亡（update返回false），则销毁并移除
       if (!particle.update(deltaMS)) {
         particle.destroy();
         this.particles.splice(i, 1);
@@ -75625,31 +75929,61 @@ class ParticleSystem {
     }
   }
 
+  /**
+   * 发射粒子
+   * 基础粒子发射方法，可配置各种参数
+   * 
+   * @param {number} x - 发射位置X坐标
+   * @param {number} y - 发射位置Y坐标
+   * @param {Object} options - 配置选项
+   * @param {number} options.count - 发射粒子数量
+   * @param {number} options.speed - 粒子速度
+   * @param {number} options.angle - 基础角度
+   * @param {number} options.spread - 扩散范围（弧度）
+   * @param {number} options.color - 粒子颜色
+   * @param {number} options.size - 粒子大小
+   * @param {number} options.life - 生命时长
+   * @param {number} options.scaleStart - 起始缩放
+   * @param {number} options.scaleEnd - 结束缩放
+   * @param {number} options.alphaStart - 起始透明度
+   * @param {number} options.alphaEnd - 结束透明度
+   */
   emit(x, y, options = {}) {
     const {
-      count = 1,
-      speed = 100,
-      angle: baseAngle,
-      spread = 0,
+      count = 1,              // 粒子数量
+      speed = 100,            // 基础速度
+      angle: baseAngle,       // 基础角度
+      spread = 0,             // 扩散角度
     } = options;
 
+    // 创建指定数量的粒子
     for (let i = 0; i < count; i += 1) {
+      // 计算粒子发射角度（如果未指定则随机）
       const angle = baseAngle !== undefined ? baseAngle : Math.random() * Math.PI * 2;
+      
+      // 在基础角度上添加随机扩散
       const finalAngle = angle + (Math.random() - 0.5) * spread;
+      
+      // 速度添加随机变化（80%-120%）
       const finalSpeed = speed * (0.8 + Math.random() * 0.4);
 
+      // 计算速度向量
       const velocity = {
         x: Math.cos(finalAngle) * finalSpeed,
         y: Math.sin(finalAngle) * finalSpeed,
       };
 
+      // 创建粒子
       const particle = new _particle__WEBPACK_IMPORTED_MODULE_1__.Particle(null, x, y, {
         ...options,
         velocity,
       });
+      
+      // 添加到容器和管理数组
       this.container.addChild(particle.sprite);
       this.particles.push(particle);
 
+      // 如果超过最大粒子数，移除最老的粒子
       if (this.particles.length > this.maxParticles) {
         const overflow = this.particles.length - this.maxParticles;
         for (let j = 0; j < overflow; j += 1) {
@@ -75660,6 +75994,16 @@ class ParticleSystem {
     }
   }
 
+  /**
+   * 创建爆炸特效
+   * 赛博朋克风格的霓虹爆炸效果
+   * 包含多层粒子：冲击波、电子脉冲、核心闪光、余波、数据碎片、光环、电弧
+   * 
+   * @param {number} x - 爆炸位置X坐标
+   * @param {number} y - 爆炸位置Y坐标
+   * @param {number} color - 主色调（默认青色）
+   * @param {number} count - 主粒子数量（默认12个）
+   */
   createExplosion(x, y, color = 0x00ffff, count = 12) {
     // 外圈冲击波
     this.emit(x, y, {
@@ -75760,6 +76104,16 @@ class ParticleSystem {
     });
   }
 
+  /**
+   * 创建枪口火光特效
+   * 武器开火时的霓虹闪光效果
+   * 包含：能量波纹、中心闪光、能量环、前向冲击波、尾迹粒子、霓虹脉冲
+   * 
+   * @param {number} x - 发射位置X坐标
+   * @param {number} y - 发射位置Y坐标
+   * @param {number} angle - 发射角度（弧度）
+   * @param {number} color - 主色调（默认青色）
+   */
   createMuzzleFlash(x, y, angle, color = 0x00ffff) {
     // 外圈能量波纹
     this.emit(x, y, {
@@ -75844,6 +76198,15 @@ class ParticleSystem {
     });
   }
 
+  /**
+   * 创建击中火花特效
+   * 子弹击中目标时的霓虹火花效果
+   * 包含：冲击波、霓虹闪光、能量爆裂、小型火花、光环、电弧
+   * 
+   * @param {number} x - 击中位置X坐标
+   * @param {number} y - 击中位置Y坐标
+   * @param {number} color - 主色调（默认青色）
+   */
   createHitSpark(x, y, color = 0x00ffff) {
     // 外圈冲击波
     this.emit(x, y, {
@@ -75930,6 +76293,7 @@ class ParticleSystem {
   }
 }
 
+// 导出全局单例
 const particleSystem = new ParticleSystem();
 
 
@@ -75947,57 +76311,75 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   soundManager: () => (/* binding */ soundManager)
 /* harmony export */ });
-/* 简单声音管理器：
+/**
+ * 音效管理器
+ * 负责管理游戏中的所有音频播放
+ * 
+ * 功能：
  * - 背景音乐（循环播放）
- * - 武器开火音效
- * - 敌人死亡音效
- *
- * 实现基于浏览器原生 Audio。
- * 实际音频文件请放到 src/audio/ 目录中，webpack 构建时会自动复制到 dist/audio/：
- *   - src/audio/bg.wav       →  /audio/bg.wav          （背景音乐）
- *   - src/audio/shoot.wav    →  /audio/shoot.wav       （武器开火）
- *   - src/audio/boom.wav     →  /audio/boom.wav        （敌人死亡爆炸）
- *
- * 如果文件不存在或加载失败，代码会自动忽略，不会影响游戏运行。
+ * - 武器开火音效（音效池）
+ * - 敌人死亡音效（音效池）
+ * 
+ * 实现基于浏览器原生 Audio API
+ * 音频文件路径（webpack 构建时会自动复制）：
+ *   - src/audio/bg.wav    → /audio/bg.wav    （背景音乐）
+ *   - src/audio/shoot.wav → /audio/shoot.wav （武器开火）
+ *   - src/audio/boom.wav  → /audio/boom.wav  （敌人死亡爆炸）
+ * 
+ * 特点：
+ * - 使用音效池避免同一音效同时播放时的冲突
+ * - 自动容错，音频加载失败不会影响游戏运行
+ * - 兼容浏览器自动播放策略
  */
 
 class SoundManager {
+  /**
+   * 构造函数
+   */
   constructor() {
-    this.initialized = false;
-    this.bgAudio = null;
-    this.fireAudioPool = [];
-    this.deathAudioPool = [];
-    this.poolSize = 6;
+    this.initialized = false;    // 是否已初始化
+    this.bgAudio = null;          // 背景音乐Audio对象
+    this.fireAudioPool = [];      // 开火音效池
+    this.deathAudioPool = [];     // 死亡音效池
+    this.poolSize = 6;            // 音效池大小
   }
 
+  /**
+   * 初始化音频系统
+   * 加载所有音频文件并创建音效池
+   */
   init() {
+    // 防止重复初始化
     if (this.initialized) return;
+    
+    // 非浏览器环境检查（例如服务端渲染或构建时）
     if (typeof Audio === 'undefined') {
-      // 非浏览器环境（例如构建时），直接跳过
       return;
     }
 
-    // 背景音乐（循环）
+    // === 初始化背景音乐 ===
     try {
       this.bgAudio = new Audio('/audio/bg.wav');
-      this.bgAudio.loop = true;
-      this.bgAudio.volume = 0.35;
+      this.bgAudio.loop = true;      // 循环播放
+      this.bgAudio.volume = 0.35;    // 音量设置为35%
     } catch (e) {
+      // 加载失败则置空，后续播放时会自动跳过
       this.bgAudio = null;
     }
 
-    // 武器开火音效池
+    // === 创建武器开火音效池 ===
+    // 使用音效池可以同时播放多个开火音效而不互相干扰
     for (let i = 0; i < this.poolSize; i += 1) {
       try {
         const a = new Audio('/audio/shoot.wav');
         a.volume = 0.5;
         this.fireAudioPool.push(a);
       } catch (e) {
-        break;
+        break; // 加载失败则停止创建
       }
     }
 
-    // 敌人死亡音效池
+    // === 创建敌人死亡音效池 ===
     for (let i = 0; i < this.poolSize; i += 1) {
       try {
         const a = new Audio('/audio/boom.wav');
@@ -76011,55 +76393,84 @@ class SoundManager {
     this.initialized = true;
   }
 
+  /**
+   * 播放背景音乐
+   * 应在用户交互后调用（如点击"开始游戏"按钮）
+   * 以符合浏览器的自动播放策略
+   */
   playBackground() {
     if (!this.bgAudio) return;
     try {
-      // 为了兼容浏览器“用户交互后才能播放”的限制，应在点击“开始游戏”后调用
+      // 重置播放位置到开始
       this.bgAudio.currentTime = 0;
+      
+      // 播放音乐
       const p = this.bgAudio.play();
-      // 某些浏览器中 play() 返回的 Promise 会在资源缺失/不支持时 reject，这里统一吞掉
+      
+      // play() 返回 Promise，捕获可能的错误
+      // 某些浏览器在资源缺失或不支持时会 reject
       if (p && typeof p.catch === 'function') {
-        p.catch(() => {});
+        p.catch(() => {}); // 忽略错误
       }
     } catch (e) {
       // 忽略播放失败
     }
   }
 
+  /**
+   * 停止背景音乐
+   */
   stopBackground() {
     if (!this.bgAudio) return;
     try {
       this.bgAudio.pause();
     } catch (e) {
-      // ignore
+      // 忽略错误
     }
   }
 
+  /**
+   * 从音效池中播放音效
+   * 优先使用空闲的 Audio 对象，如果都在播放则使用第一个
+   * 
+   * @param {Array<Audio>} pool - 音效池
+   */
   playFromPool(pool) {
     if (!pool || !pool.length) return;
+    
+    // 查找空闲的 Audio 对象（已暂停的）
     const audio = pool.find((a) => a.paused);
+    
+    // 如果都在播放，使用第一个（会中断当前播放）
     const target = audio || pool[0];
+    
     try {
-      target.currentTime = 0;
+      target.currentTime = 0; // 重置到开始
       const p = target.play();
       if (p && typeof p.catch === 'function') {
-        p.catch(() => {});
+        p.catch(() => {}); // 忽略错误
       }
     } catch (e) {
-      // ignore
+      // 忽略播放失败
     }
   }
 
+  /**
+   * 播放武器开火音效
+   */
   playFire() {
     this.playFromPool(this.fireAudioPool);
   }
 
+  /**
+   * 播放敌人死亡音效
+   */
   playEnemyDeath() {
     this.playFromPool(this.deathAudioPool);
   }
 }
 
-// 全局单例
+// 导出全局单例
 const soundManager = new SoundManager();
 
 
@@ -76080,39 +76491,74 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
+/**
+ * 敌军子弹类
+ * 敌人坦克发射的子弹，用于攻击玩家的防御武器
+ * 
+ * 特点：
+ * - 直线飞行，不会追踪目标
+ * - 碰到武器会造成伤害
+ * - 超出边界自动销毁
+ */
+
 
 
 
 /**
- * 敌军炮弹：由 EnemyTank 发射，用于攻击玩家武器。
+ * 敌军子弹类
+ * 由 EnemyTank 发射，用于攻击玩家武器
  */
 class EnemyBullet {
+  /**
+   * 构造函数
+   * @param {Application} app - PixiJS应用实例
+   * @param {number} x - 初始X坐标
+   * @param {number} y - 初始Y坐标
+   * @param {number} angle - 飞行角度（弧度）
+   */
   constructor(app, x, y, angle) {
     this.app = app;
-    this.angle = angle;
-    this.speed = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_BULLET_SPEED;
-    this.radius = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_BULLET_RADIUS;
+    this.angle = angle;                   // 飞行角度
+    this.speed = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_BULLET_SPEED;      // 飞行速度
+    this.radius = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_BULLET_RADIUS;    // 碰撞半径
 
+    // 创建圆形子弹图形
     this.sprite = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics().circle(0, 0, this.radius).fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_BULLET_COLOR });
     this.sprite.x = x;
     this.sprite.y = y;
 
+    // 添加到世界容器
     const world = this.app.world || this.app.stage;
     world.addChild(this.sprite);
   }
 
+  /**
+   * 更新子弹位置
+   * @param {number} deltaMS - 距上一帧的时间（毫秒）
+   */
   update(deltaMS) {
+    // 计算本帧移动距离
     const step = (this.speed * deltaMS) / 1000;
+    
+    // 沿着角度方向移动
     this.sprite.x += Math.cos(this.angle) * step;
     this.sprite.y += Math.sin(this.angle) * step;
   }
 
+  /**
+   * 检查子弹是否飞出屏幕
+   * @returns {boolean} 是否超出边界
+   */
   isOutOfBounds() {
     const { x, y } = this.sprite;
     const r = this.radius;
     return x < -r || x > _constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH + r || y < -r || y > _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT + r;
   }
 
+  /**
+   * 销毁子弹
+   * 从世界容器中移除
+   */
   destroy() {
     const world = this.app.world || this.app.stage;
     world.removeChild(this.sprite);
@@ -76139,9 +76585,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
 /* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
 /* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
-/* harmony import */ var _core_depthUtils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../core/depthUtils */ "./src/core/depthUtils.js");
-/* harmony import */ var _enemyBullet__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./enemyBullet */ "./src/entities/enemies/enemyBullet.js");
-
+/* harmony import */ var _enemyBullet__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./enemyBullet */ "./src/entities/enemies/enemyBullet.js");
 
 
 
@@ -76156,8 +76600,6 @@ class EnemyTank {
     this.app = app;
     this.gridCol = gridCol;
     this.gridRow = gridRow;
-    this.perspectiveScale = 1;
-    this.visualScale = 1;
 
     const centerX = gridCol * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
     const centerY = gridRow * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
@@ -76342,10 +76784,6 @@ class EnemyTank {
     this.sprite.y = centerY;
 
     const world = this.app.world || this.app.stage;
-    this.shadow = (0,_core_depthUtils__WEBPACK_IMPORTED_MODULE_4__.createSoftShadow)(_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.42);
-    this.shadow.eventMode = 'none';
-    this.shadow.zIndex = 0;
-    world.addChild(this.shadow);
     world.addChild(this.sprite);
 
     this.targetCol = gridCol;
@@ -76361,7 +76799,6 @@ class EnemyTank {
     world.addChild(this.hpBarFill);
 
     this.updateHpBar();
-    this.refreshDepthVisual();
 
     this.path = [];
     this.bullets = [];
@@ -76504,7 +76941,7 @@ class EnemyTank {
         this.fireTimer = 0;
         const muzzleX = sx + Math.cos(angle) * (_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.6);
         const muzzleY = sy + Math.sin(angle) * (_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.6);
-        const bullet = new _enemyBullet__WEBPACK_IMPORTED_MODULE_5__.EnemyBullet(this.app, muzzleX, muzzleY, angle);
+        const bullet = new _enemyBullet__WEBPACK_IMPORTED_MODULE_4__.EnemyBullet(this.app, muzzleX, muzzleY, angle);
         this.bullets.push(bullet);
 
         _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createMuzzleFlash(muzzleX, muzzleY, angle, _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL);
@@ -76640,14 +77077,12 @@ class EnemyTank {
     });
 
     this.bullets = aliveBullets;
-    this.refreshDepthVisual();
   }
 
   destroy() {
     this.bullets.forEach((b) => b.destroy());
     this.bullets = [];
     const world = this.app.world || this.app.stage;
-    if (this.shadow) world.removeChild(this.shadow);
     if (this.hpBarBg) world.removeChild(this.hpBarBg);
     if (this.hpBarFill) world.removeChild(this.hpBarFill);
     world.removeChild(this.sprite);
@@ -76704,17 +77139,6 @@ class EnemyTank {
         .fill({ color: 0xffffff, alpha: 0.2 });
       this.hpBarFill.position.set(this.sprite.x, this.sprite.y - offsetY);
     }
-  }
-
-  applyCombinedScale() {
-    this.sprite.scale.set(this.perspectiveScale * this.visualScale);
-  }
-
-  refreshDepthVisual() {
-    const perspective = (0,_core_depthUtils__WEBPACK_IMPORTED_MODULE_4__.getPerspectiveByY)(this.sprite.y);
-    this.perspectiveScale = perspective.scale;
-    this.applyCombinedScale();
-    (0,_core_depthUtils__WEBPACK_IMPORTED_MODULE_4__.updateShadowTransform)(this.shadow, this.sprite.x, this.sprite.y, perspective);
   }
 }
 
@@ -76794,42 +77218,81 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
+/**
+ * 追踪火箭类
+ * 火箭塔发射的追踪导弹，可以自动追踪目标
+ * 
+ * 特点：
+ * - 自动追踪最近的敌人
+ * - 平滑转向，不会瞬间改变方向
+ * - 带有呼吸动画效果
+ * - 造成更高伤害
+ */
 
 
 
+
+/**
+ * 追踪火箭类
+ */
 class HomingRocket {
+  /**
+   * 构造函数
+   * @param {Application} app - PixiJS应用实例
+   * @param {number} x - 初始X坐标
+   * @param {number} y - 初始Y坐标
+   * @param {number} angle - 初始发射角度（弧度）
+   * @param {Object} target - 目标敌人对象
+   * @param {Object} options - 配置选项
+   * @param {number} options.speed - 飞行速度
+   * @param {number} options.turnRate - 转向速率
+   * @param {number} options.damage - 伤害值
+   * @param {number} options.radius - 碰撞半径
+   * @param {number} options.color - 颜色
+   */
   constructor(app, x, y, angle, target, options = {}) {
     this.app = app;
-    this.target = target;
-    this.speed = options.speed ?? _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_SPEED * 1.2;
-    this.turnRate = options.turnRate ?? Math.PI * 1.5;
-    this.damage = options.damage ?? _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_DAMAGE * 2;
-    this.radius = options.radius ?? _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 1.2;
-    this.color = options.color ?? _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BULLET;
-    this.angle = angle;
-    this.age = 0;
+    this.target = target;                                  // 追踪目标
+    this.speed = options.speed ?? _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_SPEED * 1.2;      // 飞行速度
+    this.turnRate = options.turnRate ?? Math.PI * 1.5;     // 转向速率（弧度/秒）
+    this.damage = options.damage ?? _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_DAMAGE * 2;     // 伤害值
+    this.radius = options.radius ?? _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 1.2;   // 碰撞半径
+    this.color = options.color ?? _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BULLET;    // 火箭颜色
+    this.angle = angle;                                    // 当前飞行角度
+    this.age = 0;                                          // 存活时间（用于动画）
 
+    // 创建火箭图形
     this.sprite = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
     this.draw();
     this.sprite.x = x;
     this.sprite.y = y;
     this.sprite.rotation = angle;
 
+    // 添加到世界容器
     const world = this.app.world || this.app.stage;
     world.addChild(this.sprite);
   }
 
+  /**
+   * 绘制火箭图形
+   * 火箭外形：主体、弹头、尾翼、尾焰
+   */
   draw() {
-    const length = this.radius * 4.2;
-    const bodyWidth = this.radius * 1.4;
-    const finWidth = bodyWidth * 0.6;
-    const finHeight = this.radius * 1.6;
+    const length = this.radius * 4.2;         // 火箭长度
+    const bodyWidth = this.radius * 1.4;      // 弹体宽度
+    const finWidth = bodyWidth * 0.6;         // 尾翼宽度
+    const finHeight = this.radius * 1.6;      // 尾翼高度
 
     this.sprite.clear();
+    
+    // 主弹体
     this.sprite
       .roundRect(-this.radius, -bodyWidth / 2, length, bodyWidth, bodyWidth * 0.45)
       .fill({ color: this.color })
-      .stroke({ width: 2, color: 0x3f1d0b, alpha: 0.6 })
+      .stroke({ width: 2, color: 0x3f1d0b, alpha: 0.6 });
+    
+    // 弹头装甲段
+    this.sprite
       .roundRect(
         length * 0.4,
         -bodyWidth * 0.35,
@@ -76837,50 +77300,83 @@ class HomingRocket {
         bodyWidth * 0.7,
         bodyWidth * 0.35,
       )
-      .fill({ color: 0xf97316, alpha: 0.9 })
+      .fill({ color: 0xf97316, alpha: 0.9 });
+    
+    // 弹头顶端光点
+    this.sprite
       .circle(length * 0.75, 0, bodyWidth * 0.35)
       .fill({ color: 0xfef3c7, alpha: 0.95 });
 
+    // 上下尾翼
     this.sprite
       .roundRect(-this.radius, -finHeight / 2, finWidth, finHeight, finWidth * 0.4)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BODY, alpha: 0.9 })
       .roundRect(-this.radius, finHeight / 2 - finWidth / 2, finWidth, finWidth, finWidth * 0.4)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BODY, alpha: 0.85 });
 
+    // 尾焰效果
     this.sprite
       .circle(-this.radius - bodyWidth * 0.25, 0, bodyWidth * 0.4)
       .fill({ color: 0xf97316, alpha: 0.7 });
   }
 
+  /**
+   * 更新火箭状态
+   * 包括追踪目标、更新位置和动画
+   * @param {number} deltaMS - 距上一帧的时间（毫秒）
+   */
   update(deltaMS) {
     const dt = deltaMS / 1000;
+    
+    // 更新存活时间
     this.age += deltaMS;
+    
+    // 呼吸动画效果（轻微缩放）
     const scalePulse = 1 + Math.sin(this.age * 0.008) * 0.08;
     this.sprite.scale.set(scalePulse);
 
+    // 如果目标存在且有效，则追踪目标
     if (
       this.target
       && this.target.sprite
       && !this.target._dead
       && !this.target._finished
     ) {
+      // 计算目标位置
       const tx = this.target.sprite.x;
       const ty = this.target.sprite.y;
+      
+      // 计算到目标的期望角度
       const desired = Math.atan2(ty - this.sprite.y, tx - this.sprite.x);
+      
+      // 计算角度差
       let diff = desired - this.angle;
+      
+      // 标准化角度差到 [-π, π] 范围
       diff = ((diff + Math.PI) % (Math.PI * 2)) - Math.PI;
+      
+      // 限制每帧最大转向角度（平滑转向）
       const maxTurn = this.turnRate * dt;
       if (Math.abs(diff) > maxTurn) {
         diff = maxTurn * Math.sign(diff);
       }
+      
+      // 更新当前角度
       this.angle += diff;
     }
 
+    // 根据当前角度更新位置
     this.sprite.x += Math.cos(this.angle) * this.speed * dt;
     this.sprite.y += Math.sin(this.angle) * this.speed * dt;
+    
+    // 更新旋转（朝向飞行方向）
     this.sprite.rotation = this.angle;
   }
 
+  /**
+   * 检查火箭是否飞出屏幕
+   * @returns {boolean} 是否超出边界
+   */
   isOutOfBounds() {
     const r = this.radius;
     return (
@@ -76891,6 +77387,10 @@ class HomingRocket {
     );
   }
 
+  /**
+   * 销毁火箭
+   * 从世界容器中移除
+   */
   destroy() {
     const world = this.app.world || this.app.stage;
     world.removeChild(this.sprite);
@@ -76917,8 +77417,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
 /* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
 /* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
-/* harmony import */ var _core_depthUtils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../core/depthUtils */ "./src/core/depthUtils.js");
-
 
 
 
@@ -76948,7 +77446,6 @@ class LaserTower {
     this.fireInterval = _constants__WEBPACK_IMPORTED_MODULE_1__.LASER_FIRE_INTERVAL;
     this.damage = _constants__WEBPACK_IMPORTED_MODULE_1__.LASER_DAMAGE;
     this.beamDuration = _constants__WEBPACK_IMPORTED_MODULE_1__.LASER_BEAM_DURATION;
-    this.perspectiveScale = 1;
     this.visualScale = 1;
 
     // 创建激光塔炮塔
@@ -77039,11 +77536,6 @@ class LaserTower {
     this.turret.cursor = 'pointer';
 
     const world = this.app.world || this.app.stage;
-
-    // 深度阴影
-    this.shadow = (0,_core_depthUtils__WEBPACK_IMPORTED_MODULE_4__.createSoftShadow)(_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.5);
-    this.shadow.eventMode = 'none';
-    world.addChild(this.shadow);
     
     // 选中高亮圈 - 霓虹绿色多层效果（先添加，在turret下面）
     this.selectionRing = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
@@ -77072,23 +77564,7 @@ class LaserTower {
     world.addChild(this.hpBarBg);
     world.addChild(this.hpBarFill);
 
-    this.updatePerspectiveScale(y);
     this.updateHpBar();
-  }
-
-  updatePerspectiveScale(y) {
-    const perspective = (0,_core_depthUtils__WEBPACK_IMPORTED_MODULE_4__.getPerspectiveByY)(y);
-    this.perspectiveScale = perspective.scale;
-    this.applyCombinedScale();
-    (0,_core_depthUtils__WEBPACK_IMPORTED_MODULE_4__.updateShadowTransform)(this.shadow, this.turret.x, this.turret.y, perspective);
-  }
-
-  applyCombinedScale() {
-    const finalScale = this.perspectiveScale * this.visualScale;
-    this.turret.scale.set(finalScale, finalScale);
-    if (this.selectionRing) {
-      this.selectionRing.scale.set(finalScale, finalScale);
-    }
   }
 
   applyLevelUpgrades() {
@@ -77139,7 +77615,6 @@ class LaserTower {
 
   destroy() {
     const world = this.app.world;
-    if (this.shadow) world.removeChild(this.shadow);
     if (this.selectionRing) world.removeChild(this.selectionRing);
     if (this.hpBarBg) world.removeChild(this.hpBarBg);
     if (this.hpBarFill) world.removeChild(this.hpBarFill);
@@ -77166,20 +77641,25 @@ class LaserTower {
       const t = Math.max(0, 1 - this.upgradeFlashTimer / 260);
       const pulse = 1 + 0.18 * Math.sin(t * Math.PI);
       this.visualScale = pulse;
-      this.applyCombinedScale();
+      this.turret.scale.set(this.visualScale);
       if (this.selectionRing) {
         this.selectionRing.alpha = 0.6 + 0.4 * Math.sin(t * Math.PI);
+        this.selectionRing.scale.set(this.visualScale);
       }
       if (this.upgradeFlashTimer <= 0) {
         this.visualScale = 1;
-        this.applyCombinedScale();
+        this.turret.scale.set(this.visualScale);
         if (this.selectionRing) {
           this.selectionRing.alpha = 1;
+          this.selectionRing.scale.set(this.visualScale);
         }
       }
     } else {
       this.visualScale = idlePulse;
-      this.applyCombinedScale();
+      this.turret.scale.set(this.visualScale);
+      if (this.selectionRing) {
+        this.selectionRing.scale.set(this.visualScale);
+      }
     }
 
     // 受击闪烁
@@ -77371,9 +77851,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
 /* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
 /* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
-/* harmony import */ var _core_depthUtils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../core/depthUtils */ "./src/core/depthUtils.js");
-/* harmony import */ var _homingRocket__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./homingRocket */ "./src/entities/weapons/homingRocket.js");
-
+/* harmony import */ var _homingRocket__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./homingRocket */ "./src/entities/weapons/homingRocket.js");
 
 
 
@@ -77399,7 +77877,6 @@ class RocketTower {
     this.bulletRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 1.05;
     this.bulletSpeed = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_SPEED * 1.1;
     this.bulletColor = _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BULLET;
-    this.perspectiveScale = 1;
     this.visualScale = 1;
 
     const baseWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.7;
@@ -77582,9 +78059,6 @@ class RocketTower {
     this.turret.y = y;
 
     const world = this.app.world || this.app.stage;
-    this.shadow = (0,_core_depthUtils__WEBPACK_IMPORTED_MODULE_4__.createSoftShadow)(_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.5);
-    this.shadow.eventMode = 'none';
-    world.addChild(this.shadow);
     // 选中高亮圈 - 霓虹多层效果（紫色主题）（先添加，在turret下面）
     this.selectionRing = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
       // 外层光晕
@@ -77614,7 +78088,6 @@ class RocketTower {
 
     this.updateHpBar();
     this.applyLevelStats();
-    this.refreshDepthVisual();
   }
 
   applyLevelStats() {
@@ -77649,7 +78122,6 @@ class RocketTower {
     this.bullets.forEach((b) => b.destroy());
     this.bullets = [];
     const world = this.app.world || this.app.stage;
-    if (this.shadow) world.removeChild(this.shadow);
     if (this.selectionRing) world.removeChild(this.selectionRing);
     if (this.hpBarBg) world.removeChild(this.hpBarBg);
     if (this.hpBarFill) world.removeChild(this.hpBarFill);
@@ -77666,21 +78138,26 @@ class RocketTower {
       const t = Math.max(0, 1 - this.upgradeFlashTimer / 260);
       const pulse = 1 + 0.18 * Math.sin(t * Math.PI);
       this.visualScale = pulse;
-      this.applyCombinedScale();
+      this.turret.scale.set(this.visualScale);
       if (this.selectionRing) {
         this.selectionRing.alpha = 0.6 + 0.4 * Math.sin(t * Math.PI);
+        this.selectionRing.scale.set(this.visualScale);
       }
       if (this.upgradeFlashTimer <= 0) {
         this.visualScale = 1;
-        this.applyCombinedScale();
+        this.turret.scale.set(this.visualScale);
         if (this.selectionRing) {
           this.selectionRing.alpha = 1;
+          this.selectionRing.scale.set(this.visualScale);
         }
       }
     } else {
       // 应用待机呼吸效果
       this.visualScale = idlePulse;
-      this.applyCombinedScale();
+      this.turret.scale.set(this.visualScale);
+      if (this.selectionRing) {
+        this.selectionRing.scale.set(this.visualScale);
+      }
     }
 
     if (this.hitFlashTimer > 0) {
@@ -77764,8 +78241,6 @@ class RocketTower {
         this.timeSinceLastFire = 0;
       }
     }
-
-    this.refreshDepthVisual();
   }
 
   fire(angle, target) {
@@ -77773,7 +78248,7 @@ class RocketTower {
     const muzzleX = this.turret.x + Math.cos(angle) * barrelLength;
     const muzzleY = this.turret.y + Math.sin(angle) * barrelLength;
 
-    const rocket = new _homingRocket__WEBPACK_IMPORTED_MODULE_5__.HomingRocket(this.app, muzzleX, muzzleY, angle, target, {
+    const rocket = new _homingRocket__WEBPACK_IMPORTED_MODULE_4__.HomingRocket(this.app, muzzleX, muzzleY, angle, target, {
       speed: this.bulletSpeed,
       radius: this.bulletRadius,
       color: this.bulletColor,
@@ -77833,21 +78308,6 @@ class RocketTower {
       this.hpBarFill.position.set(this.turret.x, this.turret.y - offsetY);
     }
   }
-
-  applyCombinedScale() {
-    const finalScale = this.perspectiveScale * this.visualScale;
-    this.turret.scale.set(finalScale);
-    if (this.selectionRing) {
-      this.selectionRing.scale.set(finalScale);
-    }
-  }
-
-  refreshDepthVisual() {
-    const perspective = (0,_core_depthUtils__WEBPACK_IMPORTED_MODULE_4__.getPerspectiveByY)(this.turret.y);
-    this.perspectiveScale = perspective.scale;
-    this.applyCombinedScale();
-    (0,_core_depthUtils__WEBPACK_IMPORTED_MODULE_4__.updateShadowTransform)(this.shadow, this.turret.x, this.turret.y, perspective);
-  }
 }
 
 
@@ -77868,44 +78328,77 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/**
+ * 网格背景系统
+ * 负责绘制游戏战场的背景
+ * 
+ * 功能：
+ * - 绘制纯色背景，提供简洁的视觉效果
+ * - 背景宽度为世界宽度，支持横向拖动查看
+ * - 背景层级最低，不会遮挡其他游戏对象
+ * 
+ * 注意：网格线和动画效果已禁用，保持简洁风格
+ */
 
 
 
+
+/**
+ * 网格背景类
+ */
 class GridBackground {
+  /**
+   * 构造函数
+   * @param {Application} app - PixiJS应用实例
+   */
   constructor(app) {
     this.app = app;
-    // 战场地形层（在最底层）
+    
+    // 创建战场地形层（在最底层渲染）
     this.terrain = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
-    this.terrain.zIndex = -100;
+    this.terrain.zIndex = -100;  // 设置为最低层级
 
+    // 绘制背景场景
     this.drawScene();
 
+    // 添加到父容器
     const parent = this.app.world || this.app.stage;
     parent.addChild(this.terrain);
   }
 
+  /**
+   * 绘制背景场景
+   * 设置背景的宽度和高度，并调用绘制方法
+   */
   drawScene() {
     // 战场背景的世界总宽度（可被相机左右拖拽观察）
     const width = _constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH;
     const height = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_HEIGHT;
     this.battleHeight = height;
+    
     // 只绘制纯色背景，不绘制装饰和网格
     this.drawSimpleBackground(width, height);
   }
 
   /**
    * 绘制简洁的纯色背景
+   * @param {number} width - 背景宽度
+   * @param {number} height - 背景高度
    */
   drawSimpleBackground(width, height) {
     this.terrain.clear();
-    // 只绘制纯色背景
+    // 绘制纯色矩形作为背景
     this.terrain.rect(0, 0, width, height).fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_BACKGROUND });
   }
 
-  // 网格线已禁用
+  // 网格线功能已禁用，保持简洁的视觉风格
 
+  /**
+   * 更新方法（当前无动画效果）
+   * @param {number} deltaMS - 距上一帧的时间（毫秒）
+   */
   update(deltaMS) {
-    // 动画已禁用
+    // 背景动画已禁用
   }
 }
 
@@ -77927,86 +78420,158 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
 /* harmony import */ var _entities_enemies_enemyTank__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../entities/enemies/enemyTank */ "./src/entities/enemies/enemyTank.js");
+/**
+ * 敌人管理器
+ * 负责生成、更新和管理所有敌人
+ * 
+ * 功能：
+ * - 定时生成敌人坦克
+ * - 管理敌人生命周期（更新、死亡、完成）
+ * - 实现波次系统，随时间增加难度
+ * - 处理敌人击杀奖励
+ * - 避免在同一位置重复生成敌人
+ * 
+ * 波次系统：
+ * - 每15秒一波，波次越高敌人越强
+ * - 生成间隔随波次递减（但有最小值限制）
+ * - 敌人血量随波次增加
+ */
 
 
 
+
+/**
+ * 敌人管理器类
+ */
 class EnemyManager {
+  /**
+   * 构造函数
+   * @param {Application} app - PixiJS应用实例
+   * @param {WeaponContainer} weaponContainer - 武器容器，用于敌人寻路和攻击
+   * @param {GoldManager} goldManager - 金币管理器，用于奖励结算
+   */
   constructor(app, weaponContainer, goldManager) {
     this.app = app;
-    this.weaponContainer = weaponContainer;
-    this.goldManager = goldManager;
-    this.enemies = [];
-    this.timeSinceLastSpawn = 0;
-    this.baseSpawnInterval = _constants__WEBPACK_IMPORTED_MODULE_0__.ENEMY_SPAWN_INTERVAL;
-    this.spawnInterval = this.baseSpawnInterval;
-    this.minSpawnInterval = 800;
-    this.waveDuration = 15000;
-    this.waveTimer = 0;
-    this.waveLevel = 1;
-    this.hpBonusPerWave = 2;
-    this.hpBonus = 0;
+    this.weaponContainer = weaponContainer;  // 武器容器引用
+    this.goldManager = goldManager;          // 金币管理器引用
+    
+    // 敌人管理
+    this.enemies = [];                       // 所有活跃的敌人
+    
+    // 生成计时
+    this.timeSinceLastSpawn = 0;             // 距上次生成的时间
+    this.baseSpawnInterval = _constants__WEBPACK_IMPORTED_MODULE_0__.ENEMY_SPAWN_INTERVAL; // 基础生成间隔
+    this.spawnInterval = this.baseSpawnInterval;   // 当前生成间隔
+    this.minSpawnInterval = 800;             // 最小生成间隔（毫秒）
+    
+    // 波次系统
+    this.waveDuration = 15000;               // 每波持续时间（15秒）
+    this.waveTimer = 0;                      // 当前波次计时器
+    this.waveLevel = 1;                      // 当前波次等级
+    this.hpBonusPerWave = 2;                 // 每波增加的血量
+    this.hpBonus = 0;                        // 当前波次的血量加成
   }
 
+  /**
+   * 生成一个敌人
+   * 在左侧边界随机行位置生成敌人坦克
+   * 会尝试避开已有敌人的位置
+   */
   spawnEnemy() {
     const rows = _constants__WEBPACK_IMPORTED_MODULE_0__.BATTLE_ROWS;
     const minRow = 0;
     const maxRow = rows - 1;
     const playableRows = Math.max(0, rows);
 
+    // 如果没有可用行，则不生成
     if (playableRows <= 0) return;
+    
+    // 尝试找到一个未被占用的行
     let row = null;
-    const maxTries = 8;
+    const maxTries = 8;  // 最多尝试8次
+    
     for (let i = 0; i < maxTries; i += 1) {
+      // 随机选择一行
       const candidate = minRow + Math.floor(Math.random() * playableRows);
+      
+      // 检查该行的起始位置是否已有敌人
       const occupied = this.enemies.some(
         (e) => !e._dead && !e._finished && e.gridCol === 0 && e.gridRow === candidate,
       );
+      
+      // 如果未被占用，使用该行
       if (!occupied) {
         row = candidate;
         break;
       }
     }
+    
+    // 如果所有尝试都失败，则不生成
     if (row == null) {
       return;
     }
+    
+    // 在左侧边界（第0列）生成敌人
     const col = 0;
 
+    // 创建敌人坦克，带有当前波次的血量加成
     const enemy = new _entities_enemies_enemyTank__WEBPACK_IMPORTED_MODULE_1__.EnemyTank(this.app, col, row, this.hpBonus);
     this.enemies.push(enemy);
   }
 
+  /**
+   * 更新所有敌人
+   * 处理波次系统、敌人生成、敌人更新和清理
+   * 
+   * @param {number} delta - 帧增量（通常为1）
+   * @param {number} deltaMS - 距上一帧的时间（毫秒）
+   */
   update(delta, deltaMS) {
+    // === 更新波次系统 ===
     this.waveTimer += deltaMS;
+    
+    // 当一波结束时，进入下一波
     if (this.waveTimer >= this.waveDuration) {
       this.waveTimer -= this.waveDuration;
       this.waveLevel += 1;
+      
+      // 缩短生成间隔（每波乘以0.9，但不低于最小值）
       this.spawnInterval = Math.max(
         this.minSpawnInterval,
         this.baseSpawnInterval * 0.9 ** (this.waveLevel - 1),
       );
+      
+      // 增加敌人血量
       this.hpBonus = (this.waveLevel - 1) * this.hpBonusPerWave;
     }
 
+    // 更新金币管理器的波次信息显示
     if (this.goldManager && typeof this.goldManager.setWaveInfo === 'function') {
       const timeLeft = Math.max(0, this.waveDuration - this.waveTimer);
       this.goldManager.setWaveInfo(this.waveLevel, timeLeft, this.waveDuration);
     }
 
+    // === 敌人生成 ===
     this.timeSinceLastSpawn += deltaMS;
     if (this.timeSinceLastSpawn >= this.spawnInterval) {
       this.spawnEnemy();
       this.timeSinceLastSpawn = 0;
     }
 
+    // === 更新所有敌人 ===
     this.enemies.forEach((enemy) =>
       enemy.update(delta, deltaMS, this.weaponContainer, this.enemies),
     );
 
+    // === 清理死亡和完成的敌人 ===
     this.enemies = this.enemies.filter((enemy) => {
+      // 如果敌人死亡或到达终点
       if (enemy._finished || enemy._dead) {
+        // 击杀敌人时给予金币奖励
         if (enemy._dead && this.goldManager) {
           this.goldManager.add(_constants__WEBPACK_IMPORTED_MODULE_0__.ENEMY_KILL_REWARD);
         }
+        // 销毁敌人并从数组中移除
         enemy.destroy();
         return false;
       }
@@ -78014,6 +78579,10 @@ class EnemyManager {
     });
   }
 
+  /**
+   * 获取所有活跃的敌人
+   * @returns {Array<EnemyTank>} 敌人数组
+   */
   getEnemies() {
     return this.enemies;
   }
@@ -78903,11 +79472,22 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/**
+ * 游戏UI管理器
+ * 负责处理游戏的开始界面、帮助界面和结束界面
+ * 
+ * 主要功能：
+ * - 显示开始游戏界面（带标题和开始按钮）
+ * - 显示游戏说明界面（操作指南和返回按钮）
+ * - 显示游戏结束界面（游戏失败提示）
+ * - 管理UI层级和清理
+ */
+
 
 
 
 /**
- * 负责处理游戏的开始界面和游戏说明界面
+ * 游戏UI类
  */
 class GameUI {
   constructor(app, options = {}) {
@@ -79076,21 +79656,46 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/**
+ * 金币管理器
+ * 负责管理游戏货币系统和顶部UI显示
+ * 
+ * 主要功能：
+ * - 金币数量显示和管理
+ * - 小地图显示（显示敌人、武器和视口位置）
+ * - 波次信息显示
+ * - 小地图交互（点击/拖动快速定位）
+ * 
+ * UI布局：
+ * ┌────────────────────────────────────┐
+ * │ 💰金币  波次信息      [小地图]    │
+ * └────────────────────────────────────┘
+ */
 
 
 
+
+/**
+ * 金币管理器类
+ */
 class GoldManager {
+  /**
+   * 构造函数
+   * @param {Application} app - PixiJS应用实例
+   * @param {Container} worldContainer - 世界容器，用于小地图交互
+   */
   constructor(app, worldContainer = null) {
     this.app = app;
-    this.gold = 0;
-    this.worldContainer = worldContainer;
-    this.isDraggingMinimap = false;
+    this.gold = 0;                          // 当前金币数量
+    this.worldContainer = worldContainer;    // 世界容器引用
+    this.isDraggingMinimap = false;         // 是否正在拖动小地图
 
-    const barHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE; // 占用一行格子的高度
+    // 顶部UI栏的尺寸
+    const barHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE;  // 占用一行格子的高度
     const barWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH;
     const y = 0;
 
-    // 背景（霓虹渐变效果）
+    // === 创建背景（霓虹赛博朋克风格） ===
     this.bg = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
       .rect(0, y, barWidth, barHeight)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BG, alpha: 0.98 })
@@ -79103,7 +79708,7 @@ class GoldManager {
       .rect(0, y + barHeight - 1, barWidth, 1)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 0.6 });
     
-    // 金币图标 - 霓虹效果
+    // === 创建金币图标 - 多层霓虹发光效果 ===
     const iconSize = _constants__WEBPACK_IMPORTED_MODULE_1__.GOLD_TEXT_FONT_SIZE * 1.2;
     const iconX = _constants__WEBPACK_IMPORTED_MODULE_1__.GOLD_TEXT_PADDING_X + iconSize;
     const iconY = y + barHeight / 2;
@@ -79123,6 +79728,7 @@ class GoldManager {
       .circle(iconX - iconSize * 0.15, iconY - iconSize * 0.15, iconSize * 0.12)
       .fill({ color: 0xffffff, alpha: 0.8 });
 
+    // === 创建金币数量文本 ===
     this.text = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: '',
       style: {
@@ -79139,12 +79745,13 @@ class GoldManager {
     this.text.y = y + barHeight / 2;
     this.text.anchor.set(0, 0.5);
 
+    // 添加到舞台
     app.stage.addChild(this.bg);
     app.stage.addChild(this.goldIcon);
     app.stage.addChild(this.text);
 
     // ====== 缩略小地图（显示整个战场状态） ======
-    // 小地图尺寸：放在金币条右上角区域
+    // 小地图位置：放在顶部UI栏右上角
     this.minimapWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_WIDTH;
     this.minimapHeight = Math.max(20, barHeight - _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_HEIGHT_PADDING);
     this.minimapX = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH - this.minimapWidth - _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_HORIZONTAL_MARGIN;
@@ -79153,10 +79760,11 @@ class GoldManager {
     // 世界战场的总高度（不包含底部武器容器区域）
     this.worldHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_HEIGHT;
 
+    // 计算小地图与世界坐标的缩放比例
     this.minimapScaleX = this.minimapWidth / _constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH;
     this.minimapScaleY = this.minimapHeight / this.worldHeight;
 
-    // 小地图背景 - 霓虹效果
+    // === 创建小地图背景 - 多层霓虹发光效果 ===
     this.minimapBg = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
       // 外部光晕
       .roundRect(
@@ -79186,21 +79794,23 @@ class GoldManager {
         _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_CORNER_RADIUS - 2,
       )
       .stroke({ width: 1, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 0.3 });
-    this.minimapBg.eventMode = 'static';
-    this.minimapBg.cursor = 'grab';
+    this.minimapBg.eventMode = 'static';  // 可交互
+    this.minimapBg.cursor = 'grab';       // 鼠标样式
 
-    // 小地图内容层（敌人 / 武器点位）
+    // 小地图内容层（显示敌人和武器点位）
     this.minimapContent = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
-    this.minimapContent.eventMode = 'none';
+    this.minimapContent.eventMode = 'none';  // 不响应交互
 
-    // 小地图视口矩形（当前屏幕所在区域）
+    // 小地图视口矩形（显示当前屏幕所在区域）
     this.minimapViewport = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
-    this.minimapViewport.eventMode = 'none';
+    this.minimapViewport.eventMode = 'none';  // 不响应交互
 
+    // 添加到舞台
     app.stage.addChild(this.minimapBg);
     app.stage.addChild(this.minimapContent);
     app.stage.addChild(this.minimapViewport);
 
+    // === 创建波次信息文本 ===
     this.waveText = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: '',
       style: {
@@ -79220,20 +79830,30 @@ class GoldManager {
     );
     app.stage.addChild(this.waveText);
 
+    // 初始化数值
     this.setGold(_constants__WEBPACK_IMPORTED_MODULE_1__.INITIAL_GOLD);
     this.setWaveInfo(1, 0, 1);
 
+    // 注册小地图交互事件
     this.minimapBg.on('pointerdown', this.handleMinimapPointerDown, this);
     app.stage.on('pointermove', this.handleMinimapPointerMove, this);
     app.stage.on('pointerup', this.handleMinimapPointerUp, this);
     app.stage.on('pointerupoutside', this.handleMinimapPointerUp, this);
   }
 
+  /**
+   * 设置金币数量
+   * @param {number} value - 金币数量
+   */
   setGold(value) {
     this.gold = Math.max(0, Math.floor(value));
     this.updateText();
   }
 
+  /**
+   * 增加金币
+   * @param {number} amount - 增加的金币数量
+   */
   add(amount) {
     if (!amount) return;
     this.gold += amount;
@@ -79241,10 +79861,20 @@ class GoldManager {
     this.updateText();
   }
 
+  /**
+   * 检查是否有足够的金币
+   * @param {number} amount - 需要的金币数量
+   * @returns {boolean} 是否有足够金币
+   */
   canAfford(amount) {
     return this.gold >= amount;
   }
 
+  /**
+   * 花费金币
+   * @param {number} amount - 花费的金币数量
+   * @returns {boolean} 是否成功花费
+   */
   spend(amount) {
     if (amount <= 0) return true;
     if (this.gold < amount) return false;
@@ -79253,15 +79883,20 @@ class GoldManager {
     return true;
   }
 
+  /**
+   * 更新金币显示文本
+   */
   updateText() {
     this.text.text = `💰 ${this.gold}`;
   }
 
   /**
-   * 更新右上角缩略小地图：
-   * - 敌人：橙色小点
-   * - 我方武器：绿色小点
-   * - 当前屏幕视口：白色描边矩形
+   * 更新小地图显示
+   * 绘制敌人、武器和当前视口位置
+   * 
+   * @param {Array} enemies - 敌人数组
+   * @param {Array} weapons - 武器数组
+   * @param {Container} worldContainer - 世界容器
    */
   updateMiniMap(enemies = [], weapons = [], worldContainer = null) {
     if (!this.minimapContent || !this.minimapViewport) return;
@@ -79269,7 +79904,7 @@ class GoldManager {
     const g = this.minimapContent;
     g.clear();
 
-    // 敌人点位（橙色）
+    // === 绘制敌人点位（洋红色） ===
     enemies.forEach((enemy) => {
       if (!enemy || !enemy.sprite || enemy._dead || enemy._finished) return;
       const wx = enemy.sprite.x;
@@ -79279,7 +79914,7 @@ class GoldManager {
       g.circle(mx, my, _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_ENEMY_DOT_RADIUS).fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL, alpha: 1 });
     });
 
-    // 我方武器点位（绿色）
+    // === 绘制我方武器点位（青色） ===
     weapons.forEach((weapon) => {
       if (!weapon || !weapon.turret) return;
       const wx = weapon.turret.x;
@@ -79289,7 +79924,8 @@ class GoldManager {
       g.circle(mx, my, _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_WEAPON_DOT_RADIUS).fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_DETAIL, alpha: 1 });
     });
 
-    // 当前屏幕视口矩形（使用 worldContainer.x 确定可视区域）
+    // === 绘制当前屏幕视口矩形（白色边框） ===
+    // 使用 worldContainer.x 确定可视区域在世界中的位置
     this.minimapViewport.clear();
     if (worldContainer) {
       const worldLeft = -worldContainer.x; // 当前视口在世界中的左边界
@@ -79310,46 +79946,80 @@ class GoldManager {
     }
   }
 
+  /**
+   * 设置波次信息显示
+   * @param {number} wave - 当前波次
+   * @param {number} timeLeftMS - 距离下一波的剩余时间（毫秒）
+   * @param {number} durationMS - 每波持续时间（毫秒）
+   */
   setWaveInfo(wave = 1, timeLeftMS = 0, durationMS = 1) {
     if (!this.waveText) return;
     const safeDuration = Math.max(1, durationMS);
     const nextSeconds = Math.max(0, Math.ceil(timeLeftMS / 1000));
     const progress = 1 - Math.min(1, Math.max(0, timeLeftMS / safeDuration));
     this.waveText.text = `⚡ 第 ${wave} 波   下波 ${nextSeconds}s ⚡`;
+    // 随波次进度改变透明度（产生呼吸效果）
     this.waveText.alpha = 0.85 + progress * 0.15;
   }
 
+  /**
+   * 处理小地图点击事件
+   * @param {PointerEvent} event - 指针事件
+   */
   handleMinimapPointerDown(event) {
     this.isDraggingMinimap = true;
-    this.minimapBg.cursor = 'grabbing';
+    this.minimapBg.cursor = 'grabbing';  // 改变鼠标样式
     this.updateWorldFromMinimap(event);
   }
 
+  /**
+   * 处理小地图指针移动事件
+   * @param {PointerEvent} event - 指针事件
+   */
   handleMinimapPointerMove(event) {
     if (!this.isDraggingMinimap) return;
     this.updateWorldFromMinimap(event);
   }
 
+  /**
+   * 处理小地图指针抬起事件
+   */
   handleMinimapPointerUp() {
     if (!this.isDraggingMinimap) return;
     this.isDraggingMinimap = false;
-    this.minimapBg.cursor = 'grab';
+    this.minimapBg.cursor = 'grab';  // 恢复鼠标样式
   }
 
+  /**
+   * 根据小地图点击位置更新世界视图
+   * 实现点击小地图快速定位功能
+   * 
+   * @param {PointerEvent} event - 指针事件
+   */
   updateWorldFromMinimap(event) {
     if (!this.worldContainer) return;
+    
+    // 获取点击位置相对于小地图的X坐标
     const globalX = event.global.x;
     const localX = globalX - this.minimapX;
+    
+    // 限制在小地图范围内
     const clampedX = Math.min(Math.max(localX, 0), this.minimapWidth);
+    
+    // 归一化到 [0, 1] 范围
     const normalized = clampedX / this.minimapWidth;
 
+    // 计算世界坐标
     const worldVisibleWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH;
     const maxWorldLeft = Math.max(0, _constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH - worldVisibleWidth);
+    
+    // 计算期望的世界左边界（点击位置居中）
     const desiredLeft = Math.min(
       Math.max(normalized * _constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH - worldVisibleWidth / 2, 0),
       maxWorldLeft,
     );
 
+    // 更新世界容器位置
     this.worldContainer.x = -desiredLeft;
   }
 }
@@ -80228,45 +80898,85 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _app_createWorldLayers__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./app/createWorldLayers */ "./src/app/createWorldLayers.js");
 /* harmony import */ var _app_setupStagePanning__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./app/setupStagePanning */ "./src/app/setupStagePanning.js");
 /* harmony import */ var _app_attachGameLoop__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./app/attachGameLoop */ "./src/app/attachGameLoop.js");
+/**
+ * 塔防游戏主入口文件
+ * 负责初始化游戏的所有核心系统、管理器和UI组件
+ */
+
+// 导入游戏系统
 
 
 
 
 
 
+// 导入核心功能模块
+
+
+
+// 导入应用程序基础设施
 
 
 
 
 
 
-
+/**
+ * 主函数 - 初始化并启动游戏
+ * 执行步骤：
+ * 1. 创建游戏上下文和PixiJS应用
+ * 2. 初始化音频和粒子系统
+ * 3. 设置世界图层和舞台平移
+ * 4. 注册金币管理器
+ * 5. 附加游戏循环
+ * 6. 构建战斗系统
+ * 7. 显示游戏UI
+ */
 async function main() {
+  // 创建游戏上下文，用于管理游戏状态和生命周期
   const context = new _app_GameContext__WEBPACK_IMPORTED_MODULE_7__.GameContext();
+  
+  // 创建并初始化PixiJS应用实例
   const app = await (0,_app_createPixiApp__WEBPACK_IMPORTED_MODULE_8__.createPixiApp)();
   context.setApp(app);
 
+  // 初始化音频管理器
   _core_soundManager__WEBPACK_IMPORTED_MODULE_5__.soundManager.init();
 
+  // 创建世界图层容器，用于组织游戏对象的层级关系
   const { worldContainer } = (0,_app_createWorldLayers__WEBPACK_IMPORTED_MODULE_9__.createWorldLayers)(app);
   context.setWorld(worldContainer);
 
+  // 初始化粒子系统，用于游戏特效
   _core_particleSystem__WEBPACK_IMPORTED_MODULE_6__.particleSystem.init(worldContainer);
 
+  // 设置舞台平移功能，允许拖动视图
   const detachPanning = (0,_app_setupStagePanning__WEBPACK_IMPORTED_MODULE_10__.setupStagePanning)(app, worldContainer);
   context.attachCleanup(detachPanning);
 
+  // 注册金币管理器，负责管理游戏货币系统
   const goldManager = context.registerManager('gold', new _ui_goldManager__WEBPACK_IMPORTED_MODULE_3__.GoldManager(app, worldContainer));
 
+  // 附加游戏主循环
   const detachTicker = (0,_app_attachGameLoop__WEBPACK_IMPORTED_MODULE_11__.attachGameLoop)(context);
   context.attachCleanup(detachTicker);
 
+  /**
+   * 构建战斗系统
+   * 包括网格背景、武器容器和敌人管理器
+   * @returns {Object} 包含所有战斗系统实例的对象
+   */
   const buildBattleSystems = () => {
+    // 创建网格背景
     const gridBackground = context.registerSystem('gridBackground', new _systems_background__WEBPACK_IMPORTED_MODULE_0__.GridBackground(app));
+    
+    // 创建武器容器，管理所有塔防武器
     const weaponContainer = context.registerManager(
       'weapons',
       new _ui_weaponContainer__WEBPACK_IMPORTED_MODULE_1__.WeaponContainer(app, goldManager),
     );
+    
+    // 创建敌人管理器，负责生成和管理敌人
     const enemyManager = context.registerManager(
       'enemies',
       new _systems_enemyManager__WEBPACK_IMPORTED_MODULE_2__.EnemyManager(app, weaponContainer, goldManager),
@@ -80275,26 +80985,40 @@ async function main() {
     return { gridBackground, weaponContainer, enemyManager };
   };
 
+  /**
+   * 开始游戏
+   * 启动背景音乐并构建战斗系统
+   */
   const startGame = () => {
+    // 防止重复启动
     if (context.state.gameStarted) return;
     context.state.gameStarted = true;
+    
+    // 播放背景音乐
     _core_soundManager__WEBPACK_IMPORTED_MODULE_5__.soundManager.playBackground();
+    
+    // 构建所有战斗系统
     buildBattleSystems();
   };
 
+  // 创建并注册游戏UI系统
   const gameUI = context.registerSystem(
     'gameUI',
     new _ui_gameUI__WEBPACK_IMPORTED_MODULE_4__.GameUI(app, {
       onStartGame: startGame,
     }),
   );
+  
+  // 显示游戏开始界面
   gameUI.showStartScreen();
 
+  // 在浏览器关闭前清理资源
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', () => context.dispose());
   }
 }
 
+// 执行主函数并捕获任何错误
 main().catch((err) => {
   // eslint-disable-next-line no-console
   console.error(err);
@@ -80305,4 +81029,4 @@ main().catch((err) => {
 
 /******/ })()
 ;
-//# sourceMappingURL=bundle.858afaae45e3a9253206.js.map
+//# sourceMappingURL=bundle.0b07ad330afc49677725.js.map

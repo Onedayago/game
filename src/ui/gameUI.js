@@ -1,3 +1,14 @@
+/**
+ * 游戏UI管理器
+ * 负责处理游戏的开始界面、帮助界面和结束界面
+ * 
+ * 主要功能：
+ * - 显示开始游戏界面（带标题和开始按钮）
+ * - 显示游戏说明界面（操作指南和返回按钮）
+ * - 显示游戏结束界面（游戏失败提示）
+ * - 管理UI层级和清理
+ */
+
 import {
   Container,
   Graphics,
@@ -10,7 +21,7 @@ import {
 } from '../constants';
 
 /**
- * 负责处理游戏的开始界面和游戏说明界面
+ * 游戏UI类
  */
 export class GameUI {
   constructor(app, options = {}) {

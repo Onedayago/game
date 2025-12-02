@@ -1,32 +1,53 @@
+/**
+ * 粒子系统
+ * 负责管理场景中所有一次性视觉特效
+ * 
+ * 主要功能：
+ * - 集中管理所有粒子的生命周期
+ * - 提供各种预设特效（爆炸、枪口火光、击中火花等）
+ * - 自动清理过期粒子，控制性能
+ * - 支持粒子池，避免频繁创建销毁对象
+ */
+
 import { Container } from 'pixi.js';
 import { Particle } from './particle';
 
 /**
- * Lightweight particle instance used by ParticleSystem.
- * texture 参数仅在想要克隆已有 Graphics 几何体时使用，
- * 常规情况直接生成新的 Graphics 即可。
- */
-/**
- * 粒子系统：负责管理场景中所有一次性特效
- * （炮口闪光、爆炸、火花等），集中更新与销毁。
+ * 粒子系统类
  */
 export class ParticleSystem {
+  /**
+   * 构造函数
+   * @param {Application} app - PixiJS应用实例
+   */
   constructor(app) {
     this.app = app;
-    this.container = new Container();
-    this.particles = [];
-    this.maxParticles = 300;
+    this.container = new Container();      // 粒子容器
+    this.particles = [];                   // 活跃粒子数组
+    this.maxParticles = 300;               // 最大粒子数量限制
   }
 
+  /**
+   * 初始化粒子系统
+   * 将粒子容器添加到世界容器中
+   * @param {Container} worldContainer - 世界容器
+   */
   init(worldContainer) {
-    this.container.zIndex = 1000;
-    this.container.eventMode = 'none';
+    this.container.zIndex = 1000;          // 设置为高层级，确保粒子在最上层显示
+    this.container.eventMode = 'none';     // 禁用交互，粒子不响应鼠标事件
     worldContainer.addChild(this.container);
   }
 
+  /**
+   * 更新所有粒子
+   * 每帧调用，更新粒子状态并清理死亡粒子
+   * @param {number} deltaMS - 距上一帧的时间（毫秒）
+   */
   update(deltaMS) {
+    // 反向遍历，方便删除元素
     for (let i = this.particles.length - 1; i >= 0; i -= 1) {
       const particle = this.particles[i];
+      // 如果粒子已死亡（update返回false），则销毁并移除
       if (!particle.update(deltaMS)) {
         particle.destroy();
         this.particles.splice(i, 1);
@@ -34,31 +55,61 @@ export class ParticleSystem {
     }
   }
 
+  /**
+   * 发射粒子
+   * 基础粒子发射方法，可配置各种参数
+   * 
+   * @param {number} x - 发射位置X坐标
+   * @param {number} y - 发射位置Y坐标
+   * @param {Object} options - 配置选项
+   * @param {number} options.count - 发射粒子数量
+   * @param {number} options.speed - 粒子速度
+   * @param {number} options.angle - 基础角度
+   * @param {number} options.spread - 扩散范围（弧度）
+   * @param {number} options.color - 粒子颜色
+   * @param {number} options.size - 粒子大小
+   * @param {number} options.life - 生命时长
+   * @param {number} options.scaleStart - 起始缩放
+   * @param {number} options.scaleEnd - 结束缩放
+   * @param {number} options.alphaStart - 起始透明度
+   * @param {number} options.alphaEnd - 结束透明度
+   */
   emit(x, y, options = {}) {
     const {
-      count = 1,
-      speed = 100,
-      angle: baseAngle,
-      spread = 0,
+      count = 1,              // 粒子数量
+      speed = 100,            // 基础速度
+      angle: baseAngle,       // 基础角度
+      spread = 0,             // 扩散角度
     } = options;
 
+    // 创建指定数量的粒子
     for (let i = 0; i < count; i += 1) {
+      // 计算粒子发射角度（如果未指定则随机）
       const angle = baseAngle !== undefined ? baseAngle : Math.random() * Math.PI * 2;
+      
+      // 在基础角度上添加随机扩散
       const finalAngle = angle + (Math.random() - 0.5) * spread;
+      
+      // 速度添加随机变化（80%-120%）
       const finalSpeed = speed * (0.8 + Math.random() * 0.4);
 
+      // 计算速度向量
       const velocity = {
         x: Math.cos(finalAngle) * finalSpeed,
         y: Math.sin(finalAngle) * finalSpeed,
       };
 
+      // 创建粒子
       const particle = new Particle(null, x, y, {
         ...options,
         velocity,
       });
+      
+      // 添加到容器和管理数组
       this.container.addChild(particle.sprite);
       this.particles.push(particle);
 
+      // 如果超过最大粒子数，移除最老的粒子
       if (this.particles.length > this.maxParticles) {
         const overflow = this.particles.length - this.maxParticles;
         for (let j = 0; j < overflow; j += 1) {
@@ -69,6 +120,16 @@ export class ParticleSystem {
     }
   }
 
+  /**
+   * 创建爆炸特效
+   * 赛博朋克风格的霓虹爆炸效果
+   * 包含多层粒子：冲击波、电子脉冲、核心闪光、余波、数据碎片、光环、电弧
+   * 
+   * @param {number} x - 爆炸位置X坐标
+   * @param {number} y - 爆炸位置Y坐标
+   * @param {number} color - 主色调（默认青色）
+   * @param {number} count - 主粒子数量（默认12个）
+   */
   createExplosion(x, y, color = 0x00ffff, count = 12) {
     // 外圈冲击波
     this.emit(x, y, {
@@ -169,6 +230,16 @@ export class ParticleSystem {
     });
   }
 
+  /**
+   * 创建枪口火光特效
+   * 武器开火时的霓虹闪光效果
+   * 包含：能量波纹、中心闪光、能量环、前向冲击波、尾迹粒子、霓虹脉冲
+   * 
+   * @param {number} x - 发射位置X坐标
+   * @param {number} y - 发射位置Y坐标
+   * @param {number} angle - 发射角度（弧度）
+   * @param {number} color - 主色调（默认青色）
+   */
   createMuzzleFlash(x, y, angle, color = 0x00ffff) {
     // 外圈能量波纹
     this.emit(x, y, {
@@ -253,6 +324,15 @@ export class ParticleSystem {
     });
   }
 
+  /**
+   * 创建击中火花特效
+   * 子弹击中目标时的霓虹火花效果
+   * 包含：冲击波、霓虹闪光、能量爆裂、小型火花、光环、电弧
+   * 
+   * @param {number} x - 击中位置X坐标
+   * @param {number} y - 击中位置Y坐标
+   * @param {number} color - 主色调（默认青色）
+   */
   createHitSpark(x, y, color = 0x00ffff) {
     // 外圈冲击波
     this.emit(x, y, {
@@ -339,5 +419,6 @@ export class ParticleSystem {
   }
 }
 
+// 导出全局单例
 export const particleSystem = new ParticleSystem();
 
