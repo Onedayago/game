@@ -78205,7 +78205,6 @@ class RocketTower {
     this.bullets = aliveBullets;
 
     if (!enemyList.length) {
-      this.refreshDepthVisual();
       return;
     }
 
@@ -78225,7 +78224,6 @@ class RocketTower {
     });
 
     if (!target) {
-      this.refreshDepthVisual();
       return;
     }
 
@@ -81029,4 +81027,4 @@ main().catch((err) => {
 
 /******/ })()
 ;
-//# sourceMappingURL=bundle.0b07ad330afc49677725.js.map
+//# sourceMappingURL=bundle.b7111cfd81dcb3932e33.js.map

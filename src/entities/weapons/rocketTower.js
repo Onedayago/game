@@ -361,7 +361,6 @@ export class RocketTower {
     this.bullets = aliveBullets;
 
     if (!enemyList.length) {
-      this.refreshDepthVisual();
       return;
     }
 
@@ -381,7 +380,6 @@ export class RocketTower {
     });
 
     if (!target) {
-      this.refreshDepthVisual();
       return;
     }
 
