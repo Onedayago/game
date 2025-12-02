@@ -6,7 +6,8 @@
 
 一个使用 **Pixi.js v8** 开发的赛博朋克风格塔防游戏，具有霓虹灯效、粒子特效、多种武器类型、智能敌人AI、波次系统和完整的游戏经济系统。
 
-![Game Screenshot](docs/screenshot.png)
+![Game Screenshot](<img width="1590" height="610" alt="image" src="https://github.com/user-attachments/assets/c1dbf7a5-f412-4b58-b1c0-11cad35d743b" />
+)
 
 ## ✨ 特色功能
 
