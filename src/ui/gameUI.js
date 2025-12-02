@@ -1,3 +1,14 @@
+/**
+ * 游戏UI管理器
+ * 负责处理游戏的开始界面、帮助界面和结束界面
+ * 
+ * 主要功能：
+ * - 显示开始游戏界面（带标题和开始按钮）
+ * - 显示游戏说明界面（操作指南和返回按钮）
+ * - 显示游戏结束界面（游戏失败提示）
+ * - 管理UI层级和清理
+ */
+
 import {
   Container,
   Graphics,
@@ -6,10 +17,11 @@ import {
 import {
   APP_WIDTH,
   APP_HEIGHT,
-} from './constants';
+  COLORS,
+} from '../constants';
 
 /**
- * 负责处理游戏的开始界面和游戏说明界面
+ * 游戏UI类
  */
 export class GameUI {
   constructor(app, options = {}) {
@@ -29,12 +41,12 @@ export class GameUI {
 
     const overlay = new Graphics()
       .rect(0, 0, APP_WIDTH, APP_HEIGHT)
-      .fill({ color: 0x020617, alpha: 0.9 });
+      .fill({ color: COLORS.UI_BG, alpha: 0.95 });
 
     const title = new Text({
       text: '游戏说明',
       style: {
-        fill: 0xfacc15,
+        fill: COLORS.GOLD,
         fontSize: 32,
       },
     });
@@ -49,7 +61,7 @@ export class GameUI {
         + '4. 敌人和武器都有血条；击毁敌人可获得金币，被击毁的武器需要重新部署。\n'
         + '5. 顶部显示当前金币数量，请合理规划布防和升级节奏。',
       style: {
-        fill: 0xe5e7eb,
+        fill: COLORS.TEXT_MAIN,
         fontSize: 18,
         wordWrap: true,
         wordWrapWidth: APP_WIDTH * 0.78,
@@ -61,13 +73,13 @@ export class GameUI {
 
     const backButton = new Graphics()
       .roundRect(-80, -20, 160, 40, 12)
-      .fill({ color: 0x334155 })
-      .stroke({ width: 2, color: 0x0ea5e9, alpha: 1 });
+      .fill({ color: COLORS.UI_BORDER })
+      .stroke({ width: 2, color: COLORS.ALLY_BODY, alpha: 1 });
 
     const backLabel = new Text({
       text: '返回主菜单',
       style: {
-        fill: 0xe5e7eb,
+        fill: COLORS.TEXT_MAIN,
         fontSize: 18,
       },
     });
@@ -88,12 +100,12 @@ export class GameUI {
 
     const overlay = new Graphics()
       .rect(0, 0, APP_WIDTH, APP_HEIGHT)
-      .fill({ color: 0x020617, alpha: 0.92 });
+      .fill({ color: COLORS.UI_BG, alpha: 0.95 });
 
     const title = new Text({
       text: '坦克防御 · Tower Game',
       style: {
-        fill: 0xfacc15,
+        fill: COLORS.GOLD,
         fontSize: 40,
       },
     });
@@ -103,7 +115,7 @@ export class GameUI {
     const subtitle = new Text({
       text: '拖拽坦克布防，升级武器抵挡一波又一波敌人。',
       style: {
-        fill: 0x9ca3af,
+        fill: COLORS.TEXT_SUB,
         fontSize: 20,
       },
     });
@@ -112,7 +124,7 @@ export class GameUI {
 
     const startButton = new Graphics()
       .roundRect(-100, -26, 200, 52, 18)
-      .fill({ color: 0x22c55e })
+      .fill({ color: COLORS.SUCCESS })
       .stroke({ width: 2, color: 0x16a34a, alpha: 1 });
 
     const startLabel = new Text({
@@ -137,13 +149,13 @@ export class GameUI {
 
     const helpButton = new Graphics()
       .roundRect(-90, -22, 180, 44, 14)
-      .fill({ color: 0x1f2937 })
-      .stroke({ width: 2, color: 0x0ea5e9, alpha: 1 });
+      .fill({ color: COLORS.UI_BORDER })
+      .stroke({ width: 2, color: COLORS.ALLY_BODY, alpha: 1 });
 
     const helpLabel = new Text({
       text: '游戏说明',
       style: {
-        fill: 0xe5e7eb,
+        fill: COLORS.TEXT_MAIN,
         fontSize: 18,
       },
     });
