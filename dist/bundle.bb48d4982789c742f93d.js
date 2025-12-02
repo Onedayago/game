@@ -75490,7 +75490,7 @@ const WEAPON_TYPES = {
     id: 'rocket',
     name: '火箭塔',
     icon: '🚀',
-    description: '🚀 追踪火箭·高爆溅射\n有效打击集群敌人',
+    description: '追踪火箭\n高爆溅射伤害',
     baseCost: _gameplay__WEBPACK_IMPORTED_MODULE_1__.ROCKET_BASE_COST,
     upgradeCost: _gameplay__WEBPACK_IMPORTED_MODULE_1__.ROCKET_UPGRADE_BASE_COST,
     sellGain: _gameplay__WEBPACK_IMPORTED_MODULE_1__.ROCKET_SELL_BASE_GAIN,
@@ -75502,7 +75502,7 @@ const WEAPON_TYPES = {
     id: 'laser',
     name: '激光塔',
     icon: '⚡',
-    description: '⚡ 激光塔·持续射线\n高射速远距离攻击',
+    description: '持续射线\n高射速攻击',
     baseCost: _gameplay__WEBPACK_IMPORTED_MODULE_1__.LASER_BASE_COST,
     upgradeCost: _gameplay__WEBPACK_IMPORTED_MODULE_1__.LASER_UPGRADE_BASE_COST,
     sellGain: _gameplay__WEBPACK_IMPORTED_MODULE_1__.LASER_SELL_BASE_GAIN,
@@ -80104,11 +80104,11 @@ class WeaponContainer {
     this.subHeader = this.createSubHeader(centerX, centerY, height);
     this.app.stage.addChild(this.subHeader);
 
-    // 三列武器卡片
-    const cardWidth = width / 3 - 20;
-    const cardHeight = height - 72;
-    const cardSpacing = 14;
-    const cardY = centerY + 20;
+    // 两列武器卡片布局
+    const cardWidth = width / 2.5 - 30;  // 更宽的卡片，有足够空间显示文字
+    const cardHeight = height - 100;  // 减小卡片高度，为标题留出空间
+    const cardSpacing = 30;  // 增加卡片间距
+    const cardY = centerY + 35;  // 往下移动，避免遮挡副标题
 
     this.weaponCards = this.createWeaponCards(
       cardWidth,
@@ -80304,15 +80304,16 @@ class WeaponContainer {
     this.app.stage.addChild(priceLabel);
 
     // 描述文本
-    const textAreaWidth = cardWidth - iconAreaWidth - cardPadding * 2;
+    // 修正：图标在右侧，文字在左侧，需要留出更多空间
+    const textAreaWidth = cardWidth - iconAreaWidth - cardPadding * 3;
     const desc = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: weaponType.description,
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.TEXT_SUB,
-        fontSize: 13,
-        lineHeight: 18,
+        fontSize: 12,
+        lineHeight: 16,
         wordWrap: true,
-        wordWrapWidth: textAreaWidth,
+        wordWrapWidth: textAreaWidth - 10, // 留出更多边距
         dropShadow: true,
         dropShadowColor: 0x000000,
         dropShadowBlur: 2,
@@ -80320,7 +80321,7 @@ class WeaponContainer {
       },
     });
     desc.anchor.set(0, 0);
-    desc.position.set(priceLabel.x, priceLabel.y + 26);
+    desc.position.set(priceLabel.x, priceLabel.y + 24);
     this.app.stage.addChild(desc);
 
     return { card, glow, icon, priceLabel, desc };
@@ -81027,4 +81028,4 @@ main().catch((err) => {
 
 /******/ })()
 ;
-//# sourceMappingURL=bundle.b7111cfd81dcb3932e33.js.map
+//# sourceMappingURL=bundle.bb48d4982789c742f93d.js.map

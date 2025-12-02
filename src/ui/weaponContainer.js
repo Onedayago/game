@@ -68,11 +68,11 @@ export class WeaponContainer {
     this.subHeader = this.createSubHeader(centerX, centerY, height);
     this.app.stage.addChild(this.subHeader);
 
-    // 三列武器卡片
-    const cardWidth = width / 3 - 20;
-    const cardHeight = height - 72;
-    const cardSpacing = 14;
-    const cardY = centerY + 20;
+    // 两列武器卡片布局
+    const cardWidth = width / 2.5 - 30;  // 更宽的卡片，有足够空间显示文字
+    const cardHeight = height - 100;  // 减小卡片高度，为标题留出空间
+    const cardSpacing = 30;  // 增加卡片间距
+    const cardY = centerY + 35;  // 往下移动，避免遮挡副标题
 
     this.weaponCards = this.createWeaponCards(
       cardWidth,
@@ -268,15 +268,16 @@ export class WeaponContainer {
     this.app.stage.addChild(priceLabel);
 
     // 描述文本
-    const textAreaWidth = cardWidth - iconAreaWidth - cardPadding * 2;
+    // 修正：图标在右侧，文字在左侧，需要留出更多空间
+    const textAreaWidth = cardWidth - iconAreaWidth - cardPadding * 3;
     const desc = new Text({
       text: weaponType.description,
       style: {
         fill: COLORS.TEXT_SUB,
-        fontSize: 13,
-        lineHeight: 18,
+        fontSize: 12,
+        lineHeight: 16,
         wordWrap: true,
-        wordWrapWidth: textAreaWidth,
+        wordWrapWidth: textAreaWidth - 10, // 留出更多边距
         dropShadow: true,
         dropShadowColor: 0x000000,
         dropShadowBlur: 2,
@@ -284,7 +285,7 @@ export class WeaponContainer {
       },
     });
     desc.anchor.set(0, 0);
-    desc.position.set(priceLabel.x, priceLabel.y + 26);
+    desc.position.set(priceLabel.x, priceLabel.y + 24);
     this.app.stage.addChild(desc);
 
     return { card, glow, icon, priceLabel, desc };
