@@ -36,6 +36,131 @@ export class GameUI {
     this.layer.removeChildren();
   }
 
+  /**
+   * 显示波次通知
+   * @param {number} waveLevel - 波次等级
+   */
+  showWaveNotification(waveLevel) {
+    // 创建通知容器
+    const notification = new Container();
+    
+    // 半透明背景
+    const bg = new Graphics()
+      .rect(0, 0, APP_WIDTH, APP_HEIGHT)
+      .fill({ color: 0x000000, alpha: 0.4 });
+    
+    // 主标题背景（发光效果）
+    const titleBg = new Graphics()
+      .roundRect(-250, -60, 500, 120, 20)
+      .fill({ color: COLORS.UI_BG, alpha: 0.95 })
+      .stroke({ width: 3, color: COLORS.GOLD, alpha: 0.8 });
+    titleBg.position.set(APP_WIDTH / 2, APP_HEIGHT / 2 - 50);
+    
+    // 外层光晕
+    const glow = new Graphics()
+      .roundRect(-260, -70, 520, 140, 25)
+      .stroke({ width: 2, color: COLORS.GOLD, alpha: 0.3 });
+    glow.position.set(APP_WIDTH / 2, APP_HEIGHT / 2 - 50);
+    
+    // 波次文字
+    const waveText = new Text({
+      text: `第 ${waveLevel} 波`,
+      style: {
+        fill: COLORS.GOLD,
+        fontSize: 56,
+        fontWeight: 'bold',
+        dropShadow: {
+          color: COLORS.GOLD,
+          blur: 10,
+          alpha: 0.8,
+          distance: 0,
+        },
+      },
+    });
+    waveText.anchor.set(0.5);
+    waveText.position.set(APP_WIDTH / 2, APP_HEIGHT / 2 - 50);
+    
+    // 副标题
+    let subtitle = '准备迎战！';
+    if (waveLevel === 1) {
+      subtitle = '战斗开始！';
+    } else if (waveLevel % 5 === 0) {
+      subtitle = 'BOSS波来袭！';
+    } else if (waveLevel >= 10) {
+      subtitle = '敌人越来越强了！';
+    }
+    
+    const subtitleText = new Text({
+      text: subtitle,
+      style: {
+        fill: COLORS.TEXT_MAIN,
+        fontSize: 24,
+        dropShadow: {
+          color: COLORS.ALLY_BODY,
+          blur: 6,
+          alpha: 0.6,
+          distance: 0,
+        },
+      },
+    });
+    subtitleText.anchor.set(0.5);
+    subtitleText.position.set(APP_WIDTH / 2, APP_HEIGHT / 2 + 30);
+    
+    // 装饰线条
+    const decorLine1 = new Graphics()
+      .rect(-150, 0, 300, 2)
+      .fill({ color: COLORS.ALLY_BODY, alpha: 0.6 });
+    decorLine1.position.set(APP_WIDTH / 2, APP_HEIGHT / 2 - 100);
+    
+    const decorLine2 = new Graphics()
+      .rect(-150, 0, 300, 2)
+      .fill({ color: COLORS.ALLY_BODY, alpha: 0.6 });
+    decorLine2.position.set(APP_WIDTH / 2, APP_HEIGHT / 2 + 60);
+    
+    // 组装
+    notification.addChild(bg, glow, titleBg, decorLine1, waveText, subtitleText, decorLine2);
+    this.layer.addChild(notification);
+    
+    // 动画效果
+    notification.alpha = 0;
+    waveText.scale.set(0.5);
+    subtitleText.alpha = 0;
+    
+    // 淡入和缩放动画
+    const duration = 2000; // 2秒
+    const startTime = Date.now();
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      if (progress < 0.3) {
+        // 前30%：淡入和放大
+        const t = progress / 0.3;
+        notification.alpha = t;
+        waveText.scale.set(0.5 + 0.5 * t);
+      } else if (progress < 0.7) {
+        // 中间40%：保持
+        notification.alpha = 1;
+        waveText.scale.set(1);
+        subtitleText.alpha = (progress - 0.3) / 0.4;
+      } else {
+        // 最后30%：淡出
+        const t = (progress - 0.7) / 0.3;
+        notification.alpha = 1 - t;
+      }
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // 动画结束，移除通知
+        this.layer.removeChild(notification);
+      }
+    };
+    
+    animate();
+  }
+
   showHelpScreen() {
     this.clear();
 

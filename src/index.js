@@ -61,6 +61,24 @@ async function main() {
   const detachTicker = attachGameLoop(context);
   context.attachCleanup(detachTicker);
 
+  // 创建并注册游戏UI系统（需要在buildBattleSystems之前）
+  const gameUI = context.registerSystem(
+    'gameUI',
+    new GameUI(app, {
+      onStartGame: () => {
+        // 防止重复启动
+        if (context.state.gameStarted) return;
+        context.state.gameStarted = true;
+        
+        // 播放背景音乐
+        soundManager.playBackground();
+        
+        // 构建所有战斗系统
+        buildBattleSystems();
+      },
+    }),
+  );
+
   /**
    * 构建战斗系统
    * 包括网格背景、武器容器和敌人管理器
@@ -76,39 +94,15 @@ async function main() {
       new WeaponContainer(app, goldManager),
     );
     
-    // 创建敌人管理器，负责生成和管理敌人
+    // 创建敌人管理器，负责生成和管理敌人（传入gameUI用于显示波次通知）
     const enemyManager = context.registerManager(
       'enemies',
-      new EnemyManager(app, weaponContainer, goldManager),
+      new EnemyManager(app, weaponContainer, goldManager, gameUI),
     );
 
     return { gridBackground, weaponContainer, enemyManager };
   };
 
-  /**
-   * 开始游戏
-   * 启动背景音乐并构建战斗系统
-   */
-  const startGame = () => {
-    // 防止重复启动
-    if (context.state.gameStarted) return;
-    context.state.gameStarted = true;
-    
-    // 播放背景音乐
-    soundManager.playBackground();
-    
-    // 构建所有战斗系统
-    buildBattleSystems();
-  };
-
-  // 创建并注册游戏UI系统
-  const gameUI = context.registerSystem(
-    'gameUI',
-    new GameUI(app, {
-      onStartGame: startGame,
-    }),
-  );
-  
   // 显示游戏开始界面
   gameUI.showStartScreen();
 

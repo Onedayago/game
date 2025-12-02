@@ -75174,7 +75174,17 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   ENEMY_MAX_HP: () => (/* binding */ ENEMY_MAX_HP),
 /* harmony export */   ENEMY_MOVE_SPEED: () => (/* binding */ ENEMY_MOVE_SPEED),
 /* harmony export */   ENEMY_SIZE: () => (/* binding */ ENEMY_SIZE),
-/* harmony export */   ENEMY_SPAWN_INTERVAL: () => (/* binding */ ENEMY_SPAWN_INTERVAL)
+/* harmony export */   ENEMY_SPAWN_INTERVAL: () => (/* binding */ ENEMY_SPAWN_INTERVAL),
+/* harmony export */   SONIC_TANK_ATTACK_RANGE_CELLS: () => (/* binding */ SONIC_TANK_ATTACK_RANGE_CELLS),
+/* harmony export */   SONIC_TANK_FIRE_INTERVAL: () => (/* binding */ SONIC_TANK_FIRE_INTERVAL),
+/* harmony export */   SONIC_TANK_MAX_HP: () => (/* binding */ SONIC_TANK_MAX_HP),
+/* harmony export */   SONIC_TANK_SIZE: () => (/* binding */ SONIC_TANK_SIZE),
+/* harmony export */   SONIC_WAVE_COLOR: () => (/* binding */ SONIC_WAVE_COLOR),
+/* harmony export */   SONIC_WAVE_DAMAGE: () => (/* binding */ SONIC_WAVE_DAMAGE),
+/* harmony export */   SONIC_WAVE_EXPAND_SPEED: () => (/* binding */ SONIC_WAVE_EXPAND_SPEED),
+/* harmony export */   SONIC_WAVE_INITIAL_RADIUS: () => (/* binding */ SONIC_WAVE_INITIAL_RADIUS),
+/* harmony export */   SONIC_WAVE_LIFETIME: () => (/* binding */ SONIC_WAVE_LIFETIME),
+/* harmony export */   SONIC_WAVE_MAX_RADIUS: () => (/* binding */ SONIC_WAVE_MAX_RADIUS)
 /* harmony export */ });
 /* harmony import */ var _colors__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./colors */ "./src/config/colors.js");
 /* harmony import */ var _layout__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./layout */ "./src/config/layout.js");
@@ -75202,6 +75212,20 @@ const ENEMY_FIRE_INTERVAL = 1000;           // 敌军射速（毫秒）
 const ENEMY_BULLET_SPEED = 160;             // 敌军子弹速度（像素/秒）
 const ENEMY_BULLET_RADIUS = _layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.12; // 敌军子弹半径
 const ENEMY_BULLET_COLOR = _colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.ENEMY_BULLET; // 敌军子弹颜色
+
+// === 声波坦克配置 ===
+const SONIC_TANK_SIZE = _layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.8;    // 声波坦克尺寸（比普通坦克大）
+const SONIC_TANK_MAX_HP = 15;               // 声波坦克生命值（比普通坦克高）
+const SONIC_TANK_ATTACK_RANGE_CELLS = 6;    // 声波坦克攻击范围（格子数，比普通坦克远）
+const SONIC_TANK_FIRE_INTERVAL = 2500;      // 声波坦克射速（毫秒，稍微快一点）
+
+// === 声波攻击配置 ===
+const SONIC_WAVE_INITIAL_RADIUS = _layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.5;  // 声波初始半径
+const SONIC_WAVE_MAX_RADIUS = _layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 5;        // 声波最大半径
+const SONIC_WAVE_EXPAND_SPEED = 180;                // 声波扩散速度（像素/秒）
+const SONIC_WAVE_LIFETIME = 2000;                   // 声波存活时间（毫秒）
+const SONIC_WAVE_COLOR = 0x8b5cf6;                  // 声波颜色（紫色）
+const SONIC_WAVE_DAMAGE = 2;                        // 声波伤害（比普通子弹高）
 
 
 
@@ -75655,6 +75679,16 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   ROCKET_BULLET_COLOR: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.ROCKET_BULLET_COLOR),
 /* harmony export */   ROCKET_SELL_BASE_GAIN: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.ROCKET_SELL_BASE_GAIN),
 /* harmony export */   ROCKET_UPGRADE_BASE_COST: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.ROCKET_UPGRADE_BASE_COST),
+/* harmony export */   SONIC_TANK_ATTACK_RANGE_CELLS: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_TANK_ATTACK_RANGE_CELLS),
+/* harmony export */   SONIC_TANK_FIRE_INTERVAL: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_TANK_FIRE_INTERVAL),
+/* harmony export */   SONIC_TANK_MAX_HP: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_TANK_MAX_HP),
+/* harmony export */   SONIC_TANK_SIZE: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_TANK_SIZE),
+/* harmony export */   SONIC_WAVE_COLOR: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_WAVE_COLOR),
+/* harmony export */   SONIC_WAVE_DAMAGE: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_WAVE_DAMAGE),
+/* harmony export */   SONIC_WAVE_EXPAND_SPEED: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_WAVE_EXPAND_SPEED),
+/* harmony export */   SONIC_WAVE_INITIAL_RADIUS: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_WAVE_INITIAL_RADIUS),
+/* harmony export */   SONIC_WAVE_LIFETIME: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_WAVE_LIFETIME),
+/* harmony export */   SONIC_WAVE_MAX_RADIUS: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_WAVE_MAX_RADIUS),
 /* harmony export */   TANK_ATTACK_RANGE_CELLS: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.TANK_ATTACK_RANGE_CELLS),
 /* harmony export */   TANK_BARREL_COLOR: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.TANK_BARREL_COLOR),
 /* harmony export */   TANK_COLOR: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.TANK_COLOR),
@@ -76478,6 +76512,160 @@ const soundManager = new SoundManager();
 
 /***/ }),
 
+/***/ "./src/core/spawnPortal.js":
+/*!*********************************!*\
+  !*** ./src/core/spawnPortal.js ***!
+  \*********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   SpawnPortal: () => (/* binding */ SpawnPortal)
+/* harmony export */ });
+/* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/**
+ * 敌人生成传送门特效
+ * 在敌人出现位置显示传送门动画
+ */
+
+
+
+
+/**
+ * 传送门特效类
+ */
+class SpawnPortal {
+  /**
+   * @param {Application} app - PixiJS应用实例
+   * @param {number} x - 传送门X坐标
+   * @param {number} y - 传送门Y坐标
+   * @param {number} color - 传送门颜色（可选）
+   */
+  constructor(app, x, y, color = _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL) {
+    this.app = app;
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.age = 0;
+    this.lifetime = 800; // 存活时间（毫秒）
+    this.maxRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.7;
+    
+    // 创建传送门图形
+    this.sprite = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
+    this.sprite.x = x;
+    this.sprite.y = y;
+    
+    // 添加到世界容器
+    const world = this.app.world || this.app.stage;
+    world.addChild(this.sprite);
+    
+    this.updateVisuals();
+  }
+
+  /**
+   * 更新传送门视觉效果
+   */
+  updateVisuals() {
+    this.sprite.clear();
+    
+    const progress = this.age / this.lifetime;
+    
+    // 计算当前半径（从大到小）
+    const radius = this.maxRadius * (1 - progress * 0.3);
+    
+    // 计算透明度（先增后减）
+    let alpha;
+    if (progress < 0.3) {
+      alpha = progress / 0.3;
+    } else if (progress < 0.7) {
+      alpha = 1;
+    } else {
+      alpha = 1 - (progress - 0.7) / 0.3;
+    }
+    alpha = Math.max(0, Math.min(1, alpha));
+    
+    // 旋转角度
+    const rotation = progress * Math.PI * 4;
+    
+    // 绘制外圈光晕
+    this.sprite.circle(0, 0, radius * 1.2);
+    this.sprite.fill({ color: this.color, alpha: alpha * 0.2 });
+    
+    // 绘制多层旋转圆环
+    const ringCount = 3;
+    for (let i = 0; i < ringCount; i++) {
+      const ringRadius = radius * (0.8 - i * 0.2);
+      const ringAlpha = alpha * (1 - i * 0.2);
+      const ringRotation = rotation + (i * Math.PI / ringCount);
+      
+      // 绘制圆环
+      this.sprite.circle(0, 0, ringRadius);
+      this.sprite.stroke({ 
+        width: 3, 
+        color: this.color, 
+        alpha: ringAlpha 
+      });
+      
+      // 绘制旋转的装饰线
+      const lineCount = 6;
+      for (let j = 0; j < lineCount; j++) {
+        const angle = ringRotation + (j * Math.PI * 2 / lineCount);
+        const startX = Math.cos(angle) * ringRadius * 0.7;
+        const startY = Math.sin(angle) * ringRadius * 0.7;
+        const endX = Math.cos(angle) * ringRadius;
+        const endY = Math.sin(angle) * ringRadius;
+        
+        this.sprite.moveTo(startX, startY);
+        this.sprite.lineTo(endX, endY);
+        this.sprite.stroke({ 
+          width: 2, 
+          color: 0xffffff, 
+          alpha: ringAlpha * 0.6 
+        });
+      }
+    }
+    
+    // 中心亮点
+    const centerRadius = radius * 0.3 * (1 - progress * 0.5);
+    this.sprite.circle(0, 0, centerRadius);
+    this.sprite.fill({ color: 0xffffff, alpha: alpha * 0.8 });
+    
+    this.sprite.circle(0, 0, centerRadius * 0.6);
+    this.sprite.fill({ color: this.color, alpha: alpha });
+  }
+
+  /**
+   * 更新传送门状态
+   * @param {number} deltaMS - 距上一帧的时间（毫秒）
+   */
+  update(deltaMS) {
+    this.age += deltaMS;
+    this.updateVisuals();
+  }
+
+  /**
+   * 检查传送门是否应该被销毁
+   * @returns {boolean}
+   */
+  shouldDestroy() {
+    return this.age >= this.lifetime;
+  }
+
+  /**
+   * 销毁传送门
+   */
+  destroy() {
+    const world = this.app.world || this.app.stage;
+    world.removeChild(this.sprite);
+  }
+}
+
+
+
+/***/ }),
+
 /***/ "./src/entities/enemies/enemyBullet.js":
 /*!*********************************************!*\
   !*** ./src/entities/enemies/enemyBullet.js ***!
@@ -77142,6 +77330,723 @@ class EnemyTank {
   }
 }
 
+
+
+
+/***/ }),
+
+/***/ "./src/entities/enemies/sonicTank.js":
+/*!*******************************************!*\
+  !*** ./src/entities/enemies/sonicTank.js ***!
+  \*******************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   SonicTank: () => (/* binding */ SonicTank)
+/* harmony export */ });
+/* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
+/* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
+/* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
+/* harmony import */ var _sonicWave__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./sonicWave */ "./src/entities/enemies/sonicWave.js");
+/**
+ * 声波坦克实体
+ * 特殊类型的敌人，可以发射范围攻击的声波
+ * 
+ * 特点：
+ * - 发射声波进行范围攻击
+ * - 外观与普通坦克不同，带有声波发射器
+ * - 攻击间隔较长但伤害范围大
+ * - 移动速度较慢
+ */
+
+
+
+
+
+
+
+/**
+ * 声波坦克实体，负责寻路、声波攻击、受击和子弹管理。
+ */
+class SonicTank {
+  constructor(app, gridCol, gridRow, hpBonus = 0) {
+    this.app = app;
+    this.gridCol = gridCol;
+    this.gridRow = gridRow;
+
+    const centerX = gridCol * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+    const centerY = gridRow * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+
+    const hullRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.3;
+    const trackHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.22;
+
+    this.sprite = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
+    this.idleAnimTime = 0; // 待机动画计时器
+
+    // 多层阴影
+    this.sprite
+      .roundRect(-_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 4, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 6, _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 8, _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 6, hullRadius)
+      .fill({ color: 0x000000, alpha: 0.3 })
+      .roundRect(-_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 6, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 8, _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 12, _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 10, hullRadius * 0.8)
+      .fill({ color: 0x000000, alpha: 0.15 });
+
+    // 上下履带
+    this.sprite
+      .roundRect(-_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE, trackHeight, trackHeight / 2)
+      .fill({ color: 0x1e1b4b })
+      .stroke({ width: 1, color: 0x312e81, alpha: 0.6 })
+      .roundRect(
+        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2,
+        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 - trackHeight,
+        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE,
+        trackHeight,
+        trackHeight / 2,
+      )
+      .fill({ color: 0x1e1b4b })
+      .stroke({ width: 1, color: 0x312e81, alpha: 0.6 });
+
+    // 履带滚轮
+    const wheelRadius = trackHeight * 0.32;
+    const wheelCount = 4;
+    for (let i = 0; i < wheelCount; i += 1) {
+      const t = wheelCount === 1 ? 0.5 : i / (wheelCount - 1);
+      const wx = -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * (0.18 + 0.64 * t);
+      const wyTop = -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + trackHeight / 2;
+      const wyBottom = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 - trackHeight / 2;
+      
+      this.sprite
+        .circle(wx, wyTop, wheelRadius)
+        .fill({ color: 0x4c1d95 })
+        .stroke({ width: 1, color: 0x312e81 })
+        .circle(wx, wyTop, wheelRadius * 0.5)
+        .fill({ color: 0x6d28d9 })
+        .circle(wx, wyBottom, wheelRadius)
+        .fill({ color: 0x4c1d95 })
+        .stroke({ width: 1, color: 0x312e81 })
+        .circle(wx, wyBottom, wheelRadius * 0.5)
+        .fill({ color: 0x6d28d9 });
+    }
+
+    // 主车体（紫色主题）
+    this.sprite
+      .roundRect(
+        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 6,
+        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + trackHeight * 0.65,
+        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 12,
+        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - trackHeight * 1.3,
+        hullRadius,
+      )
+      .fill({ color: 0x5b21b6 })
+      .stroke({ width: 2.5, color: 0x4c1d95, alpha: 1 });
+
+    // 车体高光
+    this.sprite
+      .roundRect(
+        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 8,
+        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + trackHeight * 0.7,
+        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 16,
+        (_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - trackHeight * 1.3) * 0.25,
+        hullRadius * 0.6,
+      )
+      .fill({ color: 0xa78bfa, alpha: 0.3 });
+
+    // 声波发射器标识
+    this.sprite
+      .roundRect(
+        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 10,
+        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.08,
+        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 20,
+        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.18,
+        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05,
+      )
+      .fill({ color: 0x4c1d95, alpha: 0.95 })
+      .stroke({ width: 1, color: 0x8b5cf6, alpha: 0.5 });
+
+    // 声波标识符号（波纹图案）
+    const waveSymbolCount = 3;
+    for (let i = 0; i < waveSymbolCount; i++) {
+      const symbolRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * (0.08 + i * 0.04);
+      this.sprite
+        .circle(0, 0, symbolRadius)
+        .stroke({ width: 1.5, color: 0x8b5cf6, alpha: 0.6 - i * 0.15 });
+    }
+
+    // 声波发射器（圆形能量核心）
+    const emitterRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.25;
+    this.sprite
+      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05, emitterRadius * 1.15)
+      .fill({ color: 0x8b5cf6, alpha: 0.2 })
+      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05, emitterRadius)
+      .fill({ color: 0x4c1d95 })
+      .stroke({ width: 2, color: 0x8b5cf6, alpha: 0.8 })
+      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05, emitterRadius * 0.7)
+      .fill({ color: 0x6d28d9 });
+
+    // 能量核心中心
+    this.sprite
+      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05, emitterRadius * 0.4)
+      .fill({ color: 0xa78bfa, alpha: 0.9 })
+      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05, emitterRadius * 0.2)
+      .fill({ color: 0xffffff, alpha: 0.8 });
+
+    // 声波放大器（前方的喇叭状结构）
+    const amplifierWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.35;
+    const amplifierLength = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.6;
+    this.sprite
+      .moveTo(0, -amplifierWidth / 2)
+      .lineTo(amplifierLength, -amplifierWidth * 0.8)
+      .lineTo(amplifierLength, amplifierWidth * 0.8)
+      .lineTo(0, amplifierWidth / 2)
+      .fill({ color: 0x6d28d9, alpha: 0.7 })
+      .stroke({ width: 2, color: 0x8b5cf6, alpha: 0.9 });
+
+    // 放大器细节线条
+    const detailLines = 3;
+    for (let i = 1; i < detailLines; i++) {
+      const t = i / detailLines;
+      const x = amplifierLength * t;
+      const halfWidth = amplifierWidth * (0.5 + 0.3 * t);
+      this.sprite
+        .moveTo(x, -halfWidth)
+        .lineTo(x, halfWidth)
+        .stroke({ width: 1, color: 0xa78bfa, alpha: 0.4 });
+    }
+
+    this.sprite.x = centerX;
+    this.sprite.y = centerY;
+
+    const world = this.app.world || this.app.stage;
+    world.addChild(this.sprite);
+
+    this.targetCol = gridCol;
+    this.targetRow = gridRow;
+
+    this.maxHp = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_MAX_HP + hpBonus;
+    this.hp = this.maxHp;
+    this.hitTimer = 0;
+
+    this.hpBarBg = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
+    this.hpBarFill = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
+    world.addChild(this.hpBarBg);
+    world.addChild(this.hpBarFill);
+
+    this.updateHpBar();
+
+    this.path = [];
+    this.sonicWaves = []; // 声波数组
+    this.fireTimer = 0;
+  }
+
+  findPath(weaponContainer, allEnemies, allowThroughTowers = false) {
+    const cols = Math.floor(_constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH / _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE);
+    const rows = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_ROWS;
+    const minRow = 0;
+    const maxRow = rows - 1;
+
+    const startRow = Math.min(Math.max(this.gridRow, minRow), maxRow);
+    const startKey = `${this.gridCol},${startRow}`;
+    const queue = [];
+    const visited = new Set();
+    const parent = new Map();
+
+    queue.push({ col: this.gridCol, row: startRow });
+    visited.add(startKey);
+
+    const directions = [
+      [1, 0], // 右
+      [0, -1], // 上
+      [0, 1], // 下
+      [-1, 0], // 左
+    ];
+
+    let goal = null;
+
+    while (queue.length) {
+      const node = queue.shift();
+      const key = `${node.col},${node.row}`;
+
+      if (node.col === cols - 1) {
+        goal = node;
+        break;
+      }
+
+      for (const [dx, dy] of directions) {
+        const nc = node.col + dx;
+        const nr = node.row + dy;
+        if (nc < 0 || nc >= cols || nr < minRow || nr > maxRow) continue;
+
+        const nKey = `${nc},${nr}`;
+        if (visited.has(nKey)) continue;
+
+        if (!allowThroughTowers && weaponContainer.isCellOccupied(nc, nr)) {
+          continue;
+        }
+
+        if (allEnemies && !allowThroughTowers) {
+          const blockedByEnemy = allEnemies.some(
+            (enemy) =>
+              enemy !== this
+              && enemy.gridCol === nc
+              && enemy.gridRow === nr
+              && !enemy._dead
+              && !enemy._finished,
+          );
+          if (blockedByEnemy) continue;
+        }
+
+        visited.add(nKey);
+        parent.set(nKey, key);
+        queue.push({ col: nc, row: nr });
+      }
+    }
+
+    if (!goal) return null;
+
+    const path = [];
+    let curKey = `${goal.col},${goal.row}`;
+    while (curKey !== startKey) {
+      const [c, r] = curKey.split(',').map((v) => parseInt(v, 10));
+      path.push({ col: c, row: r });
+      const p = parent.get(curKey);
+      if (!p) break;
+      curKey = p;
+    }
+    path.reverse();
+    return path;
+  }
+
+  update(delta, deltaMS, weaponContainer, allEnemies) {
+    const cols = Math.floor(_constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH / _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE);
+    const rows = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_ROWS;
+    const minRow = 0;
+    const maxRow = rows - 1;
+
+    // 待机动画：轻微呼吸效果
+    this.idleAnimTime += deltaMS;
+    const idlePulse = 1 + 0.02 * Math.sin(this.idleAnimTime * 0.0012);
+    this.sprite.scale.set(idlePulse);
+
+    if (this.hitTimer > 0) {
+      this.hitTimer -= deltaMS;
+      this.sprite.alpha = 0.4;
+      if (this.hitTimer <= 0) {
+        this.sprite.alpha = 1;
+        this.hitTimer = 0;
+      }
+    }
+
+    this.updateHpBar();
+
+    const weapons = (weaponContainer && weaponContainer.weapons) || [];
+    let closest = null;
+    let closestDistCells = Infinity;
+
+    if (weapons.length > 0) {
+      weapons.forEach((weapon) => {
+        if (!weapon || weapon.gridCol == null || weapon.gridRow == null) return;
+        const dxCells = weapon.gridCol - this.gridCol;
+        const dyCells = weapon.gridRow - this.gridRow;
+        const distCells = Math.hypot(dxCells, dyCells);
+        if (distCells < closestDistCells) {
+          closestDistCells = distCells;
+          closest = weapon;
+        }
+      });
+    }
+
+    const inAttackRange =
+      closest && closestDistCells <= _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_ATTACK_RANGE_CELLS;
+
+    if (inAttackRange && closest) {
+      const sx = this.sprite.x;
+      const sy = this.sprite.y;
+      const targetDisplay = closest.turret || closest.turretHead || closest.container;
+      const tx = targetDisplay.x;
+      const ty = targetDisplay.y;
+      const angle = Math.atan2(ty - sy, tx - sx);
+
+      this.sprite.rotation = angle;
+
+      this.fireTimer += deltaMS;
+      if (this.fireTimer >= _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_FIRE_INTERVAL) {
+        this.fireTimer = 0;
+        // 发射声波
+        const wave = new _sonicWave__WEBPACK_IMPORTED_MODULE_4__.SonicWave(this.app, sx, sy);
+        this.sonicWaves.push(wave);
+
+        // 声波发射特效
+        _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createMuzzleFlash(sx, sy, angle, 0x8b5cf6);
+        _core_soundManager__WEBPACK_IMPORTED_MODULE_2__.soundManager.playFire();
+      }
+    } else {
+      this.sprite.rotation = 0;
+      this.fireTimer = 0;
+    }
+
+    // 如果不在攻击范围，则移动
+    if (!inAttackRange) {
+      const targetX = this.targetCol * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+      const targetY = this.targetRow * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+      const dx = targetX - this.sprite.x;
+      const dy = targetY - this.sprite.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < 1) {
+        this.gridCol = this.targetCol;
+        this.gridRow = Math.min(Math.max(this.targetRow, minRow), maxRow);
+
+        if (this.gridCol >= cols - 1) {
+          this._finished = true;
+          return;
+        }
+
+        const forwardCol = this.gridCol + 1;
+        const forwardRow = this.gridRow;
+        let blockedForward =
+          forwardCol >= cols
+          || forwardRow < minRow
+          || forwardRow > maxRow;
+
+        if (!blockedForward) {
+          if (
+            weaponContainer
+            && typeof weaponContainer.isCellOccupied === 'function'
+            && weaponContainer.isCellOccupied(forwardCol, forwardRow)
+          ) {
+            blockedForward = true;
+          }
+
+          if (!blockedForward && allEnemies) {
+            blockedForward = allEnemies.some(
+              (enemy) =>
+                enemy !== this
+                && !enemy._dead
+                && !enemy._finished
+                && enemy.gridCol === forwardCol
+                && enemy.gridRow === forwardRow,
+            );
+          }
+        }
+
+        if (!blockedForward) {
+          this.targetCol = forwardCol;
+          this.targetRow = forwardRow;
+          this.path = [];
+        } else {
+          let path =
+            this.findPath(weaponContainer, allEnemies, false)
+            || this.findPath(weaponContainer, allEnemies, true);
+
+          this.path = Array.isArray(path) ? path : [];
+
+          if (this.path.length > 0) {
+            const nextStep = this.path.shift();
+            this.targetCol = nextStep.col;
+            this.targetRow = nextStep.row;
+          } else {
+            const nextCol = Math.min(this.gridCol + 1, cols - 1);
+            this.targetCol = nextCol;
+            this.targetRow = this.gridRow;
+          }
+        }
+      }
+
+      const moveTargetX = this.targetCol * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+      const moveTargetY = this.targetRow * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+      const moveDx = moveTargetX - this.sprite.x;
+      const moveDy = moveTargetY - this.sprite.y;
+      const moveDist = Math.hypot(moveDx, moveDy);
+
+      if (moveDist > 0) {
+        // 声波坦克移动速度较慢
+        const step = (_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_MOVE_SPEED * 0.7 * deltaMS) / 1000;
+        const ratio = Math.min(step / moveDist, 1);
+        this.sprite.x += moveDx * ratio;
+        this.sprite.y += moveDy * ratio;
+      }
+    }
+
+    // 更新所有声波
+    const aliveWaves = [];
+    this.sonicWaves.forEach((wave) => {
+      wave.update(deltaMS);
+
+      if (wave.shouldDestroy()) {
+        wave.destroy();
+        return;
+      }
+
+      // 检查声波是否击中武器
+      for (const weapon of weapons) {
+        const targetDisplay = weapon.turret || weapon.turretHead || weapon.container;
+        if (!weapon || !targetDisplay) continue;
+        
+        const hitRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.4;
+        if (wave.isHitting(targetDisplay, hitRadius)) {
+          wave.markAsHit(weapon);
+          
+          // 造成伤害
+          _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createHitSpark(targetDisplay.x, targetDisplay.y, 0x8b5cf6);
+          
+          if (typeof weapon.registerHitFromEnemy === 'function') {
+            const destroyed = weapon.registerHitFromEnemy(_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_DAMAGE);
+            if (
+              destroyed
+              && weaponContainer
+              && typeof weaponContainer.removeWeapon === 'function'
+            ) {
+              weaponContainer.removeWeapon(weapon);
+            }
+          }
+        }
+      }
+
+      aliveWaves.push(wave);
+    });
+
+    this.sonicWaves = aliveWaves;
+  }
+
+  destroy() {
+    this.sonicWaves.forEach((w) => w.destroy());
+    this.sonicWaves = [];
+    const world = this.app.world || this.app.stage;
+    if (this.hpBarBg) world.removeChild(this.hpBarBg);
+    if (this.hpBarFill) world.removeChild(this.hpBarFill);
+    world.removeChild(this.sprite);
+  }
+
+  registerHit(damage = 1) {
+    if (this.hp <= 0) return;
+
+    this.hp -= damage;
+    this.hitTimer = 120;
+    this.updateHpBar();
+
+    if (this.hp <= 0) {
+      this._dead = true;
+      _core_soundManager__WEBPACK_IMPORTED_MODULE_2__.soundManager.playEnemyDeath();
+      _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createExplosion(this.sprite.x, this.sprite.y, 0x8b5cf6, 15);
+    }
+  }
+
+  updateHpBar() {
+    if (!this.hpBarBg || !this.hpBarFill) return;
+
+    const ratio = Math.max(this.hp / this.maxHp, 0);
+    const barWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.8;
+    const barHeight = 6;
+    const offsetY = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.7;
+    const borderRadius = 3;
+
+    // 背景条
+    this.hpBarBg
+      .clear()
+      .roundRect(-barWidth / 2 - 1, -barHeight / 2 - 1, barWidth + 2, barHeight + 2, borderRadius + 1)
+      .fill({ color: 0x000000, alpha: 0.6 })
+      .roundRect(-barWidth / 2, -barHeight / 2, barWidth, barHeight, borderRadius)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BG, alpha: 0.8 })
+      .stroke({ width: 1, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BORDER, alpha: 0.5 });
+    this.hpBarBg.position.set(this.sprite.x, this.sprite.y - offsetY);
+
+    // 前景条（紫色主题）
+    this.hpBarFill.clear();
+    if (ratio > 0) {
+      let hpColor = 0x8b5cf6; // 紫色
+      if (ratio <= 0.3) {
+        hpColor = _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.DANGER;
+      } else if (ratio <= 0.6) {
+        hpColor = 0xa78bfa; // 浅紫色
+      }
+      
+      this.hpBarFill
+        .roundRect(-barWidth / 2, -barHeight / 2, barWidth * ratio, barHeight, borderRadius)
+        .fill({ color: hpColor, alpha: 0.95 })
+        .roundRect(-barWidth / 2, -barHeight / 2, barWidth * ratio, barHeight * 0.4, borderRadius)
+        .fill({ color: 0xffffff, alpha: 0.2 });
+      this.hpBarFill.position.set(this.sprite.x, this.sprite.y - offsetY);
+    }
+  }
+}
+
+
+
+/***/ }),
+
+/***/ "./src/entities/enemies/sonicWave.js":
+/*!*******************************************!*\
+  !*** ./src/entities/enemies/sonicWave.js ***!
+  \*******************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   SonicWave: () => (/* binding */ SonicWave)
+/* harmony export */ });
+/* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
+/**
+ * 声波攻击类
+ * 声波坦克发射的范围攻击，可以同时伤害多个目标
+ * 
+ * 特点：
+ * - 圆形扩散，范围逐渐增大
+ * - 可以同时攻击范围内的多个武器
+ * - 有存活时间限制
+ * - 视觉效果为波纹扩散
+ */
+
+
+
+
+/**
+ * 声波类
+ * 由 SonicTank 发射，用于范围攻击玩家武器
+ */
+class SonicWave {
+  /**
+   * 构造函数
+   * @param {Application} app - PixiJS应用实例
+   * @param {number} x - 初始X坐标
+   * @param {number} y - 初始Y坐标
+   */
+  constructor(app, x, y) {
+    this.app = app;
+    this.radius = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_INITIAL_RADIUS; // 当前半径
+    this.maxRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_MAX_RADIUS;  // 最大半径
+    this.expandSpeed = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_EXPAND_SPEED; // 扩散速度
+    this.lifetime = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_LIFETIME;     // 存活时间
+    this.age = 0;                            // 已存活时间
+    this.hitTargets = new Set();             // 已经击中的目标（防止重复伤害）
+
+    // 创建声波图形（多层波纹效果）
+    this.sprite = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
+    this.sprite.x = x;
+    this.sprite.y = y;
+    this.updateVisuals();
+
+    // 添加到世界容器
+    const world = this.app.world || this.app.stage;
+    world.addChild(this.sprite);
+  }
+
+  /**
+   * 更新声波视觉效果
+   */
+  updateVisuals() {
+    this.sprite.clear();
+    
+    // 计算透明度（随时间衰减）
+    const lifeRatio = 1 - this.age / this.lifetime;
+    const baseAlpha = Math.min(lifeRatio * 0.9, 0.9); // 提高基础透明度
+    
+    // 绘制填充区域（半透明的圆形区域）
+    this.sprite.circle(0, 0, this.radius);
+    this.sprite.fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_COLOR, alpha: baseAlpha * 0.2 });
+    
+    // 绘制多层波纹（使用描边）
+    const waveCount = 4;
+    for (let i = 0; i < waveCount; i++) {
+      const offset = (i / waveCount) * 30; // 波纹间距
+      const currentRadius = this.radius - offset;
+      
+      if (currentRadius > 5) {
+        const alpha = baseAlpha * (1 - i * 0.15);
+        const thickness = 4 + i * 0.5;
+        
+        // 绘制波纹圆环
+        this.sprite.circle(0, 0, currentRadius);
+        this.sprite.stroke({ width: thickness, color: _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_COLOR, alpha: alpha });
+      }
+    }
+    
+    // 外层光晕
+    this.sprite.circle(0, 0, this.radius + 8);
+    this.sprite.stroke({ width: 3, color: 0xffffff, alpha: baseAlpha * 0.5 });
+    
+    // 中心闪光效果
+    if (this.age < this.lifetime * 0.4) {
+      const centerRatio = 1 - (this.age / (this.lifetime * 0.4));
+      const centerAlpha = baseAlpha * centerRatio * 0.8;
+      
+      this.sprite.circle(0, 0, this.radius * 0.25);
+      this.sprite.fill({ color: 0xffffff, alpha: centerAlpha });
+      
+      this.sprite.circle(0, 0, this.radius * 0.15);
+      this.sprite.fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_COLOR, alpha: Math.min(centerAlpha * 1.2, 1) });
+    }
+  }
+
+  /**
+   * 更新声波状态
+   * @param {number} deltaMS - 距上一帧的时间（毫秒）
+   */
+  update(deltaMS) {
+    // 更新年龄
+    this.age += deltaMS;
+    
+    // 扩大半径
+    const expandAmount = (this.expandSpeed * deltaMS) / 1000;
+    this.radius = Math.min(this.radius + expandAmount, this.maxRadius);
+    
+    // 更新视觉效果
+    this.updateVisuals();
+  }
+
+  /**
+   * 检查声波是否应该被销毁
+   * @returns {boolean} 是否应该销毁
+   */
+  shouldDestroy() {
+    return this.age >= this.lifetime;
+  }
+
+  /**
+   * 检查是否在范围内击中目标
+   * @param {Object} target - 目标对象（应有x和y属性）
+   * @param {number} targetRadius - 目标的碰撞半径
+   * @returns {boolean} 是否击中
+   */
+  isHitting(target, targetRadius) {
+    // 如果已经击中过这个目标，不再重复伤害
+    if (this.hitTargets.has(target)) {
+      return false;
+    }
+    
+    // 计算目标到声波中心的距离
+    const dx = target.x - this.sprite.x;
+    const dy = target.y - this.sprite.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // 检查目标是否在当前声波范围内
+    // 使用扩散波纹判定：目标在当前半径内，且在之前还没被标记为击中
+    // 这样声波扩散到目标时就会击中
+    const isInWave = distance <= this.radius + targetRadius;
+    
+    return isInWave;
+  }
+
+  /**
+   * 标记目标已被击中
+   * @param {Object} target - 被击中的目标
+   */
+  markAsHit(target) {
+    this.hitTargets.add(target);
+  }
+
+  /**
+   * 销毁声波
+   * 从世界容器中移除
+   */
+  destroy() {
+    const world = this.app.world || this.app.stage;
+    world.removeChild(this.sprite);
+  }
+}
 
 
 
@@ -78418,6 +79323,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
 /* harmony import */ var _entities_enemies_enemyTank__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../entities/enemies/enemyTank */ "./src/entities/enemies/enemyTank.js");
+/* harmony import */ var _entities_enemies_sonicTank__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../entities/enemies/sonicTank */ "./src/entities/enemies/sonicTank.js");
+/* harmony import */ var _core_spawnPortal__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../core/spawnPortal */ "./src/core/spawnPortal.js");
 /**
  * 敌人管理器
  * 负责生成、更新和管理所有敌人
@@ -78438,6 +79345,8 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+
 /**
  * 敌人管理器类
  */
@@ -78447,14 +79356,17 @@ class EnemyManager {
    * @param {Application} app - PixiJS应用实例
    * @param {WeaponContainer} weaponContainer - 武器容器，用于敌人寻路和攻击
    * @param {GoldManager} goldManager - 金币管理器，用于奖励结算
+   * @param {GameUI} gameUI - 游戏UI管理器，用于显示波次通知
    */
-  constructor(app, weaponContainer, goldManager) {
+  constructor(app, weaponContainer, goldManager, gameUI = null) {
     this.app = app;
     this.weaponContainer = weaponContainer;  // 武器容器引用
     this.goldManager = goldManager;          // 金币管理器引用
+    this.gameUI = gameUI;                    // 游戏UI引用
     
     // 敌人管理
     this.enemies = [];                       // 所有活跃的敌人
+    this.portals = [];                       // 所有活跃的传送门特效
     
     // 生成计时
     this.timeSinceLastSpawn = 0;             // 距上次生成的时间
@@ -78474,6 +79386,7 @@ class EnemyManager {
    * 生成一个敌人
    * 在左侧边界随机行位置生成敌人坦克
    * 会尝试避开已有敌人的位置
+   * 根据波次和概率决定生成普通坦克还是声波坦克
    */
   spawnEnemy() {
     const rows = _constants__WEBPACK_IMPORTED_MODULE_0__.BATTLE_ROWS;
@@ -78511,10 +79424,49 @@ class EnemyManager {
     
     // 在左侧边界（第0列）生成敌人
     const col = 0;
+    const centerX = col * _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2;
+    const centerY = row * _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2;
 
-    // 创建敌人坦克，带有当前波次的血量加成
-    const enemy = new _entities_enemies_enemyTank__WEBPACK_IMPORTED_MODULE_1__.EnemyTank(this.app, col, row, this.hpBonus);
-    this.enemies.push(enemy);
+    // 决定生成哪种类型的敌人
+    // 声波坦克出现概率随波次增加：从第1波开始，基础概率25%，每波增加5%，最高50%
+    let sonicTankChance = 0;
+    if (this.waveLevel >= 1) {
+      sonicTankChance = Math.min(0.25 + (this.waveLevel - 1) * 0.05, 0.5);
+    }
+    
+    const shouldSpawnSonicTank = Math.random() < sonicTankChance;
+    
+    // 先创建传送门特效
+    const portalColor = shouldSpawnSonicTank ? 0x8b5cf6 : 0xff0080;
+    const portal = new _core_spawnPortal__WEBPACK_IMPORTED_MODULE_3__.SpawnPortal(this.app, centerX, centerY, portalColor);
+    this.portals.push(portal);
+    
+    // 延迟生成敌人（等待传送门动画）
+    setTimeout(() => {
+      // 创建敌人，带有当前波次的血量加成
+      let enemy;
+      if (shouldSpawnSonicTank) {
+        enemy = new _entities_enemies_sonicTank__WEBPACK_IMPORTED_MODULE_2__.SonicTank(this.app, col, row, this.hpBonus);
+      } else {
+        enemy = new _entities_enemies_enemyTank__WEBPACK_IMPORTED_MODULE_1__.EnemyTank(this.app, col, row, this.hpBonus);
+      }
+      
+      // 敌人初始透明，然后淡入
+      enemy.sprite.alpha = 0;
+      const fadeInDuration = 300;
+      const fadeStartTime = Date.now();
+      const fadeIn = () => {
+        const elapsed = Date.now() - fadeStartTime;
+        const progress = Math.min(elapsed / fadeInDuration, 1);
+        enemy.sprite.alpha = progress;
+        if (progress < 1) {
+          requestAnimationFrame(fadeIn);
+        }
+      };
+      fadeIn();
+      
+      this.enemies.push(enemy);
+    }, 400); // 400ms后生成敌人
   }
 
   /**
@@ -78532,6 +79484,11 @@ class EnemyManager {
     if (this.waveTimer >= this.waveDuration) {
       this.waveTimer -= this.waveDuration;
       this.waveLevel += 1;
+      
+      // 显示波次通知
+      if (this.gameUI && typeof this.gameUI.showWaveNotification === 'function') {
+        this.gameUI.showWaveNotification(this.waveLevel);
+      }
       
       // 缩短生成间隔（每波乘以0.9，但不低于最小值）
       this.spawnInterval = Math.max(
@@ -78560,6 +79517,16 @@ class EnemyManager {
     this.enemies.forEach((enemy) =>
       enemy.update(delta, deltaMS, this.weaponContainer, this.enemies),
     );
+
+    // === 更新所有传送门特效 ===
+    this.portals = this.portals.filter((portal) => {
+      portal.update(deltaMS);
+      if (portal.shouldDestroy()) {
+        portal.destroy();
+        return false;
+      }
+      return true;
+    });
 
     // === 清理死亡和完成的敌人 ===
     this.enemies = this.enemies.filter((enemy) => {
@@ -79498,6 +80465,131 @@ class GameUI {
 
   clear() {
     this.layer.removeChildren();
+  }
+
+  /**
+   * 显示波次通知
+   * @param {number} waveLevel - 波次等级
+   */
+  showWaveNotification(waveLevel) {
+    // 创建通知容器
+    const notification = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Container();
+    
+    // 半透明背景
+    const bg = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
+      .rect(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT)
+      .fill({ color: 0x000000, alpha: 0.4 });
+    
+    // 主标题背景（发光效果）
+    const titleBg = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
+      .roundRect(-250, -60, 500, 120, 20)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BG, alpha: 0.95 })
+      .stroke({ width: 3, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD, alpha: 0.8 });
+    titleBg.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 - 50);
+    
+    // 外层光晕
+    const glow = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
+      .roundRect(-260, -70, 520, 140, 25)
+      .stroke({ width: 2, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD, alpha: 0.3 });
+    glow.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 - 50);
+    
+    // 波次文字
+    const waveText = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
+      text: `第 ${waveLevel} 波`,
+      style: {
+        fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD,
+        fontSize: 56,
+        fontWeight: 'bold',
+        dropShadow: {
+          color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD,
+          blur: 10,
+          alpha: 0.8,
+          distance: 0,
+        },
+      },
+    });
+    waveText.anchor.set(0.5);
+    waveText.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 - 50);
+    
+    // 副标题
+    let subtitle = '准备迎战！';
+    if (waveLevel === 1) {
+      subtitle = '战斗开始！';
+    } else if (waveLevel % 5 === 0) {
+      subtitle = 'BOSS波来袭！';
+    } else if (waveLevel >= 10) {
+      subtitle = '敌人越来越强了！';
+    }
+    
+    const subtitleText = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
+      text: subtitle,
+      style: {
+        fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.TEXT_MAIN,
+        fontSize: 24,
+        dropShadow: {
+          color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY,
+          blur: 6,
+          alpha: 0.6,
+          distance: 0,
+        },
+      },
+    });
+    subtitleText.anchor.set(0.5);
+    subtitleText.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 + 30);
+    
+    // 装饰线条
+    const decorLine1 = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
+      .rect(-150, 0, 300, 2)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 0.6 });
+    decorLine1.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 - 100);
+    
+    const decorLine2 = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
+      .rect(-150, 0, 300, 2)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 0.6 });
+    decorLine2.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 + 60);
+    
+    // 组装
+    notification.addChild(bg, glow, titleBg, decorLine1, waveText, subtitleText, decorLine2);
+    this.layer.addChild(notification);
+    
+    // 动画效果
+    notification.alpha = 0;
+    waveText.scale.set(0.5);
+    subtitleText.alpha = 0;
+    
+    // 淡入和缩放动画
+    const duration = 2000; // 2秒
+    const startTime = Date.now();
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      if (progress < 0.3) {
+        // 前30%：淡入和放大
+        const t = progress / 0.3;
+        notification.alpha = t;
+        waveText.scale.set(0.5 + 0.5 * t);
+      } else if (progress < 0.7) {
+        // 中间40%：保持
+        notification.alpha = 1;
+        waveText.scale.set(1);
+        subtitleText.alpha = (progress - 0.3) / 0.4;
+      } else {
+        // 最后30%：淡出
+        const t = (progress - 0.7) / 0.3;
+        notification.alpha = 1 - t;
+      }
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // 动画结束，移除通知
+        this.layer.removeChild(notification);
+      }
+    };
+    
+    animate();
   }
 
   showHelpScreen() {
@@ -80960,6 +82052,24 @@ async function main() {
   const detachTicker = (0,_app_attachGameLoop__WEBPACK_IMPORTED_MODULE_11__.attachGameLoop)(context);
   context.attachCleanup(detachTicker);
 
+  // 创建并注册游戏UI系统（需要在buildBattleSystems之前）
+  const gameUI = context.registerSystem(
+    'gameUI',
+    new _ui_gameUI__WEBPACK_IMPORTED_MODULE_4__.GameUI(app, {
+      onStartGame: () => {
+        // 防止重复启动
+        if (context.state.gameStarted) return;
+        context.state.gameStarted = true;
+        
+        // 播放背景音乐
+        _core_soundManager__WEBPACK_IMPORTED_MODULE_5__.soundManager.playBackground();
+        
+        // 构建所有战斗系统
+        buildBattleSystems();
+      },
+    }),
+  );
+
   /**
    * 构建战斗系统
    * 包括网格背景、武器容器和敌人管理器
@@ -80975,39 +82085,15 @@ async function main() {
       new _ui_weaponContainer__WEBPACK_IMPORTED_MODULE_1__.WeaponContainer(app, goldManager),
     );
     
-    // 创建敌人管理器，负责生成和管理敌人
+    // 创建敌人管理器，负责生成和管理敌人（传入gameUI用于显示波次通知）
     const enemyManager = context.registerManager(
       'enemies',
-      new _systems_enemyManager__WEBPACK_IMPORTED_MODULE_2__.EnemyManager(app, weaponContainer, goldManager),
+      new _systems_enemyManager__WEBPACK_IMPORTED_MODULE_2__.EnemyManager(app, weaponContainer, goldManager, gameUI),
     );
 
     return { gridBackground, weaponContainer, enemyManager };
   };
 
-  /**
-   * 开始游戏
-   * 启动背景音乐并构建战斗系统
-   */
-  const startGame = () => {
-    // 防止重复启动
-    if (context.state.gameStarted) return;
-    context.state.gameStarted = true;
-    
-    // 播放背景音乐
-    _core_soundManager__WEBPACK_IMPORTED_MODULE_5__.soundManager.playBackground();
-    
-    // 构建所有战斗系统
-    buildBattleSystems();
-  };
-
-  // 创建并注册游戏UI系统
-  const gameUI = context.registerSystem(
-    'gameUI',
-    new _ui_gameUI__WEBPACK_IMPORTED_MODULE_4__.GameUI(app, {
-      onStartGame: startGame,
-    }),
-  );
-  
   // 显示游戏开始界面
   gameUI.showStartScreen();
 
@@ -81028,4 +82114,4 @@ main().catch((err) => {
 
 /******/ })()
 ;
-//# sourceMappingURL=bundle.bb48d4982789c742f93d.js.map
+//# sourceMappingURL=bundle.86729c6f6236ba997f44.js.map

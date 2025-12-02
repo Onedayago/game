@@ -23,3 +23,17 @@ export const ENEMY_BULLET_SPEED = 160;             // 敌军子弹速度（像�
 export const ENEMY_BULLET_RADIUS = CELL_SIZE * 0.12; // 敌军子弹半径
 export const ENEMY_BULLET_COLOR = COLORS.ENEMY_BULLET; // 敌军子弹颜色
 
+// === 声波坦克配置 ===
+export const SONIC_TANK_SIZE = CELL_SIZE * 0.8;    // 声波坦克尺寸（比普通坦克大）
+export const SONIC_TANK_MAX_HP = 15;               // 声波坦克生命值（比普通坦克高）
+export const SONIC_TANK_ATTACK_RANGE_CELLS = 6;    // 声波坦克攻击范围（格子数，比普通坦克远）
+export const SONIC_TANK_FIRE_INTERVAL = 2500;      // 声波坦克射速（毫秒，稍微快一点）
+
+// === 声波攻击配置 ===
+export const SONIC_WAVE_INITIAL_RADIUS = CELL_SIZE * 0.5;  // 声波初始半径
+export const SONIC_WAVE_MAX_RADIUS = CELL_SIZE * 5;        // 声波最大半径
+export const SONIC_WAVE_EXPAND_SPEED = 180;                // 声波扩散速度（像素/秒）
+export const SONIC_WAVE_LIFETIME = 2000;                   // 声波存活时间（毫秒）
+export const SONIC_WAVE_COLOR = 0x8b5cf6;                  // 声波颜色（紫色）
+export const SONIC_WAVE_DAMAGE = 2;                        // 声波伤害（比普通子弹高）
+

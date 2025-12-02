@@ -15,8 +15,10 @@
  * - 敌人血量随波次增加
  */
 
-import { ENEMY_SPAWN_INTERVAL, ENEMY_KILL_REWARD, BATTLE_ROWS } from '../constants';
+import { ENEMY_SPAWN_INTERVAL, ENEMY_KILL_REWARD, BATTLE_ROWS, CELL_SIZE } from '../constants';
 import { EnemyTank } from '../entities/enemies/enemyTank';
+import { SonicTank } from '../entities/enemies/sonicTank';
+import { SpawnPortal } from '../core/spawnPortal';
 
 /**
  * 敌人管理器类
@@ -27,14 +29,17 @@ export class EnemyManager {
    * @param {Application} app - PixiJS应用实例
    * @param {WeaponContainer} weaponContainer - 武器容器，用于敌人寻路和攻击
    * @param {GoldManager} goldManager - 金币管理器，用于奖励结算
+   * @param {GameUI} gameUI - 游戏UI管理器，用于显示波次通知
    */
-  constructor(app, weaponContainer, goldManager) {
+  constructor(app, weaponContainer, goldManager, gameUI = null) {
     this.app = app;
     this.weaponContainer = weaponContainer;  // 武器容器引用
     this.goldManager = goldManager;          // 金币管理器引用
+    this.gameUI = gameUI;                    // 游戏UI引用
     
     // 敌人管理
     this.enemies = [];                       // 所有活跃的敌人
+    this.portals = [];                       // 所有活跃的传送门特效
     
     // 生成计时
     this.timeSinceLastSpawn = 0;             // 距上次生成的时间
@@ -54,6 +59,7 @@ export class EnemyManager {
    * 生成一个敌人
    * 在左侧边界随机行位置生成敌人坦克
    * 会尝试避开已有敌人的位置
+   * 根据波次和概率决定生成普通坦克还是声波坦克
    */
   spawnEnemy() {
     const rows = BATTLE_ROWS;
@@ -91,10 +97,49 @@ export class EnemyManager {
     
     // 在左侧边界（第0列）生成敌人
     const col = 0;
+    const centerX = col * CELL_SIZE + CELL_SIZE / 2;
+    const centerY = row * CELL_SIZE + CELL_SIZE / 2;
 
-    // 创建敌人坦克，带有当前波次的血量加成
-    const enemy = new EnemyTank(this.app, col, row, this.hpBonus);
-    this.enemies.push(enemy);
+    // 决定生成哪种类型的敌人
+    // 声波坦克出现概率随波次增加：从第1波开始，基础概率25%，每波增加5%，最高50%
+    let sonicTankChance = 0;
+    if (this.waveLevel >= 1) {
+      sonicTankChance = Math.min(0.25 + (this.waveLevel - 1) * 0.05, 0.5);
+    }
+    
+    const shouldSpawnSonicTank = Math.random() < sonicTankChance;
+    
+    // 先创建传送门特效
+    const portalColor = shouldSpawnSonicTank ? 0x8b5cf6 : 0xff0080;
+    const portal = new SpawnPortal(this.app, centerX, centerY, portalColor);
+    this.portals.push(portal);
+    
+    // 延迟生成敌人（等待传送门动画）
+    setTimeout(() => {
+      // 创建敌人，带有当前波次的血量加成
+      let enemy;
+      if (shouldSpawnSonicTank) {
+        enemy = new SonicTank(this.app, col, row, this.hpBonus);
+      } else {
+        enemy = new EnemyTank(this.app, col, row, this.hpBonus);
+      }
+      
+      // 敌人初始透明，然后淡入
+      enemy.sprite.alpha = 0;
+      const fadeInDuration = 300;
+      const fadeStartTime = Date.now();
+      const fadeIn = () => {
+        const elapsed = Date.now() - fadeStartTime;
+        const progress = Math.min(elapsed / fadeInDuration, 1);
+        enemy.sprite.alpha = progress;
+        if (progress < 1) {
+          requestAnimationFrame(fadeIn);
+        }
+      };
+      fadeIn();
+      
+      this.enemies.push(enemy);
+    }, 400); // 400ms后生成敌人
   }
 
   /**
@@ -112,6 +157,11 @@ export class EnemyManager {
     if (this.waveTimer >= this.waveDuration) {
       this.waveTimer -= this.waveDuration;
       this.waveLevel += 1;
+      
+      // 显示波次通知
+      if (this.gameUI && typeof this.gameUI.showWaveNotification === 'function') {
+        this.gameUI.showWaveNotification(this.waveLevel);
+      }
       
       // 缩短生成间隔（每波乘以0.9，但不低于最小值）
       this.spawnInterval = Math.max(
@@ -140,6 +190,16 @@ export class EnemyManager {
     this.enemies.forEach((enemy) =>
       enemy.update(delta, deltaMS, this.weaponContainer, this.enemies),
     );
+
+    // === 更新所有传送门特效 ===
+    this.portals = this.portals.filter((portal) => {
+      portal.update(deltaMS);
+      if (portal.shouldDestroy()) {
+        portal.destroy();
+        return false;
+      }
+      return true;
+    });
 
     // === 清理死亡和完成的敌人 ===
     this.enemies = this.enemies.filter((enemy) => {
