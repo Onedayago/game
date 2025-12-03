@@ -5,11 +5,8 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { responsiveLayout } from './ResponsiveLayout';
 import {
-  APP_WIDTH,
-  APP_HEIGHT,
-  TOP_UI_HEIGHT,
-  BATTLE_HEIGHT,
   APP_BACKGROUND,
   TOP_UI_BG_COLOR,
   BOTTOM_UI_BG_COLOR,
@@ -27,14 +24,18 @@ import {
  * @returns {Object} 包含布局背景和世界容器的对象
  */
 export function createWorldLayers(app) {
+  // 从响应式布局管理器获取当前尺寸
+  const layout = responsiveLayout.getLayout();
+  const { APP_WIDTH, APP_HEIGHT, TOP_UI_HEIGHT, BATTLE_HEIGHT } = layout;
+  
   // 创建布局背景图形，用于绘制三个区域的背景色
   const layoutBackground = new Graphics();
   layoutBackground.zIndex = -500; // 设置为最底层
 
   // 计算三个区域的高度
-  const topHeight = TOP_UI_HEIGHT;                          // 顶部UI高度
-  const middleHeight = BATTLE_HEIGHT;                       // 战斗区域高度
-  const bottomHeight = APP_HEIGHT - topHeight - middleHeight; // 底部UI高度
+  const topHeight = TOP_UI_HEIGHT;
+  const middleHeight = BATTLE_HEIGHT;
+  const bottomHeight = APP_HEIGHT - topHeight - middleHeight;
 
   // 绘制顶部UI区域背景
   layoutBackground.rect(0, 0, APP_WIDTH, topHeight).fill({ color: TOP_UI_BG_COLOR });
@@ -66,5 +67,3 @@ export function createWorldLayers(app) {
     worldContainer,    // 世界容器
   };
 }
-
-

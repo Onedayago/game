@@ -6,21 +6,20 @@
  * - 绘制纯色背景，提供简洁的视觉效果
  * - 背景宽度为世界宽度，支持横向拖动查看
  * - 背景层级最低，不会遮挡其他游戏对象
+ * - 支持响应式布局
  * 
  * 注意：网格线和动画效果已禁用，保持简洁风格
  */
 
 import { Graphics } from 'pixi.js';
 import {
-  CELL_SIZE,
-  WORLD_WIDTH,
   COLORS,
   APP_BACKGROUND,
-  BATTLE_HEIGHT,
   GRID_LINE_WIDTH,
   GRID_LINE_COLOR,
   GRID_LINE_ALPHA,
 } from '../constants';
+import { responsiveLayout } from '../app/ResponsiveLayout';
 
 /**
  * 网格背景类
@@ -50,9 +49,12 @@ export class GridBackground {
    * 设置背景的宽度和高度，并调用绘制方法
    */
   drawScene() {
+    // 从响应式布局获取当前尺寸
+    const layout = responsiveLayout.getLayout();
+    
     // 战场背景的世界总宽度（可被相机左右拖拽观察）
-    const width = WORLD_WIDTH;
-    const height = BATTLE_HEIGHT;
+    const width = layout.WORLD_WIDTH;
+    const height = layout.BATTLE_HEIGHT;
     this.battleHeight = height;
     
     // 只绘制纯色背景，不绘制装饰和网格
@@ -70,6 +72,18 @@ export class GridBackground {
     this.terrain.rect(0, 0, width, height).fill({ color: APP_BACKGROUND });
   }
 
+  /**
+   * 响应尺寸变化
+   * 重新绘制背景
+   * @param {Object} layout - 新的布局参数
+   */
+  onResize(layout) {
+    const width = layout.WORLD_WIDTH;
+    const height = layout.BATTLE_HEIGHT;
+    this.battleHeight = height;
+    this.drawSimpleBackground(width, height);
+  }
+
   // 网格线功能已禁用，保持简洁的视觉风格
 
   /**
@@ -80,5 +94,3 @@ export class GridBackground {
     // 背景动画已禁用
   }
 }
-
-

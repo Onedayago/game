@@ -39,7 +39,10 @@ export const COLORS = {
   UI_BORDER: 0x00ffff,      // UI 边框色（青色霓虹）
   TEXT_MAIN: 0xffffff,      // 主文本色（纯白）
   TEXT_SUB: 0x00d9ff,       // 次文本色（青色）
+  TEXT_LIGHT: 0xf9fafb,     // 浅色文本色（按钮文字）
   SUCCESS: 0x00ff41,        // 成功提示色（霓虹绿）
+  SUCCESS_DARK: 0x16a34a,   // 成功深色（按钮描边）
   DANGER: 0xff0055,         // 危险/错误色（霓虹红）
+  OVERLAY_BG: 0x000000,     // 遮罩背景色（纯黑）
 };
 

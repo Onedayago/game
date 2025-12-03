@@ -7,10 +7,12 @@
  * - 提供各种预设特效（爆炸、枪口火光、击中火花等）
  * - 自动清理过期粒子，控制性能
  * - 支持粒子池，避免频繁创建销毁对象
+ * - 支持响应式布局
  */
 
 import { Container } from 'pixi.js';
 import { Particle } from './particle';
+import { responsiveLayout } from '../app/ResponsiveLayout';
 
 /**
  * 粒子系统类
@@ -25,6 +27,13 @@ export class ParticleSystem {
     this.container = new Container();      // 粒子容器
     this.particles = [];                   // 活跃粒子数组
     this.maxParticles = 300;               // 最大粒子数量限制
+  }
+
+  /**
+   * 获取当前缩放比例
+   */
+  getScale() {
+    return responsiveLayout.getLayout().scale;
   }
 
   /**
@@ -75,12 +84,16 @@ export class ParticleSystem {
    * @param {number} options.alphaEnd - 结束透明度
    */
   emit(x, y, options = {}) {
+    const scale = this.getScale();
     const {
       count = 1,              // 粒子数量
-      speed = 100,            // 基础速度
+      speed = 100 * scale,    // 基础速度（按比例缩放）
       angle: baseAngle,       // 基础角度
       spread = 0,             // 扩散角度
     } = options;
+
+    // 如果提供了 size，按比例缩放
+    const scaledSize = options.size ? options.size * scale : 5 * scale;
 
     // 创建指定数量的粒子
     for (let i = 0; i < count; i += 1) {
@@ -91,7 +104,7 @@ export class ParticleSystem {
       const finalAngle = angle + (Math.random() - 0.5) * spread;
       
       // 速度添加随机变化（80%-120%）
-      const finalSpeed = speed * (0.8 + Math.random() * 0.4);
+      const finalSpeed = (options.speed ?? 100) * scale * (0.8 + Math.random() * 0.4);
 
       // 计算速度向量
       const velocity = {
@@ -102,6 +115,7 @@ export class ParticleSystem {
       // 创建粒子
       const particle = new Particle(null, x, y, {
         ...options,
+        size: scaledSize,
         velocity,
       });
       
@@ -131,11 +145,13 @@ export class ParticleSystem {
    * @param {number} count - 主粒子数量（默认12个）
    */
   createExplosion(x, y, color = 0x00ffff, count = 12) {
+    const scale = this.getScale();
+    
     // 外圈冲击波
     this.emit(x, y, {
       count: 1,
       color,
-      size: 20,
+      size: 20 * scale,
       life: 0.6,
       speed: 0,
       scaleStart: 1,
@@ -148,9 +164,9 @@ export class ParticleSystem {
     this.emit(x, y, {
       count,
       color,
-      size: 8,
+      size: 8 * scale,
       life: 0.9,
-      speed: 250,
+      speed: 250 * scale,
       spread: Math.PI * 2,
       scaleStart: 2.5,
       scaleEnd: 0,
@@ -163,7 +179,7 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color: 0xffffff,
-      size: 20,
+      size: 20 * scale,
       life: 0.25,
       speed: 0,
       scaleStart: 2,
@@ -176,9 +192,9 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 6,
       color,
-      size: 4,
+      size: 4 * scale,
       life: 0.5,
-      speed: 120,
+      speed: 120 * scale,
       spread: Math.PI * 2,
       scaleStart: 1.5,
       scaleEnd: 0.3,
@@ -190,9 +206,9 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: Math.max(1, Math.floor(count / 2)),
       color: 0x9d00ff, // 紫色数据碎片
-      size: 8,
+      size: 8 * scale,
       life: 1.3,
-      speed: 70,
+      speed: 70 * scale,
       spread: Math.PI * 2,
       alphaStart: 0.8,
       alphaEnd: 0,
@@ -204,9 +220,9 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 4,
       color,
-      size: 10,
+      size: 10 * scale,
       life: 0.5,
-      speed: 140,
+      speed: 140 * scale,
       spread: Math.PI * 2,
       alphaStart: 0.7,
       alphaEnd: 0,
@@ -218,9 +234,9 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 6,
       color: 0xff00ff, // 洋红电弧
-      size: 4,
+      size: 4 * scale,
       life: 0.4,
-      speed: 160,
+      speed: 160 * scale,
       spread: Math.PI * 2,
       alphaStart: 0.9,
       alphaEnd: 0,
@@ -241,11 +257,13 @@ export class ParticleSystem {
    * @param {number} color - 主色调（默认青色）
    */
   createMuzzleFlash(x, y, angle, color = 0x00ffff) {
+    const scale = this.getScale();
+    
     // 外圈能量波纹
     this.emit(x, y, {
       count: 1,
       color,
-      size: 18,
+      size: 18 * scale,
       life: 0.3,
       speed: 0,
       scaleStart: 1,
@@ -258,7 +276,7 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color: 0xffffff,
-      size: 15,
+      size: 15 * scale,
       life: 0.18,
       speed: 0,
       scaleStart: 2,
@@ -271,7 +289,7 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color,
-      size: 12,
+      size: 12 * scale,
       life: 0.22,
       speed: 0,
       scaleStart: 1.2,
@@ -284,10 +302,10 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 6,
       color,
-      size: 6,
+      size: 6 * scale,
       life: 0.3,
       angle,
-      speed: 220,
+      speed: 220 * scale,
       spread: Math.PI * 0.4,
       scaleStart: 1.5,
       scaleEnd: 0.2,
@@ -299,10 +317,10 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 4,
       color,
-      size: 5,
+      size: 5 * scale,
       life: 0.25,
       angle: angle + Math.PI,
-      speed: 120,
+      speed: 120 * scale,
       spread: Math.PI * 0.7,
       scaleStart: 1.2,
       scaleEnd: 0.1,
@@ -314,7 +332,7 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color: 0xff00ff, // 洋红脉冲
-      size: 10,
+      size: 10 * scale,
       life: 0.22,
       speed: 0,
       scaleStart: 0.9,
@@ -334,11 +352,13 @@ export class ParticleSystem {
    * @param {number} color - 主色调（默认青色）
    */
   createHitSpark(x, y, color = 0x00ffff) {
+    const scale = this.getScale();
+    
     // 外圈冲击波
     this.emit(x, y, {
       count: 1,
       color,
-      size: 16,
+      size: 16 * scale,
       life: 0.4,
       speed: 0,
       scaleStart: 1,
@@ -351,7 +371,7 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color: 0xffffff,
-      size: 14,
+      size: 14 * scale,
       life: 0.15,
       speed: 0,
       scaleStart: 1.5,
@@ -364,9 +384,9 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 8,
       color,
-      size: 6,
+      size: 6 * scale,
       life: 0.35,
-      speed: 150,
+      speed: 150 * scale,
       spread: Math.PI * 2,
       scaleStart: 1.5,
       scaleEnd: 0.1,
@@ -379,9 +399,9 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 4,
       color: 0xfef3c7,
-      size: 3,
+      size: 3 * scale,
       life: 0.2,
-      speed: 80,
+      speed: 80 * scale,
       spread: Math.PI * 2,
       scaleStart: 1,
       scaleEnd: 0,
@@ -393,7 +413,7 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color,
-      size: 10,
+      size: 10 * scale,
       life: 0.2,
       speed: 0,
       scaleStart: 1,
@@ -406,9 +426,9 @@ export class ParticleSystem {
     this.emit(x, y, {
       count: 6,
       color: 0xff00ff, // 洋红电弧
-      size: 3,
+      size: 3 * scale,
       life: 0.3,
-      speed: 160,
+      speed: 160 * scale,
       spread: Math.PI * 1.5,
       alphaStart: 0.95,
       alphaEnd: 0,
@@ -421,4 +441,3 @@ export class ParticleSystem {
 
 // 导出全局单例
 export const particleSystem = new ParticleSystem();
-

@@ -7,13 +7,11 @@
  * - 外观与普通坦克不同，带有声波发射器
  * - 攻击间隔较长但伤害范围大
  * - 移动速度较慢
+ * - 支持响应式布局
  */
 
 import { Graphics } from 'pixi.js';
 import {
-  CELL_SIZE,
-  BATTLE_ROWS,
-  WORLD_WIDTH,
   ENEMY_MOVE_SPEED,
   SONIC_TANK_ATTACK_RANGE_CELLS,
   SONIC_TANK_FIRE_INTERVAL,
@@ -23,12 +21,14 @@ import {
   TANK_SIZE,
   SONIC_WAVE_DAMAGE,
 } from '../../constants';
+import { responsiveLayout } from '../../app/ResponsiveLayout';
 import { soundManager } from '../../core/soundManager';
 import { particleSystem } from '../../core/particleSystem';
 import { SonicWave } from './sonicWave';
 
 /**
  * 声波坦克实体，负责寻路、声波攻击、受击和子弹管理。
+ * 支持响应式布局
  */
 export class SonicTank {
   constructor(app, gridCol, gridRow, hpBonus = 0) {
@@ -36,31 +36,39 @@ export class SonicTank {
     this.gridCol = gridCol;
     this.gridRow = gridRow;
 
+    // 获取当前布局参数
+    const layout = this.getLayout();
+    const { CELL_SIZE, SONIC_TANK_SIZE: dynamicSonicSize } = layout;
+
+    // 使用动态的声波坦克尺寸
+    const SONIC_SIZE = dynamicSonicSize || SONIC_TANK_SIZE;
+    this.currentSonicSize = SONIC_SIZE;
+
     const centerX = gridCol * CELL_SIZE + CELL_SIZE / 2;
     const centerY = gridRow * CELL_SIZE + CELL_SIZE / 2;
 
-    const hullRadius = SONIC_TANK_SIZE * 0.3;
-    const trackHeight = SONIC_TANK_SIZE * 0.22;
+    const hullRadius = SONIC_SIZE * 0.3;
+    const trackHeight = SONIC_SIZE * 0.22;
 
     this.sprite = new Graphics();
     this.idleAnimTime = 0; // 待机动画计时器
 
     // 多层阴影
     this.sprite
-      .roundRect(-SONIC_TANK_SIZE / 2 + 4, -SONIC_TANK_SIZE / 2 + 6, SONIC_TANK_SIZE - 8, SONIC_TANK_SIZE - 6, hullRadius)
+      .roundRect(-SONIC_SIZE / 2 + 4, -SONIC_SIZE / 2 + 6, SONIC_SIZE - 8, SONIC_SIZE - 6, hullRadius)
       .fill({ color: 0x000000, alpha: 0.3 })
-      .roundRect(-SONIC_TANK_SIZE / 2 + 6, -SONIC_TANK_SIZE / 2 + 8, SONIC_TANK_SIZE - 12, SONIC_TANK_SIZE - 10, hullRadius * 0.8)
+      .roundRect(-SONIC_SIZE / 2 + 6, -SONIC_SIZE / 2 + 8, SONIC_SIZE - 12, SONIC_SIZE - 10, hullRadius * 0.8)
       .fill({ color: 0x000000, alpha: 0.15 });
 
     // 上下履带
     this.sprite
-      .roundRect(-SONIC_TANK_SIZE / 2, -SONIC_TANK_SIZE / 2, SONIC_TANK_SIZE, trackHeight, trackHeight / 2)
+      .roundRect(-SONIC_SIZE / 2, -SONIC_SIZE / 2, SONIC_SIZE, trackHeight, trackHeight / 2)
       .fill({ color: 0x1e1b4b })
       .stroke({ width: 1, color: 0x312e81, alpha: 0.6 })
       .roundRect(
-        -SONIC_TANK_SIZE / 2,
-        SONIC_TANK_SIZE / 2 - trackHeight,
-        SONIC_TANK_SIZE,
+        -SONIC_SIZE / 2,
+        SONIC_SIZE / 2 - trackHeight,
+        SONIC_SIZE,
         trackHeight,
         trackHeight / 2,
       )
@@ -72,9 +80,9 @@ export class SonicTank {
     const wheelCount = 4;
     for (let i = 0; i < wheelCount; i += 1) {
       const t = wheelCount === 1 ? 0.5 : i / (wheelCount - 1);
-      const wx = -SONIC_TANK_SIZE / 2 + SONIC_TANK_SIZE * (0.18 + 0.64 * t);
-      const wyTop = -SONIC_TANK_SIZE / 2 + trackHeight / 2;
-      const wyBottom = SONIC_TANK_SIZE / 2 - trackHeight / 2;
+      const wx = -SONIC_SIZE / 2 + SONIC_SIZE * (0.18 + 0.64 * t);
+      const wyTop = -SONIC_SIZE / 2 + trackHeight / 2;
+      const wyBottom = SONIC_SIZE / 2 - trackHeight / 2;
       
       this.sprite
         .circle(wx, wyTop, wheelRadius)
@@ -92,10 +100,10 @@ export class SonicTank {
     // 主车体（紫色主题）
     this.sprite
       .roundRect(
-        -SONIC_TANK_SIZE / 2 + 6,
-        -SONIC_TANK_SIZE / 2 + trackHeight * 0.65,
-        SONIC_TANK_SIZE - 12,
-        SONIC_TANK_SIZE - trackHeight * 1.3,
+        -SONIC_SIZE / 2 + 6,
+        -SONIC_SIZE / 2 + trackHeight * 0.65,
+        SONIC_SIZE - 12,
+        SONIC_SIZE - trackHeight * 1.3,
         hullRadius,
       )
       .fill({ color: 0x5b21b6 })
@@ -104,10 +112,10 @@ export class SonicTank {
     // 车体高光
     this.sprite
       .roundRect(
-        -SONIC_TANK_SIZE / 2 + 8,
-        -SONIC_TANK_SIZE / 2 + trackHeight * 0.7,
-        SONIC_TANK_SIZE - 16,
-        (SONIC_TANK_SIZE - trackHeight * 1.3) * 0.25,
+        -SONIC_SIZE / 2 + 8,
+        -SONIC_SIZE / 2 + trackHeight * 0.7,
+        SONIC_SIZE - 16,
+        (SONIC_SIZE - trackHeight * 1.3) * 0.25,
         hullRadius * 0.6,
       )
       .fill({ color: 0xa78bfa, alpha: 0.3 });
@@ -115,11 +123,11 @@ export class SonicTank {
     // 声波发射器标识
     this.sprite
       .roundRect(
-        -SONIC_TANK_SIZE / 2 + 10,
-        -SONIC_TANK_SIZE * 0.08,
-        SONIC_TANK_SIZE - 20,
-        SONIC_TANK_SIZE * 0.18,
-        SONIC_TANK_SIZE * 0.05,
+        -SONIC_SIZE / 2 + 10,
+        -SONIC_SIZE * 0.08,
+        SONIC_SIZE - 20,
+        SONIC_SIZE * 0.18,
+        SONIC_SIZE * 0.05,
       )
       .fill({ color: 0x4c1d95, alpha: 0.95 })
       .stroke({ width: 1, color: 0x8b5cf6, alpha: 0.5 });
@@ -127,33 +135,33 @@ export class SonicTank {
     // 声波标识符号（波纹图案）
     const waveSymbolCount = 3;
     for (let i = 0; i < waveSymbolCount; i++) {
-      const symbolRadius = SONIC_TANK_SIZE * (0.08 + i * 0.04);
+      const symbolRadius = SONIC_SIZE * (0.08 + i * 0.04);
       this.sprite
         .circle(0, 0, symbolRadius)
         .stroke({ width: 1.5, color: 0x8b5cf6, alpha: 0.6 - i * 0.15 });
     }
 
     // 声波发射器（圆形能量核心）
-    const emitterRadius = SONIC_TANK_SIZE * 0.25;
+    const emitterRadius = SONIC_SIZE * 0.25;
     this.sprite
-      .circle(0, -SONIC_TANK_SIZE * 0.05, emitterRadius * 1.15)
+      .circle(0, -SONIC_SIZE * 0.05, emitterRadius * 1.15)
       .fill({ color: 0x8b5cf6, alpha: 0.2 })
-      .circle(0, -SONIC_TANK_SIZE * 0.05, emitterRadius)
+      .circle(0, -SONIC_SIZE * 0.05, emitterRadius)
       .fill({ color: 0x4c1d95 })
       .stroke({ width: 2, color: 0x8b5cf6, alpha: 0.8 })
-      .circle(0, -SONIC_TANK_SIZE * 0.05, emitterRadius * 0.7)
+      .circle(0, -SONIC_SIZE * 0.05, emitterRadius * 0.7)
       .fill({ color: 0x6d28d9 });
 
     // 能量核心中心
     this.sprite
-      .circle(0, -SONIC_TANK_SIZE * 0.05, emitterRadius * 0.4)
+      .circle(0, -SONIC_SIZE * 0.05, emitterRadius * 0.4)
       .fill({ color: 0xa78bfa, alpha: 0.9 })
-      .circle(0, -SONIC_TANK_SIZE * 0.05, emitterRadius * 0.2)
+      .circle(0, -SONIC_SIZE * 0.05, emitterRadius * 0.2)
       .fill({ color: 0xffffff, alpha: 0.8 });
 
     // 声波放大器（前方的喇叭状结构）
-    const amplifierWidth = SONIC_TANK_SIZE * 0.35;
-    const amplifierLength = SONIC_TANK_SIZE * 0.6;
+    const amplifierWidth = SONIC_SIZE * 0.35;
+    const amplifierLength = SONIC_SIZE * 0.6;
     this.sprite
       .moveTo(0, -amplifierWidth / 2)
       .lineTo(amplifierLength, -amplifierWidth * 0.8)
@@ -199,7 +207,17 @@ export class SonicTank {
     this.fireTimer = 0;
   }
 
+  /**
+   * 获取当前布局参数
+   */
+  getLayout() {
+    return responsiveLayout.getLayout();
+  }
+
   findPath(weaponContainer, allEnemies, allowThroughTowers = false) {
+    const layout = this.getLayout();
+    const { CELL_SIZE, BATTLE_ROWS, WORLD_WIDTH } = layout;
+    
     const cols = Math.floor(WORLD_WIDTH / CELL_SIZE);
     const rows = BATTLE_ROWS;
     const minRow = 0;
@@ -278,6 +296,9 @@ export class SonicTank {
   }
 
   update(delta, deltaMS, weaponContainer, allEnemies) {
+    const layout = this.getLayout();
+    const { CELL_SIZE, BATTLE_ROWS, WORLD_WIDTH } = layout;
+    
     const cols = Math.floor(WORLD_WIDTH / CELL_SIZE);
     const rows = BATTLE_ROWS;
     const minRow = 0;
@@ -420,8 +441,9 @@ export class SonicTank {
       const moveDist = Math.hypot(moveDx, moveDy);
 
       if (moveDist > 0) {
-        // 声波坦克移动速度较慢
-        const step = (ENEMY_MOVE_SPEED * 0.7 * deltaMS) / 1000;
+        // 声波坦克移动速度较慢，速度按比例缩放
+        const scale = layout.scale || 1;
+        const step = (ENEMY_MOVE_SPEED * 0.7 * scale * deltaMS) / 1000;
         const ratio = Math.min(step / moveDist, 1);
         this.sprite.x += moveDx * ratio;
         this.sprite.y += moveDy * ratio;
@@ -439,11 +461,13 @@ export class SonicTank {
       }
 
       // 检查声波是否击中武器
+      // 获取动态的 TANK_SIZE 用于碰撞检测
+      const dynamicTankSize = layout.TANK_SIZE || TANK_SIZE;
       for (const weapon of weapons) {
         const targetDisplay = weapon.turret || weapon.turretHead || weapon.container;
         if (!weapon || !targetDisplay) continue;
         
-        const hitRadius = TANK_SIZE * 0.4;
+        const hitRadius = dynamicTankSize * 0.4;
         if (wave.isHitting(targetDisplay, hitRadius)) {
           wave.markAsHit(weapon);
           
@@ -495,11 +519,12 @@ export class SonicTank {
   updateHpBar() {
     if (!this.hpBarBg || !this.hpBarFill) return;
 
+    const sonicSize = this.currentSonicSize || SONIC_TANK_SIZE;
     const ratio = Math.max(this.hp / this.maxHp, 0);
-    const barWidth = SONIC_TANK_SIZE * 0.8;
-    const barHeight = 6;
-    const offsetY = SONIC_TANK_SIZE * 0.7;
-    const borderRadius = 3;
+    const barWidth = sonicSize * 0.8;
+    const barHeight = 6 * (sonicSize / 64); // 按比例缩放
+    const offsetY = sonicSize * 0.7;
+    const borderRadius = 3 * (sonicSize / 64);
 
     // 背景条
     this.hpBarBg
@@ -530,4 +555,3 @@ export class SonicTank {
     }
   }
 }
-

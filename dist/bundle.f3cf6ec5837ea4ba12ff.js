@@ -74739,6 +74739,321 @@ class GameContext {
 
 /***/ }),
 
+/***/ "./src/app/ResponsiveLayout.js":
+/*!*************************************!*\
+  !*** ./src/app/ResponsiveLayout.js ***!
+  \*************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   DESIGN_CELL_SIZE: () => (/* binding */ DESIGN_CELL_SIZE),
+/* harmony export */   DESIGN_HEIGHT: () => (/* binding */ DESIGN_HEIGHT),
+/* harmony export */   DESIGN_WIDTH: () => (/* binding */ DESIGN_WIDTH),
+/* harmony export */   getLayout: () => (/* binding */ getLayout),
+/* harmony export */   offLayoutChange: () => (/* binding */ offLayoutChange),
+/* harmony export */   onLayoutChange: () => (/* binding */ onLayoutChange),
+/* harmony export */   responsiveLayout: () => (/* binding */ responsiveLayout)
+/* harmony export */ });
+/* harmony import */ var _config_colors__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../config/colors */ "./src/config/colors.js");
+/**
+ * 响应式布局管理器
+ * 负责处理画布尺寸变化时的自适应布局计算
+ * 
+ * 设计理念：
+ * - 保持设计比例，根据实际画布大小动态计算布局参数
+ * - 使用事件机制通知各组件更新
+ * - 单例模式，全局统一管理布局状态
+ */
+
+
+
+// === 设计基准尺寸（所有比例计算的基础） ===
+const DESIGN_WIDTH = 1600;
+const DESIGN_HEIGHT = 640;
+const DESIGN_CELL_SIZE = 80;
+
+/**
+ * 响应式布局管理器类
+ */
+class ResponsiveLayoutManager {
+  constructor() {
+    // 当前画布尺寸
+    this.width = DESIGN_WIDTH;
+    this.height = DESIGN_HEIGHT;
+    
+    // 缩放比例
+    this.scale = 1;
+    this.scaleX = 1;
+    this.scaleY = 1;
+    
+    // 事件监听器
+    this.listeners = new Set();
+    
+    // 计算初始布局
+    this.recalculate();
+  }
+
+  /**
+   * 更新画布尺寸并重新计算布局
+   * @param {number} width - 新的画布宽度
+   * @param {number} height - 新的画布高度
+   */
+  resize(width, height) {
+    if (this.width === width && this.height === height) return;
+    
+    this.width = width;
+    this.height = height;
+    this.recalculate();
+    this.notifyListeners();
+  }
+
+  /**
+   * 重新计算所有布局参数
+   */
+  recalculate() {
+    // 计算缩放比例
+    this.scaleX = this.width / DESIGN_WIDTH;
+    this.scaleY = this.height / DESIGN_HEIGHT;
+    // 使用较小的缩放比例保持比例
+    this.scale = Math.min(this.scaleX, this.scaleY);
+    
+    // === 画布相关 ===
+    this.APP_WIDTH = this.width;
+    this.APP_HEIGHT = this.height;
+    this.APP_BACKGROUND = 0x0a0014;
+    this.APP_ANTIALIAS = true;
+    this.TOP_UI_BG_COLOR = 0x0f0a1f;
+    this.BOTTOM_UI_BG_COLOR = 0x0a0a1a;
+    
+    // === 网格相关（按比例缩放） ===
+    this.CELL_SIZE = Math.round(DESIGN_CELL_SIZE * this.scale);
+    this.GRID_LINE_WIDTH = 1;
+    this.GRID_LINE_COLOR = 0x00ffff;
+    this.GRID_LINE_ALPHA = 0.3;
+    
+    // === 武器容器相关 ===
+    this.WEAPON_CONTAINER_WIDTH = this.CELL_SIZE * 10;
+    this.WEAPON_CONTAINER_HEIGHT = this.CELL_SIZE * 2.5;
+    this.WEAPON_CONTAINER_MARGIN_BOTTOM = this.CELL_SIZE * 0.2;
+    this.WEAPON_CONTAINER_BG_COLOR = _config_colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.UI_BG;
+    this.WEAPON_CONTAINER_BORDER_COLOR = _config_colors__WEBPACK_IMPORTED_MODULE_0__.COLORS.UI_BORDER;
+    this.WEAPON_CONTAINER_BORDER_WIDTH = 2;
+    
+    // === 战场垂直布局 ===
+    this.TOP_UI_HEIGHT = this.CELL_SIZE;
+    
+    // 计算战场可用高度
+    const rawBattleSpace = this.APP_HEIGHT - this.TOP_UI_HEIGHT 
+      - (this.WEAPON_CONTAINER_HEIGHT + this.WEAPON_CONTAINER_MARGIN_BOTTOM * 2);
+    
+    this.BATTLE_ROWS = Math.max(1, Math.floor(rawBattleSpace / this.CELL_SIZE));
+    this.BATTLE_HEIGHT = this.BATTLE_ROWS * this.CELL_SIZE;
+    
+    // === 世界横向总宽度 ===
+    this.WORLD_COLS = Math.ceil((this.APP_WIDTH * 2) / this.CELL_SIZE);
+    this.WORLD_WIDTH = this.WORLD_COLS * this.CELL_SIZE;
+    
+    // === 坦克/武器相关（按比例缩放） ===
+    this.TANK_SIZE = Math.round(this.CELL_SIZE * 0.8);
+    
+    // === 敌人相关（按比例缩放） ===
+    this.ENEMY_SIZE = Math.round(this.CELL_SIZE * 0.7);
+    this.SONIC_TANK_SIZE = Math.round(this.CELL_SIZE * 0.8);
+    
+    // === 子弹相关（按比例缩放） ===
+    this.BULLET_RADIUS = Math.round(this.CELL_SIZE * 0.11);
+    this.ENEMY_BULLET_RADIUS = Math.round(this.CELL_SIZE * 0.12);
+    
+    // === 声波相关（按比例缩放） ===
+    this.SONIC_WAVE_INITIAL_RADIUS = this.CELL_SIZE * 0.5;
+    this.SONIC_WAVE_MAX_RADIUS = this.CELL_SIZE * 5;
+    
+    // === 小地图参数（按比例缩放） ===
+    this.MINIMAP_WIDTH = Math.round(220 * this.scale);
+    this.MINIMAP_HEIGHT_PADDING = Math.round(10 * this.scale);
+    this.MINIMAP_HORIZONTAL_MARGIN = Math.round(10 * this.scale);
+    this.MINIMAP_VERTICAL_MARGIN = Math.round(5 * this.scale);
+    this.MINIMAP_CORNER_RADIUS = Math.round(10 * this.scale);
+    
+    // === 操作按钮参数（按比例缩放） ===
+    this.ACTION_BUTTON_WIDTH = Math.round(72 * this.scale);
+    this.ACTION_BUTTON_HEIGHT = Math.round(26 * this.scale);
+    this.ACTION_BUTTON_RADIUS = Math.round(8 * this.scale);
+    this.ACTION_BUTTON_FONT_SIZE = Math.round(14 * this.scale);
+    this.ACTION_BUTTON_STROKE_WIDTH = Math.round(2 * this.scale);
+    
+    // === 金币/波次文本参数（按比例缩放） ===
+    this.GOLD_TEXT_FONT_SIZE = Math.round(20 * this.scale);
+    this.GOLD_TEXT_PADDING_X = Math.round(16 * this.scale);
+    this.WAVE_TEXT_FONT_SIZE = Math.round(16 * this.scale);
+    
+    // === 粒子系统参数（按比例缩放） ===
+    this.PARTICLE_BASE_SIZE = Math.round(5 * this.scale);
+    
+    // === 波次通知参数（按比例缩放） ===
+    this.WAVE_NOTIFY_PANEL_WIDTH = Math.round(500 * this.scale);
+    this.WAVE_NOTIFY_PANEL_HEIGHT = Math.round(120 * this.scale);
+    this.WAVE_NOTIFY_PANEL_RADIUS = Math.round(20 * this.scale);
+    this.WAVE_NOTIFY_TITLE_SIZE = Math.round(56 * this.scale);
+    this.WAVE_NOTIFY_SUBTITLE_SIZE = Math.round(24 * this.scale);
+    this.WAVE_NOTIFY_LINE_WIDTH = Math.round(300 * this.scale);
+    
+    // === 帮助界面参数（按比例缩放） ===
+    this.HELP_TITLE_SIZE = Math.round(32 * this.scale);
+    this.HELP_BODY_SIZE = Math.round(18 * this.scale);
+    this.HELP_BODY_LINE_HEIGHT = Math.round(26 * this.scale);
+    this.HELP_BACK_BTN_WIDTH = Math.round(160 * this.scale);
+    this.HELP_BACK_BTN_HEIGHT = Math.round(40 * this.scale);
+    this.HELP_BACK_BTN_RADIUS = Math.round(12 * this.scale);
+    this.HELP_BACK_BTN_SIZE = Math.round(18 * this.scale);
+    
+    // === 开始界面参数（按比例缩放） ===
+    this.START_TITLE_SIZE = Math.round(40 * this.scale);
+    this.START_SUBTITLE_SIZE = Math.round(20 * this.scale);
+    this.START_BTN_WIDTH = Math.round(200 * this.scale);
+    this.START_BTN_HEIGHT = Math.round(52 * this.scale);
+    this.START_BTN_RADIUS = Math.round(18 * this.scale);
+    this.START_BTN_SIZE = Math.round(22 * this.scale);
+    this.START_HELP_BTN_WIDTH = Math.round(180 * this.scale);
+    this.START_HELP_BTN_HEIGHT = Math.round(44 * this.scale);
+    this.START_HELP_BTN_RADIUS = Math.round(14 * this.scale);
+    this.START_HELP_BTN_SIZE = Math.round(18 * this.scale);
+  }
+
+  /**
+   * 添加布局变化监听器
+   * @param {Function} callback - 回调函数，接收布局管理器实例
+   */
+  addListener(callback) {
+    this.listeners.add(callback);
+  }
+
+  /**
+   * 移除布局变化监听器
+   * @param {Function} callback - 要移除的回调函数
+   */
+  removeListener(callback) {
+    this.listeners.delete(callback);
+  }
+
+  /**
+   * 通知所有监听器布局已更新
+   */
+  notifyListeners() {
+    this.listeners.forEach(callback => {
+      try {
+        callback(this);
+      } catch (e) {
+        console.error('[ResponsiveLayout] Listener error:', e);
+      }
+    });
+  }
+
+  /**
+   * 获取当前布局参数的快照
+   * @returns {Object} 布局参数对象
+   */
+  getLayout() {
+    return {
+      width: this.width,
+      height: this.height,
+      scale: this.scale,
+      scaleX: this.scaleX,
+      scaleY: this.scaleY,
+      APP_WIDTH: this.APP_WIDTH,
+      APP_HEIGHT: this.APP_HEIGHT,
+      CELL_SIZE: this.CELL_SIZE,
+      TOP_UI_HEIGHT: this.TOP_UI_HEIGHT,
+      BATTLE_HEIGHT: this.BATTLE_HEIGHT,
+      BATTLE_ROWS: this.BATTLE_ROWS,
+      WORLD_WIDTH: this.WORLD_WIDTH,
+      WORLD_COLS: this.WORLD_COLS,
+      WEAPON_CONTAINER_WIDTH: this.WEAPON_CONTAINER_WIDTH,
+      WEAPON_CONTAINER_HEIGHT: this.WEAPON_CONTAINER_HEIGHT,
+      WEAPON_CONTAINER_MARGIN_BOTTOM: this.WEAPON_CONTAINER_MARGIN_BOTTOM,
+      TANK_SIZE: this.TANK_SIZE,
+      ENEMY_SIZE: this.ENEMY_SIZE,
+      SONIC_TANK_SIZE: this.SONIC_TANK_SIZE,
+      BULLET_RADIUS: this.BULLET_RADIUS,
+      ENEMY_BULLET_RADIUS: this.ENEMY_BULLET_RADIUS,
+      SONIC_WAVE_INITIAL_RADIUS: this.SONIC_WAVE_INITIAL_RADIUS,
+      SONIC_WAVE_MAX_RADIUS: this.SONIC_WAVE_MAX_RADIUS,
+      MINIMAP_WIDTH: this.MINIMAP_WIDTH,
+      ACTION_BUTTON_WIDTH: this.ACTION_BUTTON_WIDTH,
+      ACTION_BUTTON_HEIGHT: this.ACTION_BUTTON_HEIGHT,
+      ACTION_BUTTON_RADIUS: this.ACTION_BUTTON_RADIUS,
+      ACTION_BUTTON_FONT_SIZE: this.ACTION_BUTTON_FONT_SIZE,
+      ACTION_BUTTON_STROKE_WIDTH: this.ACTION_BUTTON_STROKE_WIDTH,
+      GOLD_TEXT_FONT_SIZE: this.GOLD_TEXT_FONT_SIZE,
+      GOLD_TEXT_PADDING_X: this.GOLD_TEXT_PADDING_X,
+      WAVE_TEXT_FONT_SIZE: this.WAVE_TEXT_FONT_SIZE,
+      PARTICLE_BASE_SIZE: this.PARTICLE_BASE_SIZE,
+      WAVE_NOTIFY_PANEL_WIDTH: this.WAVE_NOTIFY_PANEL_WIDTH,
+      WAVE_NOTIFY_PANEL_HEIGHT: this.WAVE_NOTIFY_PANEL_HEIGHT,
+      WAVE_NOTIFY_PANEL_RADIUS: this.WAVE_NOTIFY_PANEL_RADIUS,
+      WAVE_NOTIFY_TITLE_SIZE: this.WAVE_NOTIFY_TITLE_SIZE,
+      WAVE_NOTIFY_SUBTITLE_SIZE: this.WAVE_NOTIFY_SUBTITLE_SIZE,
+      WAVE_NOTIFY_LINE_WIDTH: this.WAVE_NOTIFY_LINE_WIDTH,
+      HELP_TITLE_SIZE: this.HELP_TITLE_SIZE,
+      HELP_BODY_SIZE: this.HELP_BODY_SIZE,
+      HELP_BODY_LINE_HEIGHT: this.HELP_BODY_LINE_HEIGHT,
+      HELP_BACK_BTN_WIDTH: this.HELP_BACK_BTN_WIDTH,
+      HELP_BACK_BTN_HEIGHT: this.HELP_BACK_BTN_HEIGHT,
+      HELP_BACK_BTN_RADIUS: this.HELP_BACK_BTN_RADIUS,
+      HELP_BACK_BTN_SIZE: this.HELP_BACK_BTN_SIZE,
+      START_TITLE_SIZE: this.START_TITLE_SIZE,
+      START_SUBTITLE_SIZE: this.START_SUBTITLE_SIZE,
+      START_BTN_WIDTH: this.START_BTN_WIDTH,
+      START_BTN_HEIGHT: this.START_BTN_HEIGHT,
+      START_BTN_RADIUS: this.START_BTN_RADIUS,
+      START_BTN_SIZE: this.START_BTN_SIZE,
+      START_HELP_BTN_WIDTH: this.START_HELP_BTN_WIDTH,
+      START_HELP_BTN_HEIGHT: this.START_HELP_BTN_HEIGHT,
+      START_HELP_BTN_RADIUS: this.START_HELP_BTN_RADIUS,
+      START_HELP_BTN_SIZE: this.START_HELP_BTN_SIZE,
+    };
+  }
+
+  /**
+   * 将设计坐标转换为当前坐标
+   * @param {number} x - 设计坐标X
+   * @param {number} y - 设计坐标Y
+   * @returns {Object} 转换后的坐标
+   */
+  designToActual(x, y) {
+    return {
+      x: x * this.scaleX,
+      y: y * this.scaleY,
+    };
+  }
+
+  /**
+   * 将当前坐标转换为设计坐标
+   * @param {number} x - 当前坐标X
+   * @param {number} y - 当前坐标Y
+   * @returns {Object} 转换后的坐标
+   */
+  actualToDesign(x, y) {
+    return {
+      x: x / this.scaleX,
+      y: y / this.scaleY,
+    };
+  }
+}
+
+// 导出单例实例
+const responsiveLayout = new ResponsiveLayoutManager();
+
+// 导出便捷访问方法
+const getLayout = () => responsiveLayout.getLayout();
+const onLayoutChange = (callback) => responsiveLayout.addListener(callback);
+const offLayoutChange = (callback) => responsiveLayout.removeListener(callback);
+
+
+/***/ }),
+
 /***/ "./src/app/attachGameLoop.js":
 /*!***********************************!*\
   !*** ./src/app/attachGameLoop.js ***!
@@ -74856,13 +75171,35 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/* harmony import */ var _ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * PixiJS应用创建器
- * 负责创建和配置PixiJS应用实例
+ * 负责创建和配置PixiJS应用实例，支持响应式尺寸
  */
 
 
 
+
+
+/**
+ * 获取容器或窗口的尺寸
+ * @param {HTMLElement} container - 可选的容器元素
+ * @returns {Object} 包含 width 和 height 的对象
+ */
+function getContainerSize(container = null) {
+  if (container) {
+    return {
+      width: container.clientWidth || _ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.DESIGN_WIDTH,
+      height: container.clientHeight || _ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.DESIGN_HEIGHT,
+    };
+  }
+  
+  // 默认使用窗口大小
+  return {
+    width: window.innerWidth || _ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.DESIGN_WIDTH,
+    height: window.innerHeight || _ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.DESIGN_HEIGHT,
+  };
+}
 
 /**
  * 创建PixiJS应用实例
@@ -74871,33 +75208,85 @@ __webpack_require__.r(__webpack_exports__);
  * 1. 创建Application实例
  * 2. 使用配置参数初始化应用（宽度、高度、背景色、抗锯齿等）
  * 3. 设置页面样式并将canvas添加到DOM
+ * 4. 设置窗口resize监听
  * 
+ * @param {Object} options - 配置选项
+ * @param {HTMLElement} options.container - 可选的容器元素
+ * @param {boolean} options.resizeTo - 是否自动调整大小，默认为 'window'
  * @returns {Promise<Application>} 初始化完成的PixiJS应用实例
  */
-async function createPixiApp() {
+async function createPixiApp(options = {}) {
+  const { container = null } = options;
+  
+  // 获取初始尺寸
+  const { width, height } = getContainerSize(container);
+  
+  // 更新响应式布局管理器
+  _ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.resize(width, height);
+  
+  // 获取设备像素比，用于高 DPI 屏幕（如 Retina 屏幕、手机）
+  // 限制最大为 2，避免性能问题
+  const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+  
   // 创建PixiJS应用实例
   const app = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Application();
   
   // 初始化应用配置
   await app.init({
-    width: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH,           // 应用宽度
-    height: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT,         // 应用高度
-    background: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_BACKGROUND, // 背景颜色
-    antialias: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_ANTIALIAS,   // 抗锯齿设置
+    width,
+    height,
+    background: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_BACKGROUND,
+    antialias: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_ANTIALIAS,
+    resolution: devicePixelRatio,  // 设备像素比，解决高 DPI 屏幕模糊问题
+    autoDensity: true,             // 自动调整 CSS 尺寸以匹配分辨率
+    resizeTo: container || window,  // 自动调整到容器或窗口大小
   });
 
   // 在浏览器环境中，将canvas添加到页面
   if (typeof document !== 'undefined' && document.body) {
-    // 设置页面边距
+    // 设置页面样式
     document.body.style.margin = _constants__WEBPACK_IMPORTED_MODULE_1__.BODY_MARGIN;
-    // 将canvas元素添加到body
-    document.body.appendChild(app.canvas);
+    document.body.style.overflow = 'hidden';  // 防止滚动条
+    
+    if (container) {
+      container.appendChild(app.canvas);
+    } else {
+      document.body.appendChild(app.canvas);
+    }
+    
+    // 设置canvas样式
+    app.canvas.style.display = 'block';
   }
+
+  // 监听resize事件，更新响应式布局
+  const handleResize = () => {
+    const newSize = getContainerSize(container);
+    _ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.resize(newSize.width, newSize.height);
+  };
+
+  // 使用 ResizeObserver 监听容器大小变化
+  if (container && typeof ResizeObserver !== 'undefined') {
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(container);
+    app._resizeObserver = resizeObserver;
+  } else if (typeof window !== 'undefined') {
+    // 监听窗口大小变化
+    window.addEventListener('resize', handleResize);
+    app._resizeHandler = handleResize;
+  }
+
+  // 存储清理方法
+  app.disposeResize = () => {
+    if (app._resizeObserver) {
+      app._resizeObserver.disconnect();
+    }
+    if (app._resizeHandler && typeof window !== 'undefined') {
+      window.removeEventListener('resize', app._resizeHandler);
+    }
+  };
 
   return app;
 }
-
-
 
 
 /***/ }),
@@ -74914,12 +75303,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   createWorldLayers: () => (/* binding */ createWorldLayers)
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
-/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/* harmony import */ var _ResponsiveLayout__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
 /**
  * 世界图层创建器
  * 负责创建游戏的布局背景和世界容器
  * 将屏幕分为三个区域：顶部UI区、战斗区、底部UI区
  */
+
 
 
 
@@ -74936,27 +75327,31 @@ __webpack_require__.r(__webpack_exports__);
  * @returns {Object} 包含布局背景和世界容器的对象
  */
 function createWorldLayers(app) {
+  // 从响应式布局管理器获取当前尺寸
+  const layout = _ResponsiveLayout__WEBPACK_IMPORTED_MODULE_1__.responsiveLayout.getLayout();
+  const { APP_WIDTH, APP_HEIGHT, TOP_UI_HEIGHT, BATTLE_HEIGHT } = layout;
+  
   // 创建布局背景图形，用于绘制三个区域的背景色
   const layoutBackground = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
   layoutBackground.zIndex = -500; // 设置为最底层
 
   // 计算三个区域的高度
-  const topHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.TOP_UI_HEIGHT;                          // 顶部UI高度
-  const middleHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_HEIGHT;                       // 战斗区域高度
-  const bottomHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT - topHeight - middleHeight; // 底部UI高度
+  const topHeight = TOP_UI_HEIGHT;
+  const middleHeight = BATTLE_HEIGHT;
+  const bottomHeight = APP_HEIGHT - topHeight - middleHeight;
 
   // 绘制顶部UI区域背景
-  layoutBackground.rect(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH, topHeight).fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.TOP_UI_BG_COLOR });
+  layoutBackground.rect(0, 0, APP_WIDTH, topHeight).fill({ color: _constants__WEBPACK_IMPORTED_MODULE_2__.TOP_UI_BG_COLOR });
   
   // 绘制中间战斗区域背景
   layoutBackground
-    .rect(0, topHeight, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH, middleHeight)
-    .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_BACKGROUND });
+    .rect(0, topHeight, APP_WIDTH, middleHeight)
+    .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_2__.APP_BACKGROUND });
   
   // 绘制底部UI区域背景
   layoutBackground
-    .rect(0, topHeight + middleHeight, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH, bottomHeight)
-    .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.BOTTOM_UI_BG_COLOR });
+    .rect(0, topHeight + middleHeight, APP_WIDTH, bottomHeight)
+    .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_2__.BOTTOM_UI_BG_COLOR });
   
   // 将背景添加到舞台
   app.stage.addChild(layoutBackground);
@@ -74977,8 +75372,6 @@ function createWorldLayers(app) {
 }
 
 
-
-
 /***/ }),
 
 /***/ "./src/app/setupStagePanning.js":
@@ -74992,7 +75385,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   setupStagePanning: () => (/* binding */ setupStagePanning)
 /* harmony export */ });
-/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/* harmony import */ var _ResponsiveLayout__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * 舞台平移设置器
  * 实现拖动场景的功能，允许玩家查看整个游戏世界
@@ -75001,6 +75394,7 @@ __webpack_require__.r(__webpack_exports__);
  * - 只在战斗区域内响应拖动
  * - 限制拖动范围，防止场景移出可视区域
  * - 提供清理函数，用于移除事件监听器
+ * - 支持响应式布局
  */
 
 
@@ -75018,9 +75412,18 @@ function setupStagePanning(app, worldContainer) {
   let panStartX = 0;          // 拖动开始时的鼠标X坐标
   let worldStartX = 0;        // 拖动开始时世界容器的X坐标
 
-  // 可拖动区域的边界（只在战斗区域内响应拖动）
-  const playableTop = _constants__WEBPACK_IMPORTED_MODULE_0__.TOP_UI_HEIGHT;
-  const playableBottom = _constants__WEBPACK_IMPORTED_MODULE_0__.TOP_UI_HEIGHT + _constants__WEBPACK_IMPORTED_MODULE_0__.BATTLE_HEIGHT;
+  /**
+   * 获取当前布局的可拖动区域边界
+   */
+  const getBounds = () => {
+    const layout = _ResponsiveLayout__WEBPACK_IMPORTED_MODULE_0__.responsiveLayout.getLayout();
+    return {
+      playableTop: layout.TOP_UI_HEIGHT,
+      playableBottom: layout.TOP_UI_HEIGHT + layout.BATTLE_HEIGHT,
+      minX: layout.APP_WIDTH - layout.WORLD_WIDTH,
+      maxX: 0,
+    };
+  };
 
   /**
    * 指针按下事件处理
@@ -75028,8 +75431,10 @@ function setupStagePanning(app, worldContainer) {
    */
   const onPointerDown = (event) => {
     const { x, y } = event.global;
+    const bounds = getBounds();
+    
     // 只在战斗区域内响应
-    if (y >= playableTop && y <= playableBottom) {
+    if (y >= bounds.playableTop && y <= bounds.playableBottom) {
       isPanning = true;
       panStartX = x;                    // 记录起始X坐标
       worldStartX = worldContainer.x;   // 记录世界容器起始位置
@@ -75043,6 +75448,8 @@ function setupStagePanning(app, worldContainer) {
   const onPointerMove = (event) => {
     if (!isPanning) return;
     
+    const bounds = getBounds();
+    
     // 计算鼠标移动距离
     const dx = event.global.x - panStartX;
     
@@ -75050,11 +75457,8 @@ function setupStagePanning(app, worldContainer) {
     let nextX = worldStartX + dx;
     
     // 限制拖动范围
-    const minX = _constants__WEBPACK_IMPORTED_MODULE_0__.APP_WIDTH - _constants__WEBPACK_IMPORTED_MODULE_0__.WORLD_WIDTH; // 最小X值（向左拖动的极限）
-    const maxX = 0;                       // 最大X值（向右拖动的极限）
-    
-    if (nextX < minX) nextX = minX;
-    if (nextX > maxX) nextX = maxX;
+    if (nextX < bounds.minX) nextX = bounds.minX;
+    if (nextX > bounds.maxX) nextX = bounds.maxX;
     
     // 更新世界容器位置
     worldContainer.x = nextX;
@@ -75089,8 +75493,6 @@ function setupStagePanning(app, worldContainer) {
     app.stage.off('pointerupoutside', stopPanning);
   };
 }
-
-
 
 
 /***/ }),
@@ -75147,8 +75549,11 @@ const COLORS = {
   UI_BORDER: 0x00ffff,      // UI 边框色（青色霓虹）
   TEXT_MAIN: 0xffffff,      // 主文本色（纯白）
   TEXT_SUB: 0x00d9ff,       // 次文本色（青色）
+  TEXT_LIGHT: 0xf9fafb,     // 浅色文本色（按钮文字）
   SUCCESS: 0x00ff41,        // 成功提示色（霓虹绿）
+  SUCCESS_DARK: 0x16a34a,   // 成功深色（按钮描边）
   DANGER: 0xff0055,         // 危险/错误色（霓虹红）
+  OVERLAY_BG: 0x000000,     // 遮罩背景色（纯黑）
 };
 
 
@@ -75336,6 +75741,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   BODY_MARGIN: () => (/* binding */ BODY_MARGIN),
 /* harmony export */   BOTTOM_UI_BG_COLOR: () => (/* binding */ BOTTOM_UI_BG_COLOR),
 /* harmony export */   CELL_SIZE: () => (/* binding */ CELL_SIZE),
+/* harmony export */   DESIGN_HEIGHT: () => (/* binding */ DESIGN_HEIGHT),
+/* harmony export */   DESIGN_WIDTH: () => (/* binding */ DESIGN_WIDTH),
 /* harmony export */   GRID_LINE_ALPHA: () => (/* binding */ GRID_LINE_ALPHA),
 /* harmony export */   GRID_LINE_COLOR: () => (/* binding */ GRID_LINE_COLOR),
 /* harmony export */   GRID_LINE_WIDTH: () => (/* binding */ GRID_LINE_WIDTH),
@@ -75348,7 +75755,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   WEAPON_CONTAINER_MARGIN_BOTTOM: () => (/* binding */ WEAPON_CONTAINER_MARGIN_BOTTOM),
 /* harmony export */   WEAPON_CONTAINER_WIDTH: () => (/* binding */ WEAPON_CONTAINER_WIDTH),
 /* harmony export */   WORLD_COLS: () => (/* binding */ WORLD_COLS),
-/* harmony export */   WORLD_WIDTH: () => (/* binding */ WORLD_WIDTH)
+/* harmony export */   WORLD_WIDTH: () => (/* binding */ WORLD_WIDTH),
+/* harmony export */   calculateDynamicLayout: () => (/* binding */ calculateDynamicLayout)
 /* harmony export */ });
 /* harmony import */ var _colors__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./colors */ "./src/config/colors.js");
 /**
@@ -75356,21 +75764,28 @@ __webpack_require__.r(__webpack_exports__);
  * 定义游戏画布、网格、战场等空间布局相关的常量
  * 
  * 布局结构：
- * ┌─────────────────────┐
- * │    顶部 UI 区域      │ TOP_UI_HEIGHT
- * ├─────────────────────┤
- * │                     │
- * │     战斗区域        │ BATTLE_HEIGHT
- * │   (可拖动滚动)       │
- * │                     │
- * ├─────────────────────┤
- * │   底部武器选择区     │ WEAPON_CONTAINER_HEIGHT
- * └─────────────────────┘
+ * ┌─────────────────────────────────────┐
+ * │         顶部 UI 区域                 │ TOP_UI_HEIGHT
+ * ├─────────────────────────────────────┤
+ * │                                     │
+ * │          战斗区域                    │ BATTLE_HEIGHT
+ * │        (可拖动滚动)                  │
+ * │                                     │
+ * ├─────────────────────────────────────┤
+ * │        底部武器选择区                 │ WEAPON_CONTAINER_HEIGHT
+ * └─────────────────────────────────────┘
+ * 
+ * 注意：这些是设计基准值，实际运行时会根据画布大小动态调整
+ * 组件应该使用 responsiveLayout 获取当前实际值
  */
 
 
 
-// === 画布相关常量 ===
+// === 设计基准尺寸（1600x640 设计稿） ===
+const DESIGN_WIDTH = 1600;
+const DESIGN_HEIGHT = 640;
+
+// === 画布相关常量（设计基准值） ===
 const APP_WIDTH = 1600;              // PIXI 画布宽度（px）
 const APP_HEIGHT = 640;              // PIXI 画布高度（px）
 const APP_BACKGROUND = 0x0a0014;     // 全局默认背景色（深紫黑赛博朋克）
@@ -75410,6 +75825,42 @@ const BATTLE_HEIGHT = BATTLE_ROWS * CELL_SIZE;                              // �
 const WORLD_COLS = Math.ceil((APP_WIDTH * 2) / CELL_SIZE); // 战场列数
 const WORLD_WIDTH = WORLD_COLS * CELL_SIZE;                 // 战场像素宽度
 
+/**
+ * 根据当前布局参数计算动态值
+ * 用于需要响应尺寸变化的组件
+ * 
+ * @param {Object} layout - 来自 responsiveLayout 的布局参数
+ * @returns {Object} 计算后的布局值
+ */
+function calculateDynamicLayout(layout) {
+  const { APP_WIDTH: w, APP_HEIGHT: h, CELL_SIZE: cell } = layout;
+  
+  const weaponContainerWidth = cell * 10;
+  const weaponContainerHeight = cell * 2.5;
+  const weaponContainerMarginBottom = cell * 0.2;
+  const topUiHeight = cell;
+  
+  const rawBattleSpace = h - topUiHeight - (weaponContainerHeight + weaponContainerMarginBottom * 2);
+  const battleRows = Math.max(1, Math.floor(rawBattleSpace / cell));
+  const battleHeight = battleRows * cell;
+  
+  const worldCols = Math.ceil((w * 2) / cell);
+  const worldWidth = worldCols * cell;
+  
+  return {
+    APP_WIDTH: w,
+    APP_HEIGHT: h,
+    CELL_SIZE: cell,
+    WEAPON_CONTAINER_WIDTH: weaponContainerWidth,
+    WEAPON_CONTAINER_HEIGHT: weaponContainerHeight,
+    WEAPON_CONTAINER_MARGIN_BOTTOM: weaponContainerMarginBottom,
+    TOP_UI_HEIGHT: topUiHeight,
+    BATTLE_ROWS: battleRows,
+    BATTLE_HEIGHT: battleHeight,
+    WORLD_COLS: worldCols,
+    WORLD_WIDTH: worldWidth,
+  };
+}
 
 
 /***/ }),
@@ -75430,6 +75881,18 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   ACTION_BUTTON_WIDTH: () => (/* binding */ ACTION_BUTTON_WIDTH),
 /* harmony export */   GOLD_TEXT_FONT_SIZE: () => (/* binding */ GOLD_TEXT_FONT_SIZE),
 /* harmony export */   GOLD_TEXT_PADDING_X: () => (/* binding */ GOLD_TEXT_PADDING_X),
+/* harmony export */   HELP_BACK_BTN_HEIGHT: () => (/* binding */ HELP_BACK_BTN_HEIGHT),
+/* harmony export */   HELP_BACK_BTN_RADIUS: () => (/* binding */ HELP_BACK_BTN_RADIUS),
+/* harmony export */   HELP_BACK_BTN_SIZE: () => (/* binding */ HELP_BACK_BTN_SIZE),
+/* harmony export */   HELP_BACK_BTN_STROKE: () => (/* binding */ HELP_BACK_BTN_STROKE),
+/* harmony export */   HELP_BACK_BTN_WIDTH: () => (/* binding */ HELP_BACK_BTN_WIDTH),
+/* harmony export */   HELP_BACK_BTN_Y_RATIO: () => (/* binding */ HELP_BACK_BTN_Y_RATIO),
+/* harmony export */   HELP_BODY_LINE_HEIGHT: () => (/* binding */ HELP_BODY_LINE_HEIGHT),
+/* harmony export */   HELP_BODY_SIZE: () => (/* binding */ HELP_BODY_SIZE),
+/* harmony export */   HELP_BODY_WIDTH_RATIO: () => (/* binding */ HELP_BODY_WIDTH_RATIO),
+/* harmony export */   HELP_BODY_Y_RATIO: () => (/* binding */ HELP_BODY_Y_RATIO),
+/* harmony export */   HELP_TITLE_SIZE: () => (/* binding */ HELP_TITLE_SIZE),
+/* harmony export */   HELP_TITLE_Y_RATIO: () => (/* binding */ HELP_TITLE_Y_RATIO),
 /* harmony export */   MINIMAP_BORDER_WIDTH: () => (/* binding */ MINIMAP_BORDER_WIDTH),
 /* harmony export */   MINIMAP_CORNER_RADIUS: () => (/* binding */ MINIMAP_CORNER_RADIUS),
 /* harmony export */   MINIMAP_ENEMY_DOT_RADIUS: () => (/* binding */ MINIMAP_ENEMY_DOT_RADIUS),
@@ -75441,6 +75904,50 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   MINIMAP_VIEWPORT_STROKE_WIDTH: () => (/* binding */ MINIMAP_VIEWPORT_STROKE_WIDTH),
 /* harmony export */   MINIMAP_WEAPON_DOT_RADIUS: () => (/* binding */ MINIMAP_WEAPON_DOT_RADIUS),
 /* harmony export */   MINIMAP_WIDTH: () => (/* binding */ MINIMAP_WIDTH),
+/* harmony export */   START_BTN_HEIGHT: () => (/* binding */ START_BTN_HEIGHT),
+/* harmony export */   START_BTN_RADIUS: () => (/* binding */ START_BTN_RADIUS),
+/* harmony export */   START_BTN_SIZE: () => (/* binding */ START_BTN_SIZE),
+/* harmony export */   START_BTN_STROKE: () => (/* binding */ START_BTN_STROKE),
+/* harmony export */   START_BTN_WIDTH: () => (/* binding */ START_BTN_WIDTH),
+/* harmony export */   START_BTN_Y_RATIO: () => (/* binding */ START_BTN_Y_RATIO),
+/* harmony export */   START_HELP_BTN_HEIGHT: () => (/* binding */ START_HELP_BTN_HEIGHT),
+/* harmony export */   START_HELP_BTN_RADIUS: () => (/* binding */ START_HELP_BTN_RADIUS),
+/* harmony export */   START_HELP_BTN_SIZE: () => (/* binding */ START_HELP_BTN_SIZE),
+/* harmony export */   START_HELP_BTN_WIDTH: () => (/* binding */ START_HELP_BTN_WIDTH),
+/* harmony export */   START_HELP_BTN_Y_RATIO: () => (/* binding */ START_HELP_BTN_Y_RATIO),
+/* harmony export */   START_OVERLAY_ALPHA: () => (/* binding */ START_OVERLAY_ALPHA),
+/* harmony export */   START_SUBTITLE_SIZE: () => (/* binding */ START_SUBTITLE_SIZE),
+/* harmony export */   START_SUBTITLE_Y_RATIO: () => (/* binding */ START_SUBTITLE_Y_RATIO),
+/* harmony export */   START_TITLE_SIZE: () => (/* binding */ START_TITLE_SIZE),
+/* harmony export */   START_TITLE_Y_RATIO: () => (/* binding */ START_TITLE_Y_RATIO),
+/* harmony export */   WAVE_NOTIFY_BORDER_ALPHA: () => (/* binding */ WAVE_NOTIFY_BORDER_ALPHA),
+/* harmony export */   WAVE_NOTIFY_BORDER_WIDTH: () => (/* binding */ WAVE_NOTIFY_BORDER_WIDTH),
+/* harmony export */   WAVE_NOTIFY_DURATION: () => (/* binding */ WAVE_NOTIFY_DURATION),
+/* harmony export */   WAVE_NOTIFY_FADE_IN_RATIO: () => (/* binding */ WAVE_NOTIFY_FADE_IN_RATIO),
+/* harmony export */   WAVE_NOTIFY_GLOW_ALPHA: () => (/* binding */ WAVE_NOTIFY_GLOW_ALPHA),
+/* harmony export */   WAVE_NOTIFY_GLOW_PADDING: () => (/* binding */ WAVE_NOTIFY_GLOW_PADDING),
+/* harmony export */   WAVE_NOTIFY_GLOW_RADIUS: () => (/* binding */ WAVE_NOTIFY_GLOW_RADIUS),
+/* harmony export */   WAVE_NOTIFY_GLOW_WIDTH: () => (/* binding */ WAVE_NOTIFY_GLOW_WIDTH),
+/* harmony export */   WAVE_NOTIFY_INITIAL_SCALE: () => (/* binding */ WAVE_NOTIFY_INITIAL_SCALE),
+/* harmony export */   WAVE_NOTIFY_LINE_ALPHA: () => (/* binding */ WAVE_NOTIFY_LINE_ALPHA),
+/* harmony export */   WAVE_NOTIFY_LINE_BOTTOM_OFFSET_Y: () => (/* binding */ WAVE_NOTIFY_LINE_BOTTOM_OFFSET_Y),
+/* harmony export */   WAVE_NOTIFY_LINE_HEIGHT: () => (/* binding */ WAVE_NOTIFY_LINE_HEIGHT),
+/* harmony export */   WAVE_NOTIFY_LINE_TOP_OFFSET_Y: () => (/* binding */ WAVE_NOTIFY_LINE_TOP_OFFSET_Y),
+/* harmony export */   WAVE_NOTIFY_LINE_WIDTH: () => (/* binding */ WAVE_NOTIFY_LINE_WIDTH),
+/* harmony export */   WAVE_NOTIFY_OVERLAY_ALPHA: () => (/* binding */ WAVE_NOTIFY_OVERLAY_ALPHA),
+/* harmony export */   WAVE_NOTIFY_PANEL_ALPHA: () => (/* binding */ WAVE_NOTIFY_PANEL_ALPHA),
+/* harmony export */   WAVE_NOTIFY_PANEL_HEIGHT: () => (/* binding */ WAVE_NOTIFY_PANEL_HEIGHT),
+/* harmony export */   WAVE_NOTIFY_PANEL_RADIUS: () => (/* binding */ WAVE_NOTIFY_PANEL_RADIUS),
+/* harmony export */   WAVE_NOTIFY_PANEL_WIDTH: () => (/* binding */ WAVE_NOTIFY_PANEL_WIDTH),
+/* harmony export */   WAVE_NOTIFY_STAY_RATIO: () => (/* binding */ WAVE_NOTIFY_STAY_RATIO),
+/* harmony export */   WAVE_NOTIFY_SUBTITLE_OFFSET_Y: () => (/* binding */ WAVE_NOTIFY_SUBTITLE_OFFSET_Y),
+/* harmony export */   WAVE_NOTIFY_SUBTITLE_SHADOW_ALPHA: () => (/* binding */ WAVE_NOTIFY_SUBTITLE_SHADOW_ALPHA),
+/* harmony export */   WAVE_NOTIFY_SUBTITLE_SHADOW_BLUR: () => (/* binding */ WAVE_NOTIFY_SUBTITLE_SHADOW_BLUR),
+/* harmony export */   WAVE_NOTIFY_SUBTITLE_SIZE: () => (/* binding */ WAVE_NOTIFY_SUBTITLE_SIZE),
+/* harmony export */   WAVE_NOTIFY_TITLE_OFFSET_Y: () => (/* binding */ WAVE_NOTIFY_TITLE_OFFSET_Y),
+/* harmony export */   WAVE_NOTIFY_TITLE_SHADOW_ALPHA: () => (/* binding */ WAVE_NOTIFY_TITLE_SHADOW_ALPHA),
+/* harmony export */   WAVE_NOTIFY_TITLE_SHADOW_BLUR: () => (/* binding */ WAVE_NOTIFY_TITLE_SHADOW_BLUR),
+/* harmony export */   WAVE_NOTIFY_TITLE_SIZE: () => (/* binding */ WAVE_NOTIFY_TITLE_SIZE),
 /* harmony export */   WAVE_TEXT_FONT_SIZE: () => (/* binding */ WAVE_TEXT_FONT_SIZE),
 /* harmony export */   WAVE_TEXT_OFFSET_Y: () => (/* binding */ WAVE_TEXT_OFFSET_Y)
 /* harmony export */ });
@@ -75483,6 +75990,67 @@ const ACTION_BUTTON_RADIUS = 8;             // 按钮圆角半径（px）
 const ACTION_BUTTON_FONT_SIZE = 14;         // 按钮文字大小（px）
 const ACTION_BUTTON_STROKE_WIDTH = 2;       // 按钮描边线宽（px）
 
+// === 波次通知参数 ===
+const WAVE_NOTIFY_OVERLAY_ALPHA = 0.4;       // 遮罩透明度
+const WAVE_NOTIFY_PANEL_WIDTH = 500;         // 标题面板宽度（px）
+const WAVE_NOTIFY_PANEL_HEIGHT = 120;        // 标题面板高度（px）
+const WAVE_NOTIFY_PANEL_RADIUS = 20;         // 标题面板圆角（px）
+const WAVE_NOTIFY_PANEL_ALPHA = 0.95;        // 标题面板透明度
+const WAVE_NOTIFY_BORDER_WIDTH = 3;          // 面板边框宽度（px）
+const WAVE_NOTIFY_BORDER_ALPHA = 0.8;        // 面板边框透明度
+const WAVE_NOTIFY_GLOW_PADDING = 10;         // 外层光晕扩展（px）
+const WAVE_NOTIFY_GLOW_RADIUS = 25;          // 外层光晕圆角（px）
+const WAVE_NOTIFY_GLOW_WIDTH = 2;            // 光晕描边宽度（px）
+const WAVE_NOTIFY_GLOW_ALPHA = 0.3;          // 光晕透明度
+const WAVE_NOTIFY_TITLE_SIZE = 56;           // 波次标题字号（px）
+const WAVE_NOTIFY_TITLE_SHADOW_BLUR = 10;    // 标题阴影模糊度
+const WAVE_NOTIFY_TITLE_SHADOW_ALPHA = 0.8;  // 标题阴影透明度
+const WAVE_NOTIFY_SUBTITLE_SIZE = 24;        // 副标题字号（px）
+const WAVE_NOTIFY_SUBTITLE_SHADOW_BLUR = 6;  // 副标题阴影模糊度
+const WAVE_NOTIFY_SUBTITLE_SHADOW_ALPHA = 0.6;// 副标题阴影透明度
+const WAVE_NOTIFY_LINE_WIDTH = 300;          // 装饰线宽度（px）
+const WAVE_NOTIFY_LINE_HEIGHT = 2;           // 装饰线高度（px）
+const WAVE_NOTIFY_LINE_ALPHA = 0.6;          // 装饰线透明度
+const WAVE_NOTIFY_TITLE_OFFSET_Y = -50;      // 标题 Y 偏移（px）
+const WAVE_NOTIFY_SUBTITLE_OFFSET_Y = 30;    // 副标题 Y 偏移（px）
+const WAVE_NOTIFY_LINE_TOP_OFFSET_Y = -100;  // 顶部装饰线 Y 偏移（px）
+const WAVE_NOTIFY_LINE_BOTTOM_OFFSET_Y = 60; // 底部装饰线 Y 偏移（px）
+const WAVE_NOTIFY_DURATION = 2000;           // 动画持续时间（ms）
+const WAVE_NOTIFY_FADE_IN_RATIO = 0.3;       // 淡入阶段比例
+const WAVE_NOTIFY_STAY_RATIO = 0.7;          // 保持阶段结束比例
+const WAVE_NOTIFY_INITIAL_SCALE = 0.5;       // 初始缩放比例
+
+// === 帮助界面参数 ===
+const HELP_TITLE_SIZE = 32;                  // 帮助标题字号（px）
+const HELP_TITLE_Y_RATIO = 0.18;             // 帮助标题 Y 位置比例
+const HELP_BODY_SIZE = 18;                   // 帮助正文字号（px）
+const HELP_BODY_WIDTH_RATIO = 0.78;          // 正文换行宽度比例
+const HELP_BODY_LINE_HEIGHT = 26;            // 正文行高（px）
+const HELP_BODY_Y_RATIO = 0.24;              // 正文 Y 位置比例
+const HELP_BACK_BTN_WIDTH = 160;             // 返回按钮宽度（px）
+const HELP_BACK_BTN_HEIGHT = 40;             // 返回按钮高度（px）
+const HELP_BACK_BTN_RADIUS = 12;             // 返回按钮圆角（px）
+const HELP_BACK_BTN_STROKE = 2;              // 返回按钮描边宽度（px）
+const HELP_BACK_BTN_SIZE = 18;               // 返回按钮字号（px）
+const HELP_BACK_BTN_Y_RATIO = 0.78;          // 返回按钮 Y 位置比例
+
+// === 开始界面参数 ===
+const START_OVERLAY_ALPHA = 0.95;            // 开始界面遮罩透明度
+const START_TITLE_SIZE = 40;                 // 主标题字号（px）
+const START_TITLE_Y_RATIO = 0.3;             // 主标题 Y 位置比例
+const START_SUBTITLE_SIZE = 20;              // 副标题字号（px）
+const START_SUBTITLE_Y_RATIO = 0.38;         // 副标题 Y 位置比例
+const START_BTN_WIDTH = 200;                 // 开始按钮宽度（px）
+const START_BTN_HEIGHT = 52;                 // 开始按钮高度（px）
+const START_BTN_RADIUS = 18;                 // 开始按钮圆角（px）
+const START_BTN_STROKE = 2;                  // 开始按钮描边宽度（px）
+const START_BTN_SIZE = 22;                   // 开始按钮字号（px）
+const START_BTN_Y_RATIO = 0.52;              // 开始按钮 Y 位置比例
+const START_HELP_BTN_WIDTH = 180;            // 说明按钮宽度（px）
+const START_HELP_BTN_HEIGHT = 44;            // 说明按钮高度（px）
+const START_HELP_BTN_RADIUS = 14;            // 说明按钮圆角（px）
+const START_HELP_BTN_SIZE = 18;              // 说明按钮字号（px）
+const START_HELP_BTN_Y_RATIO = 0.62;         // 说明按钮 Y 位置比例
 
 
 /***/ }),
@@ -75639,6 +76207,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   BULLET_SPEED: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.BULLET_SPEED),
 /* harmony export */   CELL_SIZE: () => (/* reexport safe */ _config_layout__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE),
 /* harmony export */   COLORS: () => (/* reexport safe */ _config_colors__WEBPACK_IMPORTED_MODULE_0__.COLORS),
+/* harmony export */   DESIGN_HEIGHT: () => (/* reexport safe */ _config_layout__WEBPACK_IMPORTED_MODULE_1__.DESIGN_HEIGHT),
+/* harmony export */   DESIGN_WIDTH: () => (/* reexport safe */ _config_layout__WEBPACK_IMPORTED_MODULE_1__.DESIGN_WIDTH),
 /* harmony export */   ENEMY_ATTACK_RANGE_CELLS: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.ENEMY_ATTACK_RANGE_CELLS),
 /* harmony export */   ENEMY_BULLET_COLOR: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.ENEMY_BULLET_COLOR),
 /* harmony export */   ENEMY_BULLET_DAMAGE: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.ENEMY_BULLET_DAMAGE),
@@ -75656,6 +76226,18 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   GRID_LINE_ALPHA: () => (/* reexport safe */ _config_layout__WEBPACK_IMPORTED_MODULE_1__.GRID_LINE_ALPHA),
 /* harmony export */   GRID_LINE_COLOR: () => (/* reexport safe */ _config_layout__WEBPACK_IMPORTED_MODULE_1__.GRID_LINE_COLOR),
 /* harmony export */   GRID_LINE_WIDTH: () => (/* reexport safe */ _config_layout__WEBPACK_IMPORTED_MODULE_1__.GRID_LINE_WIDTH),
+/* harmony export */   HELP_BACK_BTN_HEIGHT: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_BACK_BTN_HEIGHT),
+/* harmony export */   HELP_BACK_BTN_RADIUS: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_BACK_BTN_RADIUS),
+/* harmony export */   HELP_BACK_BTN_SIZE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_BACK_BTN_SIZE),
+/* harmony export */   HELP_BACK_BTN_STROKE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_BACK_BTN_STROKE),
+/* harmony export */   HELP_BACK_BTN_WIDTH: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_BACK_BTN_WIDTH),
+/* harmony export */   HELP_BACK_BTN_Y_RATIO: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_BACK_BTN_Y_RATIO),
+/* harmony export */   HELP_BODY_LINE_HEIGHT: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_BODY_LINE_HEIGHT),
+/* harmony export */   HELP_BODY_SIZE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_BODY_SIZE),
+/* harmony export */   HELP_BODY_WIDTH_RATIO: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_BODY_WIDTH_RATIO),
+/* harmony export */   HELP_BODY_Y_RATIO: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_BODY_Y_RATIO),
+/* harmony export */   HELP_TITLE_SIZE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_TITLE_SIZE),
+/* harmony export */   HELP_TITLE_Y_RATIO: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.HELP_TITLE_Y_RATIO),
 /* harmony export */   INITIAL_GOLD: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.INITIAL_GOLD),
 /* harmony export */   LASER_ATTACK_RANGE_CELLS: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.LASER_ATTACK_RANGE_CELLS),
 /* harmony export */   LASER_BASE_COST: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.LASER_BASE_COST),
@@ -75689,6 +76271,22 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   SONIC_WAVE_INITIAL_RADIUS: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_WAVE_INITIAL_RADIUS),
 /* harmony export */   SONIC_WAVE_LIFETIME: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_WAVE_LIFETIME),
 /* harmony export */   SONIC_WAVE_MAX_RADIUS: () => (/* reexport safe */ _config_enemies__WEBPACK_IMPORTED_MODULE_4__.SONIC_WAVE_MAX_RADIUS),
+/* harmony export */   START_BTN_HEIGHT: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_BTN_HEIGHT),
+/* harmony export */   START_BTN_RADIUS: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_BTN_RADIUS),
+/* harmony export */   START_BTN_SIZE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_BTN_SIZE),
+/* harmony export */   START_BTN_STROKE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_BTN_STROKE),
+/* harmony export */   START_BTN_WIDTH: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_BTN_WIDTH),
+/* harmony export */   START_BTN_Y_RATIO: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_BTN_Y_RATIO),
+/* harmony export */   START_HELP_BTN_HEIGHT: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_HELP_BTN_HEIGHT),
+/* harmony export */   START_HELP_BTN_RADIUS: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_HELP_BTN_RADIUS),
+/* harmony export */   START_HELP_BTN_SIZE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_HELP_BTN_SIZE),
+/* harmony export */   START_HELP_BTN_WIDTH: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_HELP_BTN_WIDTH),
+/* harmony export */   START_HELP_BTN_Y_RATIO: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_HELP_BTN_Y_RATIO),
+/* harmony export */   START_OVERLAY_ALPHA: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_OVERLAY_ALPHA),
+/* harmony export */   START_SUBTITLE_SIZE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_SUBTITLE_SIZE),
+/* harmony export */   START_SUBTITLE_Y_RATIO: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_SUBTITLE_Y_RATIO),
+/* harmony export */   START_TITLE_SIZE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_TITLE_SIZE),
+/* harmony export */   START_TITLE_Y_RATIO: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.START_TITLE_Y_RATIO),
 /* harmony export */   TANK_ATTACK_RANGE_CELLS: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.TANK_ATTACK_RANGE_CELLS),
 /* harmony export */   TANK_BARREL_COLOR: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.TANK_BARREL_COLOR),
 /* harmony export */   TANK_COLOR: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.TANK_COLOR),
@@ -75696,6 +76294,34 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   TANK_SIZE: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.TANK_SIZE),
 /* harmony export */   TOP_UI_BG_COLOR: () => (/* reexport safe */ _config_layout__WEBPACK_IMPORTED_MODULE_1__.TOP_UI_BG_COLOR),
 /* harmony export */   TOP_UI_HEIGHT: () => (/* reexport safe */ _config_layout__WEBPACK_IMPORTED_MODULE_1__.TOP_UI_HEIGHT),
+/* harmony export */   WAVE_NOTIFY_BORDER_ALPHA: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_BORDER_ALPHA),
+/* harmony export */   WAVE_NOTIFY_BORDER_WIDTH: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_BORDER_WIDTH),
+/* harmony export */   WAVE_NOTIFY_DURATION: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_DURATION),
+/* harmony export */   WAVE_NOTIFY_FADE_IN_RATIO: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_FADE_IN_RATIO),
+/* harmony export */   WAVE_NOTIFY_GLOW_ALPHA: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_GLOW_ALPHA),
+/* harmony export */   WAVE_NOTIFY_GLOW_PADDING: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_GLOW_PADDING),
+/* harmony export */   WAVE_NOTIFY_GLOW_RADIUS: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_GLOW_RADIUS),
+/* harmony export */   WAVE_NOTIFY_GLOW_WIDTH: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_GLOW_WIDTH),
+/* harmony export */   WAVE_NOTIFY_INITIAL_SCALE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_INITIAL_SCALE),
+/* harmony export */   WAVE_NOTIFY_LINE_ALPHA: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_LINE_ALPHA),
+/* harmony export */   WAVE_NOTIFY_LINE_BOTTOM_OFFSET_Y: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_LINE_BOTTOM_OFFSET_Y),
+/* harmony export */   WAVE_NOTIFY_LINE_HEIGHT: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_LINE_HEIGHT),
+/* harmony export */   WAVE_NOTIFY_LINE_TOP_OFFSET_Y: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_LINE_TOP_OFFSET_Y),
+/* harmony export */   WAVE_NOTIFY_LINE_WIDTH: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_LINE_WIDTH),
+/* harmony export */   WAVE_NOTIFY_OVERLAY_ALPHA: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_OVERLAY_ALPHA),
+/* harmony export */   WAVE_NOTIFY_PANEL_ALPHA: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_PANEL_ALPHA),
+/* harmony export */   WAVE_NOTIFY_PANEL_HEIGHT: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_PANEL_HEIGHT),
+/* harmony export */   WAVE_NOTIFY_PANEL_RADIUS: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_PANEL_RADIUS),
+/* harmony export */   WAVE_NOTIFY_PANEL_WIDTH: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_PANEL_WIDTH),
+/* harmony export */   WAVE_NOTIFY_STAY_RATIO: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_STAY_RATIO),
+/* harmony export */   WAVE_NOTIFY_SUBTITLE_OFFSET_Y: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_SUBTITLE_OFFSET_Y),
+/* harmony export */   WAVE_NOTIFY_SUBTITLE_SHADOW_ALPHA: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_SUBTITLE_SHADOW_ALPHA),
+/* harmony export */   WAVE_NOTIFY_SUBTITLE_SHADOW_BLUR: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_SUBTITLE_SHADOW_BLUR),
+/* harmony export */   WAVE_NOTIFY_SUBTITLE_SIZE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_SUBTITLE_SIZE),
+/* harmony export */   WAVE_NOTIFY_TITLE_OFFSET_Y: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_TITLE_OFFSET_Y),
+/* harmony export */   WAVE_NOTIFY_TITLE_SHADOW_ALPHA: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_TITLE_SHADOW_ALPHA),
+/* harmony export */   WAVE_NOTIFY_TITLE_SHADOW_BLUR: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_TITLE_SHADOW_BLUR),
+/* harmony export */   WAVE_NOTIFY_TITLE_SIZE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_NOTIFY_TITLE_SIZE),
 /* harmony export */   WAVE_TEXT_FONT_SIZE: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_TEXT_FONT_SIZE),
 /* harmony export */   WAVE_TEXT_OFFSET_Y: () => (/* reexport safe */ _config_ui__WEBPACK_IMPORTED_MODULE_2__.WAVE_TEXT_OFFSET_Y),
 /* harmony export */   WEAPON_BASE_COST: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.WEAPON_BASE_COST),
@@ -75711,7 +76337,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   WEAPON_UPGRADE_BASE_COST: () => (/* reexport safe */ _config_gameplay__WEBPACK_IMPORTED_MODULE_3__.WEAPON_UPGRADE_BASE_COST),
 /* harmony export */   WORLD_COLS: () => (/* reexport safe */ _config_layout__WEBPACK_IMPORTED_MODULE_1__.WORLD_COLS),
 /* harmony export */   WORLD_WIDTH: () => (/* reexport safe */ _config_layout__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH),
-/* harmony export */   WeaponConfig: () => (/* reexport safe */ _config_weaponTypes__WEBPACK_IMPORTED_MODULE_5__.WeaponConfig)
+/* harmony export */   WeaponConfig: () => (/* reexport safe */ _config_weaponTypes__WEBPACK_IMPORTED_MODULE_5__.WeaponConfig),
+/* harmony export */   calculateDynamicLayout: () => (/* reexport safe */ _config_layout__WEBPACK_IMPORTED_MODULE_1__.calculateDynamicLayout)
 /* harmony export */ });
 /* harmony import */ var _config_colors__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./config/colors */ "./src/config/colors.js");
 /* harmony import */ var _config_layout__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./config/layout */ "./src/config/layout.js");
@@ -75906,6 +76533,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _particle__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./particle */ "./src/core/particle.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * 粒子系统
  * 负责管理场景中所有一次性视觉特效
@@ -75915,7 +76543,9 @@ __webpack_require__.r(__webpack_exports__);
  * - 提供各种预设特效（爆炸、枪口火光、击中火花等）
  * - 自动清理过期粒子，控制性能
  * - 支持粒子池，避免频繁创建销毁对象
+ * - 支持响应式布局
  */
+
 
 
 
@@ -75933,6 +76563,13 @@ class ParticleSystem {
     this.container = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Container();      // 粒子容器
     this.particles = [];                   // 活跃粒子数组
     this.maxParticles = 300;               // 最大粒子数量限制
+  }
+
+  /**
+   * 获取当前缩放比例
+   */
+  getScale() {
+    return _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout().scale;
   }
 
   /**
@@ -75983,12 +76620,16 @@ class ParticleSystem {
    * @param {number} options.alphaEnd - 结束透明度
    */
   emit(x, y, options = {}) {
+    const scale = this.getScale();
     const {
       count = 1,              // 粒子数量
-      speed = 100,            // 基础速度
+      speed = 100 * scale,    // 基础速度（按比例缩放）
       angle: baseAngle,       // 基础角度
       spread = 0,             // 扩散角度
     } = options;
+
+    // 如果提供了 size，按比例缩放
+    const scaledSize = options.size ? options.size * scale : 5 * scale;
 
     // 创建指定数量的粒子
     for (let i = 0; i < count; i += 1) {
@@ -75999,7 +76640,7 @@ class ParticleSystem {
       const finalAngle = angle + (Math.random() - 0.5) * spread;
       
       // 速度添加随机变化（80%-120%）
-      const finalSpeed = speed * (0.8 + Math.random() * 0.4);
+      const finalSpeed = (options.speed ?? 100) * scale * (0.8 + Math.random() * 0.4);
 
       // 计算速度向量
       const velocity = {
@@ -76010,6 +76651,7 @@ class ParticleSystem {
       // 创建粒子
       const particle = new _particle__WEBPACK_IMPORTED_MODULE_1__.Particle(null, x, y, {
         ...options,
+        size: scaledSize,
         velocity,
       });
       
@@ -76039,11 +76681,13 @@ class ParticleSystem {
    * @param {number} count - 主粒子数量（默认12个）
    */
   createExplosion(x, y, color = 0x00ffff, count = 12) {
+    const scale = this.getScale();
+    
     // 外圈冲击波
     this.emit(x, y, {
       count: 1,
       color,
-      size: 20,
+      size: 20 * scale,
       life: 0.6,
       speed: 0,
       scaleStart: 1,
@@ -76056,9 +76700,9 @@ class ParticleSystem {
     this.emit(x, y, {
       count,
       color,
-      size: 8,
+      size: 8 * scale,
       life: 0.9,
-      speed: 250,
+      speed: 250 * scale,
       spread: Math.PI * 2,
       scaleStart: 2.5,
       scaleEnd: 0,
@@ -76071,7 +76715,7 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color: 0xffffff,
-      size: 20,
+      size: 20 * scale,
       life: 0.25,
       speed: 0,
       scaleStart: 2,
@@ -76084,9 +76728,9 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 6,
       color,
-      size: 4,
+      size: 4 * scale,
       life: 0.5,
-      speed: 120,
+      speed: 120 * scale,
       spread: Math.PI * 2,
       scaleStart: 1.5,
       scaleEnd: 0.3,
@@ -76098,9 +76742,9 @@ class ParticleSystem {
     this.emit(x, y, {
       count: Math.max(1, Math.floor(count / 2)),
       color: 0x9d00ff, // 紫色数据碎片
-      size: 8,
+      size: 8 * scale,
       life: 1.3,
-      speed: 70,
+      speed: 70 * scale,
       spread: Math.PI * 2,
       alphaStart: 0.8,
       alphaEnd: 0,
@@ -76112,9 +76756,9 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 4,
       color,
-      size: 10,
+      size: 10 * scale,
       life: 0.5,
-      speed: 140,
+      speed: 140 * scale,
       spread: Math.PI * 2,
       alphaStart: 0.7,
       alphaEnd: 0,
@@ -76126,9 +76770,9 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 6,
       color: 0xff00ff, // 洋红电弧
-      size: 4,
+      size: 4 * scale,
       life: 0.4,
-      speed: 160,
+      speed: 160 * scale,
       spread: Math.PI * 2,
       alphaStart: 0.9,
       alphaEnd: 0,
@@ -76149,11 +76793,13 @@ class ParticleSystem {
    * @param {number} color - 主色调（默认青色）
    */
   createMuzzleFlash(x, y, angle, color = 0x00ffff) {
+    const scale = this.getScale();
+    
     // 外圈能量波纹
     this.emit(x, y, {
       count: 1,
       color,
-      size: 18,
+      size: 18 * scale,
       life: 0.3,
       speed: 0,
       scaleStart: 1,
@@ -76166,7 +76812,7 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color: 0xffffff,
-      size: 15,
+      size: 15 * scale,
       life: 0.18,
       speed: 0,
       scaleStart: 2,
@@ -76179,7 +76825,7 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color,
-      size: 12,
+      size: 12 * scale,
       life: 0.22,
       speed: 0,
       scaleStart: 1.2,
@@ -76192,10 +76838,10 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 6,
       color,
-      size: 6,
+      size: 6 * scale,
       life: 0.3,
       angle,
-      speed: 220,
+      speed: 220 * scale,
       spread: Math.PI * 0.4,
       scaleStart: 1.5,
       scaleEnd: 0.2,
@@ -76207,10 +76853,10 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 4,
       color,
-      size: 5,
+      size: 5 * scale,
       life: 0.25,
       angle: angle + Math.PI,
-      speed: 120,
+      speed: 120 * scale,
       spread: Math.PI * 0.7,
       scaleStart: 1.2,
       scaleEnd: 0.1,
@@ -76222,7 +76868,7 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color: 0xff00ff, // 洋红脉冲
-      size: 10,
+      size: 10 * scale,
       life: 0.22,
       speed: 0,
       scaleStart: 0.9,
@@ -76242,11 +76888,13 @@ class ParticleSystem {
    * @param {number} color - 主色调（默认青色）
    */
   createHitSpark(x, y, color = 0x00ffff) {
+    const scale = this.getScale();
+    
     // 外圈冲击波
     this.emit(x, y, {
       count: 1,
       color,
-      size: 16,
+      size: 16 * scale,
       life: 0.4,
       speed: 0,
       scaleStart: 1,
@@ -76259,7 +76907,7 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color: 0xffffff,
-      size: 14,
+      size: 14 * scale,
       life: 0.15,
       speed: 0,
       scaleStart: 1.5,
@@ -76272,9 +76920,9 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 8,
       color,
-      size: 6,
+      size: 6 * scale,
       life: 0.35,
-      speed: 150,
+      speed: 150 * scale,
       spread: Math.PI * 2,
       scaleStart: 1.5,
       scaleEnd: 0.1,
@@ -76287,9 +76935,9 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 4,
       color: 0xfef3c7,
-      size: 3,
+      size: 3 * scale,
       life: 0.2,
-      speed: 80,
+      speed: 80 * scale,
       spread: Math.PI * 2,
       scaleStart: 1,
       scaleEnd: 0,
@@ -76301,7 +76949,7 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 1,
       color,
-      size: 10,
+      size: 10 * scale,
       life: 0.2,
       speed: 0,
       scaleStart: 1,
@@ -76314,9 +76962,9 @@ class ParticleSystem {
     this.emit(x, y, {
       count: 6,
       color: 0xff00ff, // 洋红电弧
-      size: 3,
+      size: 3 * scale,
       life: 0.3,
-      speed: 160,
+      speed: 160 * scale,
       spread: Math.PI * 1.5,
       alphaStart: 0.95,
       alphaEnd: 0,
@@ -76329,7 +76977,6 @@ class ParticleSystem {
 
 // 导出全局单例
 const particleSystem = new ParticleSystem();
-
 
 
 /***/ }),
@@ -76525,10 +77172,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * 敌人生成传送门特效
  * 在敌人出现位置显示传送门动画
+ * 支持响应式布局
  */
+
 
 
 
@@ -76550,7 +77200,10 @@ class SpawnPortal {
     this.color = color;
     this.age = 0;
     this.lifetime = 800; // 存活时间（毫秒）
-    this.maxRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * 0.7;
+    
+    // 从响应式布局获取当前格子大小
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+    this.maxRadius = layout.CELL_SIZE * 0.7;
     
     // 创建传送门图形
     this.sprite = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
@@ -76663,7 +77316,6 @@ class SpawnPortal {
 }
 
 
-
 /***/ }),
 
 /***/ "./src/entities/enemies/enemyBullet.js":
@@ -76679,6 +77331,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * 敌军子弹类
  * 敌人坦克发射的子弹，用于攻击玩家的防御武器
@@ -76687,7 +77340,9 @@ __webpack_require__.r(__webpack_exports__);
  * - 直线飞行，不会追踪目标
  * - 碰到武器会造成伤害
  * - 超出边界自动销毁
+ * - 支持响应式布局
  */
+
 
 
 
@@ -76707,8 +77362,12 @@ class EnemyBullet {
   constructor(app, x, y, angle) {
     this.app = app;
     this.angle = angle;                   // 飞行角度
-    this.speed = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_BULLET_SPEED;      // 飞行速度
-    this.radius = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_BULLET_RADIUS;    // 碰撞半径
+    
+    // 速度和尺寸按比例缩放，保持视觉一致性
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+    const scale = layout.scale || 1;
+    this.speed = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_BULLET_SPEED * scale;  // 飞行速度（按比例缩放）
+    this.radius = layout.ENEMY_BULLET_RADIUS || _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_BULLET_RADIUS;  // 碰撞半径（按比例缩放）
 
     // 创建圆形子弹图形
     this.sprite = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics().circle(0, 0, this.radius).fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_BULLET_COLOR });
@@ -76738,9 +77397,10 @@ class EnemyBullet {
    * @returns {boolean} 是否超出边界
    */
   isOutOfBounds() {
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
     const { x, y } = this.sprite;
     const r = this.radius;
-    return x < -r || x > _constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH + r || y < -r || y > _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT + r;
+    return x < -r || x > layout.WORLD_WIDTH + r || y < -r || y > layout.BATTLE_HEIGHT + r;
   }
 
   /**
@@ -76752,8 +77412,6 @@ class EnemyBullet {
     world.removeChild(this.sprite);
   }
 }
-
-
 
 
 /***/ }),
@@ -76771,9 +77429,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
-/* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
-/* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
-/* harmony import */ var _enemyBullet__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./enemyBullet */ "./src/entities/enemies/enemyBullet.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
+/* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
+/* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
+/* harmony import */ var _enemyBullet__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./enemyBullet */ "./src/entities/enemies/enemyBullet.js");
+
 
 
 
@@ -76782,6 +77442,7 @@ __webpack_require__.r(__webpack_exports__);
 
 /**
  * 敌方坦克实体，负责寻路、攻击、受击和子弹管理。
+ * 支持响应式布局
  */
 class EnemyTank {
   constructor(app, gridCol, gridRow, hpBonus = 0) {
@@ -76789,34 +77450,42 @@ class EnemyTank {
     this.gridCol = gridCol;
     this.gridRow = gridRow;
 
-    const centerX = gridCol * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
-    const centerY = gridRow * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+    // 获取当前布局参数
+    const layout = this.getLayout();
+    const { CELL_SIZE, ENEMY_SIZE: dynamicEnemySize } = layout;
+    
+    // 使用动态的敌人尺寸
+    const ENEMY_SIZE_LOCAL = dynamicEnemySize || _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE;
+    this.currentEnemySize = ENEMY_SIZE_LOCAL;
+    
+    const centerX = gridCol * CELL_SIZE + CELL_SIZE / 2;
+    const centerY = gridRow * CELL_SIZE + CELL_SIZE / 2;
 
-    const hullRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.25;
-    const trackHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.22;
-    const turretRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.22;
-    const barrelLength = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.78;
-    const barrelHalfHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.08;
+    const hullRadius = ENEMY_SIZE_LOCAL * 0.25;
+    const trackHeight = ENEMY_SIZE_LOCAL * 0.22;
+    const turretRadius = ENEMY_SIZE_LOCAL * 0.22;
+    const barrelLength = ENEMY_SIZE_LOCAL * 0.78;
+    const barrelHalfHeight = ENEMY_SIZE_LOCAL * 0.08;
 
     this.sprite = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
     this.idleAnimTime = 0; // 待机动画计时器
 
     // 多层阴影
     this.sprite
-      .roundRect(-_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + 4, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + 6, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE - 8, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE - 6, hullRadius)
+      .roundRect(-ENEMY_SIZE_LOCAL / 2 + 4, -ENEMY_SIZE_LOCAL / 2 + 6, ENEMY_SIZE_LOCAL - 8, ENEMY_SIZE_LOCAL - 6, hullRadius)
       .fill({ color: 0x000000, alpha: 0.3 })
-      .roundRect(-_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + 6, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + 8, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE - 12, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE - 10, hullRadius * 0.8)
+      .roundRect(-ENEMY_SIZE_LOCAL / 2 + 6, -ENEMY_SIZE_LOCAL / 2 + 8, ENEMY_SIZE_LOCAL - 12, ENEMY_SIZE_LOCAL - 10, hullRadius * 0.8)
       .fill({ color: 0x000000, alpha: 0.15 });
 
     // 上下履带（增强立体感）
     this.sprite
-      .roundRect(-_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE, trackHeight, trackHeight / 2)
+      .roundRect(-ENEMY_SIZE_LOCAL / 2, -ENEMY_SIZE_LOCAL / 2, ENEMY_SIZE_LOCAL, trackHeight, trackHeight / 2)
       .fill({ color: 0x0a0f1a })
       .stroke({ width: 1, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_BODY_DARK, alpha: 0.6 })
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 - trackHeight,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE,
+        -ENEMY_SIZE_LOCAL / 2,
+        ENEMY_SIZE_LOCAL / 2 - trackHeight,
+        ENEMY_SIZE_LOCAL,
         trackHeight,
         trackHeight / 2,
       )
@@ -76826,11 +77495,11 @@ class EnemyTank {
     // 履带装甲板纹理
     const plateCount = 5;
     for (let i = 0; i < plateCount; i += 1) {
-      const px = -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + (_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / plateCount) * i + 3;
+      const px = -ENEMY_SIZE_LOCAL / 2 + (ENEMY_SIZE_LOCAL / plateCount) * i + 3;
       this.sprite
-        .rect(px, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + 2, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / plateCount - 2, trackHeight - 4)
+        .rect(px, -ENEMY_SIZE_LOCAL / 2 + 2, ENEMY_SIZE_LOCAL / plateCount - 2, trackHeight - 4)
         .fill({ color: 0x1e293b, alpha: 0.4 })
-        .rect(px, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 - trackHeight + 2, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / plateCount - 2, trackHeight - 4)
+        .rect(px, ENEMY_SIZE_LOCAL / 2 - trackHeight + 2, ENEMY_SIZE_LOCAL / plateCount - 2, trackHeight - 4)
         .fill({ color: 0x1e293b, alpha: 0.4 });
     }
 
@@ -76839,9 +77508,9 @@ class EnemyTank {
     const wheelCount = 4;
     for (let i = 0; i < wheelCount; i += 1) {
       const t = wheelCount === 1 ? 0.5 : i / (wheelCount - 1);
-      const wx = -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * (0.18 + 0.64 * t);
-      const wyTop = -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + trackHeight / 2;
-      const wyBottom = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 - trackHeight / 2;
+      const wx = -ENEMY_SIZE_LOCAL / 2 + ENEMY_SIZE_LOCAL * (0.18 + 0.64 * t);
+      const wyTop = -ENEMY_SIZE_LOCAL / 2 + trackHeight / 2;
+      const wyBottom = ENEMY_SIZE_LOCAL / 2 - trackHeight / 2;
       
       this.sprite
         .circle(wx, wyTop, wheelRadius)
@@ -76859,10 +77528,10 @@ class EnemyTank {
     // 主车体（渐变效果）
     this.sprite
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + 6,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + trackHeight * 0.65,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE - 12,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE - trackHeight * 1.3,
+        -ENEMY_SIZE_LOCAL / 2 + 6,
+        -ENEMY_SIZE_LOCAL / 2 + trackHeight * 0.65,
+        ENEMY_SIZE_LOCAL - 12,
+        ENEMY_SIZE_LOCAL - trackHeight * 1.3,
         hullRadius,
       )
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_BODY })
@@ -76871,10 +77540,10 @@ class EnemyTank {
     // 车体高光
     this.sprite
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + 8,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + trackHeight * 0.7,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE - 16,
-        (_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE - trackHeight * 1.3) * 0.25,
+        -ENEMY_SIZE_LOCAL / 2 + 8,
+        -ENEMY_SIZE_LOCAL / 2 + trackHeight * 0.7,
+        ENEMY_SIZE_LOCAL - 16,
+        (ENEMY_SIZE_LOCAL - trackHeight * 1.3) * 0.25,
         hullRadius * 0.6,
       )
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL, alpha: 0.1 });
@@ -76882,11 +77551,11 @@ class EnemyTank {
     // 前装甲条与徽记（增强细节）
     this.sprite
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + 10,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.08,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE - 20,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.18,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.05,
+        -ENEMY_SIZE_LOCAL / 2 + 10,
+        -ENEMY_SIZE_LOCAL * 0.08,
+        ENEMY_SIZE_LOCAL - 20,
+        ENEMY_SIZE_LOCAL * 0.18,
+        ENEMY_SIZE_LOCAL * 0.05,
       )
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_BODY_DARK, alpha: 0.95 })
       .stroke({ width: 1, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL, alpha: 0.3 });
@@ -76894,49 +77563,49 @@ class EnemyTank {
     // 装甲条纹
     const enemyStripeCount = 2;
     for (let i = 0; i < enemyStripeCount; i += 1) {
-      const sy = -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + trackHeight * 0.75 + i * ((_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE - trackHeight * 1.4) / enemyStripeCount);
+      const sy = -ENEMY_SIZE_LOCAL / 2 + trackHeight * 0.75 + i * ((ENEMY_SIZE_LOCAL - trackHeight * 1.4) / enemyStripeCount);
       this.sprite
-        .rect(-_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE / 2 + 12, sy, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE - 24, 1.5)
+        .rect(-ENEMY_SIZE_LOCAL / 2 + 12, sy, ENEMY_SIZE_LOCAL - 24, 1.5)
         .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_BODY_DARK, alpha: 0.7 });
     }
 
     // 威胁标识（红色辉光）
     this.sprite
-      .circle(-_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.18, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.02, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.09)
+      .circle(-ENEMY_SIZE_LOCAL * 0.18, -ENEMY_SIZE_LOCAL * 0.02, ENEMY_SIZE_LOCAL * 0.09)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL, alpha: 0.3 })
-      .circle(-_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.18, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.02, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.07)
+      .circle(-ENEMY_SIZE_LOCAL * 0.18, -ENEMY_SIZE_LOCAL * 0.02, ENEMY_SIZE_LOCAL * 0.07)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL, alpha: 0.95 })
       .stroke({ width: 1, color: 0xfb7185, alpha: 0.8 })
-      .circle(-_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.18, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.02, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.04)
+      .circle(-ENEMY_SIZE_LOCAL * 0.18, -ENEMY_SIZE_LOCAL * 0.02, ENEMY_SIZE_LOCAL * 0.04)
       .fill({ color: 0xffffff, alpha: 0.7 });
 
     // 炮塔（多层结构）
     this.sprite
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.05, turretRadius * 1.1)
+      .circle(0, -ENEMY_SIZE_LOCAL * 0.05, turretRadius * 1.1)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL, alpha: 0.15 })
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.05, turretRadius)
+      .circle(0, -ENEMY_SIZE_LOCAL * 0.05, turretRadius)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_BODY_DARK })
       .stroke({ width: 2, color: 0x000000, alpha: 0.6 })
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.05, turretRadius * 0.85)
+      .circle(0, -ENEMY_SIZE_LOCAL * 0.05, turretRadius * 0.85)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_BODY, alpha: 0.8 });
 
     // 炮塔顶部细节
     this.sprite
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.08,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.18,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.16,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.36,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.06,
+        -ENEMY_SIZE_LOCAL * 0.08,
+        -ENEMY_SIZE_LOCAL * 0.18,
+        ENEMY_SIZE_LOCAL * 0.16,
+        ENEMY_SIZE_LOCAL * 0.36,
+        ENEMY_SIZE_LOCAL * 0.06,
       )
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_BODY, alpha: 0.95 })
       .stroke({ width: 1, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL, alpha: 0.4 });
 
     // 炮塔警示灯
     this.sprite
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.2, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.035)
+      .circle(0, -ENEMY_SIZE_LOCAL * 0.2, ENEMY_SIZE_LOCAL * 0.035)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL, alpha: 0.9 })
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.2, _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.022)
+      .circle(0, -ENEMY_SIZE_LOCAL * 0.2, ENEMY_SIZE_LOCAL * 0.022)
       .fill({ color: 0xffffff, alpha: 0.8 });
 
     // 炮管（增强细节）
@@ -76993,9 +77662,19 @@ class EnemyTank {
     this.fireTimer = 0;
   }
 
+  /**
+   * 获取当前布局参数
+   */
+  getLayout() {
+    return _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+  }
+
   findPath(weaponContainer, allEnemies, allowThroughTowers = false) {
-    const cols = Math.floor(_constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH / _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE);
-    const rows = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_ROWS;
+    const layout = this.getLayout();
+    const { CELL_SIZE, BATTLE_ROWS, WORLD_WIDTH } = layout;
+    
+    const cols = Math.floor(WORLD_WIDTH / CELL_SIZE);
+    const rows = BATTLE_ROWS;
     const minRow = 0;
     const maxRow = rows - 1;
 
@@ -77072,8 +77751,11 @@ class EnemyTank {
   }
 
   update(delta, deltaMS, weaponContainer, allEnemies) {
-    const cols = Math.floor(_constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH / _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE);
-    const rows = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_ROWS;
+    const layout = this.getLayout();
+    const { CELL_SIZE, BATTLE_ROWS, WORLD_WIDTH } = layout;
+    
+    const cols = Math.floor(WORLD_WIDTH / CELL_SIZE);
+    const rows = BATTLE_ROWS;
     const minRow = 0;
     const maxRow = rows - 1;
 
@@ -77127,13 +77809,14 @@ class EnemyTank {
       this.fireTimer += deltaMS;
       if (this.fireTimer >= _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_FIRE_INTERVAL) {
         this.fireTimer = 0;
-        const muzzleX = sx + Math.cos(angle) * (_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.6);
-        const muzzleY = sy + Math.sin(angle) * (_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.6);
-        const bullet = new _enemyBullet__WEBPACK_IMPORTED_MODULE_4__.EnemyBullet(this.app, muzzleX, muzzleY, angle);
+        const enemySize = this.currentEnemySize || _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE;
+        const muzzleX = sx + Math.cos(angle) * (enemySize * 0.6);
+        const muzzleY = sy + Math.sin(angle) * (enemySize * 0.6);
+        const bullet = new _enemyBullet__WEBPACK_IMPORTED_MODULE_5__.EnemyBullet(this.app, muzzleX, muzzleY, angle);
         this.bullets.push(bullet);
 
-        _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createMuzzleFlash(muzzleX, muzzleY, angle, _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL);
-        _core_soundManager__WEBPACK_IMPORTED_MODULE_2__.soundManager.playFire();
+        _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__.particleSystem.createMuzzleFlash(muzzleX, muzzleY, angle, _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL);
+        _core_soundManager__WEBPACK_IMPORTED_MODULE_3__.soundManager.playFire();
       }
     } else {
       this.sprite.rotation = 0;
@@ -77141,8 +77824,8 @@ class EnemyTank {
     }
 
     if (!inAttackRange) {
-      const targetX = this.targetCol * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
-      const targetY = this.targetRow * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+      const targetX = this.targetCol * CELL_SIZE + CELL_SIZE / 2;
+      const targetY = this.targetRow * CELL_SIZE + CELL_SIZE / 2;
       const dx = targetX - this.sprite.x;
       const dy = targetY - this.sprite.y;
       const dist = Math.hypot(dx, dy);
@@ -77207,14 +77890,16 @@ class EnemyTank {
         }
       }
 
-      const moveTargetX = this.targetCol * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
-      const moveTargetY = this.targetRow * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+      const moveTargetX = this.targetCol * CELL_SIZE + CELL_SIZE / 2;
+      const moveTargetY = this.targetRow * CELL_SIZE + CELL_SIZE / 2;
       const moveDx = moveTargetX - this.sprite.x;
       const moveDy = moveTargetY - this.sprite.y;
       const moveDist = Math.hypot(moveDx, moveDy);
 
       if (moveDist > 0) {
-        const step = (_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_MOVE_SPEED * deltaMS) / 1000;
+        // 速度按比例缩放，保持穿越一个格子的时间不变
+        const scale = layout.scale || 1;
+        const step = (_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_MOVE_SPEED * scale * deltaMS) / 1000;
         const ratio = Math.min(step / moveDist, 1);
         this.sprite.x += moveDx * ratio;
         this.sprite.y += moveDy * ratio;
@@ -77231,6 +77916,8 @@ class EnemyTank {
       }
 
       let hit = false;
+      // 获取动态的 TANK_SIZE 用于碰撞检测
+      const dynamicTankSize = layout.TANK_SIZE || _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE;
       for (const weapon of weapons) {
         // TankWeapon使用turretHead，其他武器使用turret或container
         const targetDisplay = weapon.turret || weapon.turretHead || weapon.container;
@@ -77238,12 +77925,12 @@ class EnemyTank {
         const dx = bullet.sprite.x - targetDisplay.x;
         const dy = bullet.sprite.y - targetDisplay.y;
         const distSq = dx * dx + dy * dy;
-        const hitRadius = bullet.radius + _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.4;
+        const hitRadius = bullet.radius + dynamicTankSize * 0.4;
         if (distSq <= hitRadius * hitRadius) {
           bullet.destroy();
           hit = true;
 
-          _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createHitSpark(bullet.sprite.x, bullet.sprite.y, 0xaaaaaa);
+          _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__.particleSystem.createHitSpark(bullet.sprite.x, bullet.sprite.y, 0xaaaaaa);
 
           if (typeof weapon.registerHitFromEnemy === 'function') {
             const destroyed = weapon.registerHitFromEnemy(_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_BULLET_DAMAGE);
@@ -77285,19 +77972,20 @@ class EnemyTank {
 
     if (this.hp <= 0) {
       this._dead = true;
-      _core_soundManager__WEBPACK_IMPORTED_MODULE_2__.soundManager.playEnemyDeath();
-      _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createExplosion(this.sprite.x, this.sprite.y, _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL, 15);
+      _core_soundManager__WEBPACK_IMPORTED_MODULE_3__.soundManager.playEnemyDeath();
+      _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__.particleSystem.createExplosion(this.sprite.x, this.sprite.y, _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ENEMY_DETAIL, 15);
     }
   }
 
   updateHpBar() {
     if (!this.hpBarBg || !this.hpBarFill) return;
 
+    const enemySize = this.currentEnemySize || _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE;
     const ratio = Math.max(this.hp / this.maxHp, 0);
-    const barWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.8;
-    const barHeight = 6;
-    const offsetY = _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.7;
-    const borderRadius = 3;
+    const barWidth = enemySize * 0.8;
+    const barHeight = 6 * (enemySize / 56); // 按比例缩放
+    const offsetY = enemySize * 0.7;
+    const borderRadius = 3 * (enemySize / 56);
 
     // 背景条（带边框和圆角）
     this.hpBarBg
@@ -77331,8 +78019,6 @@ class EnemyTank {
 }
 
 
-
-
 /***/ }),
 
 /***/ "./src/entities/enemies/sonicTank.js":
@@ -77348,9 +78034,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
-/* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
-/* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
-/* harmony import */ var _sonicWave__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./sonicWave */ "./src/entities/enemies/sonicWave.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
+/* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
+/* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
+/* harmony import */ var _sonicWave__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./sonicWave */ "./src/entities/enemies/sonicWave.js");
 /**
  * 声波坦克实体
  * 特殊类型的敌人，可以发射范围攻击的声波
@@ -77360,7 +78047,9 @@ __webpack_require__.r(__webpack_exports__);
  * - 外观与普通坦克不同，带有声波发射器
  * - 攻击间隔较长但伤害范围大
  * - 移动速度较慢
+ * - 支持响应式布局
  */
+
 
 
 
@@ -77370,6 +78059,7 @@ __webpack_require__.r(__webpack_exports__);
 
 /**
  * 声波坦克实体，负责寻路、声波攻击、受击和子弹管理。
+ * 支持响应式布局
  */
 class SonicTank {
   constructor(app, gridCol, gridRow, hpBonus = 0) {
@@ -77377,31 +78067,39 @@ class SonicTank {
     this.gridCol = gridCol;
     this.gridRow = gridRow;
 
-    const centerX = gridCol * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
-    const centerY = gridRow * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+    // 获取当前布局参数
+    const layout = this.getLayout();
+    const { CELL_SIZE, SONIC_TANK_SIZE: dynamicSonicSize } = layout;
 
-    const hullRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.3;
-    const trackHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.22;
+    // 使用动态的声波坦克尺寸
+    const SONIC_SIZE = dynamicSonicSize || _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE;
+    this.currentSonicSize = SONIC_SIZE;
+
+    const centerX = gridCol * CELL_SIZE + CELL_SIZE / 2;
+    const centerY = gridRow * CELL_SIZE + CELL_SIZE / 2;
+
+    const hullRadius = SONIC_SIZE * 0.3;
+    const trackHeight = SONIC_SIZE * 0.22;
 
     this.sprite = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
     this.idleAnimTime = 0; // 待机动画计时器
 
     // 多层阴影
     this.sprite
-      .roundRect(-_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 4, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 6, _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 8, _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 6, hullRadius)
+      .roundRect(-SONIC_SIZE / 2 + 4, -SONIC_SIZE / 2 + 6, SONIC_SIZE - 8, SONIC_SIZE - 6, hullRadius)
       .fill({ color: 0x000000, alpha: 0.3 })
-      .roundRect(-_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 6, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 8, _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 12, _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 10, hullRadius * 0.8)
+      .roundRect(-SONIC_SIZE / 2 + 6, -SONIC_SIZE / 2 + 8, SONIC_SIZE - 12, SONIC_SIZE - 10, hullRadius * 0.8)
       .fill({ color: 0x000000, alpha: 0.15 });
 
     // 上下履带
     this.sprite
-      .roundRect(-_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE, trackHeight, trackHeight / 2)
+      .roundRect(-SONIC_SIZE / 2, -SONIC_SIZE / 2, SONIC_SIZE, trackHeight, trackHeight / 2)
       .fill({ color: 0x1e1b4b })
       .stroke({ width: 1, color: 0x312e81, alpha: 0.6 })
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 - trackHeight,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE,
+        -SONIC_SIZE / 2,
+        SONIC_SIZE / 2 - trackHeight,
+        SONIC_SIZE,
         trackHeight,
         trackHeight / 2,
       )
@@ -77413,9 +78111,9 @@ class SonicTank {
     const wheelCount = 4;
     for (let i = 0; i < wheelCount; i += 1) {
       const t = wheelCount === 1 ? 0.5 : i / (wheelCount - 1);
-      const wx = -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * (0.18 + 0.64 * t);
-      const wyTop = -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + trackHeight / 2;
-      const wyBottom = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 - trackHeight / 2;
+      const wx = -SONIC_SIZE / 2 + SONIC_SIZE * (0.18 + 0.64 * t);
+      const wyTop = -SONIC_SIZE / 2 + trackHeight / 2;
+      const wyBottom = SONIC_SIZE / 2 - trackHeight / 2;
       
       this.sprite
         .circle(wx, wyTop, wheelRadius)
@@ -77433,10 +78131,10 @@ class SonicTank {
     // 主车体（紫色主题）
     this.sprite
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 6,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + trackHeight * 0.65,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 12,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - trackHeight * 1.3,
+        -SONIC_SIZE / 2 + 6,
+        -SONIC_SIZE / 2 + trackHeight * 0.65,
+        SONIC_SIZE - 12,
+        SONIC_SIZE - trackHeight * 1.3,
         hullRadius,
       )
       .fill({ color: 0x5b21b6 })
@@ -77445,10 +78143,10 @@ class SonicTank {
     // 车体高光
     this.sprite
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 8,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + trackHeight * 0.7,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 16,
-        (_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - trackHeight * 1.3) * 0.25,
+        -SONIC_SIZE / 2 + 8,
+        -SONIC_SIZE / 2 + trackHeight * 0.7,
+        SONIC_SIZE - 16,
+        (SONIC_SIZE - trackHeight * 1.3) * 0.25,
         hullRadius * 0.6,
       )
       .fill({ color: 0xa78bfa, alpha: 0.3 });
@@ -77456,11 +78154,11 @@ class SonicTank {
     // 声波发射器标识
     this.sprite
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE / 2 + 10,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.08,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE - 20,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.18,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05,
+        -SONIC_SIZE / 2 + 10,
+        -SONIC_SIZE * 0.08,
+        SONIC_SIZE - 20,
+        SONIC_SIZE * 0.18,
+        SONIC_SIZE * 0.05,
       )
       .fill({ color: 0x4c1d95, alpha: 0.95 })
       .stroke({ width: 1, color: 0x8b5cf6, alpha: 0.5 });
@@ -77468,33 +78166,33 @@ class SonicTank {
     // 声波标识符号（波纹图案）
     const waveSymbolCount = 3;
     for (let i = 0; i < waveSymbolCount; i++) {
-      const symbolRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * (0.08 + i * 0.04);
+      const symbolRadius = SONIC_SIZE * (0.08 + i * 0.04);
       this.sprite
         .circle(0, 0, symbolRadius)
         .stroke({ width: 1.5, color: 0x8b5cf6, alpha: 0.6 - i * 0.15 });
     }
 
     // 声波发射器（圆形能量核心）
-    const emitterRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.25;
+    const emitterRadius = SONIC_SIZE * 0.25;
     this.sprite
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05, emitterRadius * 1.15)
+      .circle(0, -SONIC_SIZE * 0.05, emitterRadius * 1.15)
       .fill({ color: 0x8b5cf6, alpha: 0.2 })
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05, emitterRadius)
+      .circle(0, -SONIC_SIZE * 0.05, emitterRadius)
       .fill({ color: 0x4c1d95 })
       .stroke({ width: 2, color: 0x8b5cf6, alpha: 0.8 })
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05, emitterRadius * 0.7)
+      .circle(0, -SONIC_SIZE * 0.05, emitterRadius * 0.7)
       .fill({ color: 0x6d28d9 });
 
     // 能量核心中心
     this.sprite
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05, emitterRadius * 0.4)
+      .circle(0, -SONIC_SIZE * 0.05, emitterRadius * 0.4)
       .fill({ color: 0xa78bfa, alpha: 0.9 })
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.05, emitterRadius * 0.2)
+      .circle(0, -SONIC_SIZE * 0.05, emitterRadius * 0.2)
       .fill({ color: 0xffffff, alpha: 0.8 });
 
     // 声波放大器（前方的喇叭状结构）
-    const amplifierWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.35;
-    const amplifierLength = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.6;
+    const amplifierWidth = SONIC_SIZE * 0.35;
+    const amplifierLength = SONIC_SIZE * 0.6;
     this.sprite
       .moveTo(0, -amplifierWidth / 2)
       .lineTo(amplifierLength, -amplifierWidth * 0.8)
@@ -77540,9 +78238,19 @@ class SonicTank {
     this.fireTimer = 0;
   }
 
+  /**
+   * 获取当前布局参数
+   */
+  getLayout() {
+    return _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+  }
+
   findPath(weaponContainer, allEnemies, allowThroughTowers = false) {
-    const cols = Math.floor(_constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH / _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE);
-    const rows = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_ROWS;
+    const layout = this.getLayout();
+    const { CELL_SIZE, BATTLE_ROWS, WORLD_WIDTH } = layout;
+    
+    const cols = Math.floor(WORLD_WIDTH / CELL_SIZE);
+    const rows = BATTLE_ROWS;
     const minRow = 0;
     const maxRow = rows - 1;
 
@@ -77619,8 +78327,11 @@ class SonicTank {
   }
 
   update(delta, deltaMS, weaponContainer, allEnemies) {
-    const cols = Math.floor(_constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH / _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE);
-    const rows = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_ROWS;
+    const layout = this.getLayout();
+    const { CELL_SIZE, BATTLE_ROWS, WORLD_WIDTH } = layout;
+    
+    const cols = Math.floor(WORLD_WIDTH / CELL_SIZE);
+    const rows = BATTLE_ROWS;
     const minRow = 0;
     const maxRow = rows - 1;
 
@@ -77674,12 +78385,12 @@ class SonicTank {
       if (this.fireTimer >= _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_FIRE_INTERVAL) {
         this.fireTimer = 0;
         // 发射声波
-        const wave = new _sonicWave__WEBPACK_IMPORTED_MODULE_4__.SonicWave(this.app, sx, sy);
+        const wave = new _sonicWave__WEBPACK_IMPORTED_MODULE_5__.SonicWave(this.app, sx, sy);
         this.sonicWaves.push(wave);
 
         // 声波发射特效
-        _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createMuzzleFlash(sx, sy, angle, 0x8b5cf6);
-        _core_soundManager__WEBPACK_IMPORTED_MODULE_2__.soundManager.playFire();
+        _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__.particleSystem.createMuzzleFlash(sx, sy, angle, 0x8b5cf6);
+        _core_soundManager__WEBPACK_IMPORTED_MODULE_3__.soundManager.playFire();
       }
     } else {
       this.sprite.rotation = 0;
@@ -77688,8 +78399,8 @@ class SonicTank {
 
     // 如果不在攻击范围，则移动
     if (!inAttackRange) {
-      const targetX = this.targetCol * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
-      const targetY = this.targetRow * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+      const targetX = this.targetCol * CELL_SIZE + CELL_SIZE / 2;
+      const targetY = this.targetRow * CELL_SIZE + CELL_SIZE / 2;
       const dx = targetX - this.sprite.x;
       const dy = targetY - this.sprite.y;
       const dist = Math.hypot(dx, dy);
@@ -77754,15 +78465,16 @@ class SonicTank {
         }
       }
 
-      const moveTargetX = this.targetCol * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
-      const moveTargetY = this.targetRow * _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+      const moveTargetX = this.targetCol * CELL_SIZE + CELL_SIZE / 2;
+      const moveTargetY = this.targetRow * CELL_SIZE + CELL_SIZE / 2;
       const moveDx = moveTargetX - this.sprite.x;
       const moveDy = moveTargetY - this.sprite.y;
       const moveDist = Math.hypot(moveDx, moveDy);
 
       if (moveDist > 0) {
-        // 声波坦克移动速度较慢
-        const step = (_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_MOVE_SPEED * 0.7 * deltaMS) / 1000;
+        // 声波坦克移动速度较慢，速度按比例缩放
+        const scale = layout.scale || 1;
+        const step = (_constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_MOVE_SPEED * 0.7 * scale * deltaMS) / 1000;
         const ratio = Math.min(step / moveDist, 1);
         this.sprite.x += moveDx * ratio;
         this.sprite.y += moveDy * ratio;
@@ -77780,16 +78492,18 @@ class SonicTank {
       }
 
       // 检查声波是否击中武器
+      // 获取动态的 TANK_SIZE 用于碰撞检测
+      const dynamicTankSize = layout.TANK_SIZE || _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE;
       for (const weapon of weapons) {
         const targetDisplay = weapon.turret || weapon.turretHead || weapon.container;
         if (!weapon || !targetDisplay) continue;
         
-        const hitRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.4;
+        const hitRadius = dynamicTankSize * 0.4;
         if (wave.isHitting(targetDisplay, hitRadius)) {
           wave.markAsHit(weapon);
           
           // 造成伤害
-          _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createHitSpark(targetDisplay.x, targetDisplay.y, 0x8b5cf6);
+          _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__.particleSystem.createHitSpark(targetDisplay.x, targetDisplay.y, 0x8b5cf6);
           
           if (typeof weapon.registerHitFromEnemy === 'function') {
             const destroyed = weapon.registerHitFromEnemy(_constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_DAMAGE);
@@ -77828,19 +78542,20 @@ class SonicTank {
 
     if (this.hp <= 0) {
       this._dead = true;
-      _core_soundManager__WEBPACK_IMPORTED_MODULE_2__.soundManager.playEnemyDeath();
-      _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createExplosion(this.sprite.x, this.sprite.y, 0x8b5cf6, 15);
+      _core_soundManager__WEBPACK_IMPORTED_MODULE_3__.soundManager.playEnemyDeath();
+      _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__.particleSystem.createExplosion(this.sprite.x, this.sprite.y, 0x8b5cf6, 15);
     }
   }
 
   updateHpBar() {
     if (!this.hpBarBg || !this.hpBarFill) return;
 
+    const sonicSize = this.currentSonicSize || _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE;
     const ratio = Math.max(this.hp / this.maxHp, 0);
-    const barWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.8;
-    const barHeight = 6;
-    const offsetY = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_TANK_SIZE * 0.7;
-    const borderRadius = 3;
+    const barWidth = sonicSize * 0.8;
+    const barHeight = 6 * (sonicSize / 64); // 按比例缩放
+    const offsetY = sonicSize * 0.7;
+    const borderRadius = 3 * (sonicSize / 64);
 
     // 背景条
     this.hpBarBg
@@ -77873,7 +78588,6 @@ class SonicTank {
 }
 
 
-
 /***/ }),
 
 /***/ "./src/entities/enemies/sonicWave.js":
@@ -77889,6 +78603,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * 声波攻击类
  * 声波坦克发射的范围攻击，可以同时伤害多个目标
@@ -77898,7 +78613,9 @@ __webpack_require__.r(__webpack_exports__);
  * - 可以同时攻击范围内的多个武器
  * - 有存活时间限制
  * - 视觉效果为波纹扩散
+ * - 支持响应式布局
  */
+
 
 
 
@@ -77916,9 +78633,14 @@ class SonicWave {
    */
   constructor(app, x, y) {
     this.app = app;
+    
+    // 获取当前布局的缩放比例
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+    const scale = layout.scale || 1;
+    
     this.radius = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_INITIAL_RADIUS; // 当前半径
     this.maxRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_MAX_RADIUS;  // 最大半径
-    this.expandSpeed = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_EXPAND_SPEED; // 扩散速度
+    this.expandSpeed = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_EXPAND_SPEED * scale; // 扩散速度（按比例缩放）
     this.lifetime = _constants__WEBPACK_IMPORTED_MODULE_1__.SONIC_WAVE_LIFETIME;     // 存活时间
     this.age = 0;                            // 已存活时间
     this.hitTargets = new Set();             // 已经击中的目标（防止重复伤害）
@@ -78023,8 +78745,6 @@ class SonicWave {
     const distance = Math.sqrt(dx * dx + dy * dy);
     
     // 检查目标是否在当前声波范围内
-    // 使用扩散波纹判定：目标在当前半径内，且在之前还没被标记为击中
-    // 这样声波扩散到目标时就会击中
     const isInWave = distance <= this.radius + targetRadius;
     
     return isInWave;
@@ -78047,7 +78767,6 @@ class SonicWave {
     world.removeChild(this.sprite);
   }
 }
-
 
 
 /***/ }),
@@ -78123,6 +78842,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * 追踪火箭类
  * 火箭塔发射的追踪导弹，可以自动追踪目标
@@ -78132,7 +78852,9 @@ __webpack_require__.r(__webpack_exports__);
  * - 平滑转向，不会瞬间改变方向
  * - 带有呼吸动画效果
  * - 造成更高伤害
+ * - 支持响应式布局
  */
+
 
 
 
@@ -78158,10 +78880,17 @@ class HomingRocket {
   constructor(app, x, y, angle, target, options = {}) {
     this.app = app;
     this.target = target;                                  // 追踪目标
-    this.speed = options.speed ?? _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_SPEED * 1.2;      // 飞行速度
+    
+    // 获取当前布局的缩放比例
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+    const scale = layout.scale || 1;
+    
+    // 速度按比例缩放
+    const baseSpeed = options.speed ?? _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_SPEED * 1.2;
+    this.speed = baseSpeed * scale;                        // 飞行速度（按比例缩放）
     this.turnRate = options.turnRate ?? Math.PI * 1.5;     // 转向速率（弧度/秒）
     this.damage = options.damage ?? _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_DAMAGE * 2;     // 伤害值
-    this.radius = options.radius ?? _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 1.2;   // 碰撞半径
+    this.radius = options.radius ?? _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 0.7;   // 碰撞半径（缩小火箭尺寸）
     this.color = options.color ?? _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BULLET;    // 火箭颜色
     this.angle = angle;                                    // 当前飞行角度
     this.age = 0;                                          // 存活时间（用于动画）
@@ -78283,12 +79012,13 @@ class HomingRocket {
    * @returns {boolean} 是否超出边界
    */
   isOutOfBounds() {
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
     const r = this.radius;
     return (
       this.sprite.x < -r
-      || this.sprite.x > _constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH + r
+      || this.sprite.x > layout.WORLD_WIDTH + r
       || this.sprite.y < -r
-      || this.sprite.y > _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT + r
+      || this.sprite.y > layout.BATTLE_HEIGHT + r
     );
   }
 
@@ -78301,8 +79031,6 @@ class HomingRocket {
     world.removeChild(this.sprite);
   }
 }
-
-
 
 
 /***/ }),
@@ -78320,8 +79048,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
-/* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
-/* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
+/* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
+/* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
+
 
 
 
@@ -78330,6 +79060,7 @@ __webpack_require__.r(__webpack_exports__);
 /**
  * 激光塔武器：发射持续性激光束，快速攻击，中等伤害
  * 特点：绿色霓虹主题，持续激光束，高射速
+ * 支持响应式布局
  */
 class LaserTower {
   constructor(app, gridCol, gridRow, x, y) {
@@ -78353,9 +79084,14 @@ class LaserTower {
     this.beamDuration = _constants__WEBPACK_IMPORTED_MODULE_1__.LASER_BEAM_DURATION;
     this.visualScale = 1;
 
+    // 获取当前布局的 TANK_SIZE
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+    const TANK_SIZE = layout.TANK_SIZE;
+    this.currentTankSize = TANK_SIZE;
+
     // 创建激光塔炮塔
-    const towerRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.20;
-    const coreRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.12;
+    const towerRadius = TANK_SIZE * 0.20;
+    const coreRadius = TANK_SIZE * 0.12;
 
     this.turret = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
     
@@ -78365,16 +79101,16 @@ class LaserTower {
     // 底部阴影
     this.turret
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + 4,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + 6,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - 8,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - 4,
+        -TANK_SIZE / 2 + 4,
+        -TANK_SIZE / 2 + 6,
+        TANK_SIZE - 8,
+        TANK_SIZE - 4,
         towerRadius,
       )
       .fill({ color: 0x000000, alpha: 0.35 });
 
     // 基座（六边形）
-    const baseSize = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.4;
+    const baseSize = TANK_SIZE * 0.4;
     const hexPoints = [];
     for (let i = 0; i < 6; i++) {
       const angle = (Math.PI / 3) * i;
@@ -78413,7 +79149,7 @@ class LaserTower {
       const dotX = Math.cos(angle) * baseSize * 0.75;
       const dotY = Math.sin(angle) * baseSize * 0.75;
       this.turret
-        .circle(dotX, dotY, 3)
+        .circle(dotX, dotY, 3 * (TANK_SIZE / 64))
         .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_DETAIL, alpha: 0.8 });
     }
 
@@ -78424,15 +79160,15 @@ class LaserTower {
       const emitX = Math.cos(angle) * emitterDist;
       const emitY = Math.sin(angle) * emitterDist;
       this.turret
-        .roundRect(emitX - 2, emitY - 4, 4, 8, 2)
+        .roundRect(emitX - 2 * (TANK_SIZE / 64), emitY - 4 * (TANK_SIZE / 64), 4 * (TANK_SIZE / 64), 8 * (TANK_SIZE / 64), 2 * (TANK_SIZE / 64))
         .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_BEAM, alpha: 0.7 });
     }
 
     // 底盘装饰线
     this.turret
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.48)
+      .circle(0, 0, TANK_SIZE * 0.48)
       .stroke({ width: 1, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_BODY, alpha: 0.4 })
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.42)
+      .circle(0, 0, TANK_SIZE * 0.42)
       .stroke({ width: 1, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_DETAIL, alpha: 0.3 });
 
     this.turret.x = x;
@@ -78445,16 +79181,16 @@ class LaserTower {
     // 选中高亮圈 - 霓虹绿色多层效果（先添加，在turret下面）
     this.selectionRing = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
       // 外层光晕
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.85)
+      .circle(0, 0, TANK_SIZE * 0.85)
       .stroke({ width: 2, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_DETAIL, alpha: 0.3 })
       // 中层光晕
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.75)
+      .circle(0, 0, TANK_SIZE * 0.75)
       .stroke({ width: 3, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_DETAIL, alpha: 0.6 })
       // 内层主光环
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.7)
+      .circle(0, 0, TANK_SIZE * 0.7)
       .stroke({ width: 4, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_BODY, alpha: 1 })
       // 内圈细节
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.65)
+      .circle(0, 0, TANK_SIZE * 0.65)
       .stroke({ width: 1, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_BEAM, alpha: 0.8 });
     this.selectionRing.x = x;
     this.selectionRing.y = y;
@@ -78679,7 +79415,7 @@ class LaserTower {
       // 如果敌人死亡，registerHit内部会处理爆炸效果
       if (target.hp > 0) {
         // 未死亡，显示击中火花
-        _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createHitSpark(
+        _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__.particleSystem.createHitSpark(
           target.sprite.x,
           target.sprite.y,
           _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_BEAM
@@ -78688,24 +79424,25 @@ class LaserTower {
     }
 
     // 发射特效
-    _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createMuzzleFlash(
+    _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__.particleSystem.createMuzzleFlash(
       this.turret.x,
       this.turret.y,
       angle,
       _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_BEAM
     );
 
-    _core_soundManager__WEBPACK_IMPORTED_MODULE_2__.soundManager.playFire();
+    _core_soundManager__WEBPACK_IMPORTED_MODULE_3__.soundManager.playFire();
   }
 
   updateHpBar() {
     if (!this.hpBarBg || !this.hpBarFill) return;
     
+    const TANK_SIZE = this.currentTankSize;
     const ratio = Math.max(0, this.hp / this.maxHp);
-    const barWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.9;
-    const barHeight = 6;
-    const offsetY = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.7;
-    const borderRadius = 3;
+    const barWidth = TANK_SIZE * 0.9;
+    const barHeight = 6 * (TANK_SIZE / 64);
+    const offsetY = TANK_SIZE * 0.7;
+    const borderRadius = 3 * (TANK_SIZE / 64);
 
     // 背景条（带边框和圆角）
     this.hpBarBg.clear()
@@ -78738,7 +79475,6 @@ class LaserTower {
 }
 
 
-
 /***/ }),
 
 /***/ "./src/entities/weapons/rocketTower.js":
@@ -78754,15 +79490,21 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
-/* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
-/* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
-/* harmony import */ var _homingRocket__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./homingRocket */ "./src/entities/weapons/homingRocket.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
+/* harmony import */ var _core_soundManager__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../core/soundManager */ "./src/core/soundManager.js");
+/* harmony import */ var _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../core/particleSystem */ "./src/core/particleSystem.js");
+/* harmony import */ var _homingRocket__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./homingRocket */ "./src/entities/weapons/homingRocket.js");
 
 
 
 
 
 
+
+/**
+ * 火箭塔武器：发射追踪火箭，高伤害，追踪能力
+ * 支持响应式布局
+ */
 class RocketTower {
   constructor(app, gridCol, gridRow, x, y) {
     this.app = app;
@@ -78779,15 +79521,21 @@ class RocketTower {
     this.hitFlashTimer = 0;
 
     this.fireInterval = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_FIRE_INTERVAL * 1.2;
-    this.bulletRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 1.05;
+    this.bulletRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 0.6;  // 缩小火箭尺寸
     this.bulletSpeed = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_SPEED * 1.1;
     this.bulletColor = _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BULLET;
     this.visualScale = 1;
 
-    const baseWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.7;
-    const baseHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.3;
-    const towerWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.34;
-    const towerHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.9;
+    // 获取当前布局的 TANK_SIZE 和 ENEMY_SIZE
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+    const TANK_SIZE = layout.TANK_SIZE;
+    this.currentTankSize = TANK_SIZE;
+    this.currentEnemySize = layout.ENEMY_SIZE;
+
+    const baseWidth = TANK_SIZE * 0.7;
+    const baseHeight = TANK_SIZE * 0.3;
+    const towerWidth = TANK_SIZE * 0.34;
+    const towerHeight = TANK_SIZE * 0.9;
 
     this.turret = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
     this.idleAnimTime = 0; // 待机动画计时器
@@ -78796,18 +79544,18 @@ class RocketTower {
     this.turret
       .roundRect(
         -baseWidth / 2,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + 8,
+        -TANK_SIZE / 2 + 8 * (TANK_SIZE / 64),
         baseWidth,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - 10,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.18,
+        TANK_SIZE - 10 * (TANK_SIZE / 64),
+        TANK_SIZE * 0.18,
       )
       .fill({ color: 0x000000, alpha: 0.35 })
       .roundRect(
-        -baseWidth / 2 + 4,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + 10,
-        baseWidth - 8,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - 14,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.15,
+        -baseWidth / 2 + 4 * (TANK_SIZE / 64),
+        -TANK_SIZE / 2 + 10 * (TANK_SIZE / 64),
+        baseWidth - 8 * (TANK_SIZE / 64),
+        TANK_SIZE - 14 * (TANK_SIZE / 64),
+        TANK_SIZE * 0.15,
       )
       .fill({ color: 0x000000, alpha: 0.15 });
     
@@ -78815,7 +79563,7 @@ class RocketTower {
     this.turret
       .roundRect(
         -baseWidth / 2,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 - baseHeight,
+        TANK_SIZE / 2 - baseHeight,
         baseWidth,
         baseHeight,
         baseHeight * 0.6,
@@ -78823,9 +79571,9 @@ class RocketTower {
       .fill({ color: 0x1f2937 })
       .stroke({ width: 2.5, color: 0x0f172a, alpha: 1 })
       .roundRect(
-        -baseWidth / 2 + 6,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 - baseHeight * 0.75,
-        baseWidth - 12,
+        -baseWidth / 2 + 6 * (TANK_SIZE / 64),
+        TANK_SIZE / 2 - baseHeight * 0.75,
+        baseWidth - 12 * (TANK_SIZE / 64),
         baseHeight * 0.45,
         baseHeight * 0.25,
       )
@@ -78835,12 +79583,12 @@ class RocketTower {
     // 底座装甲条纹（增强对比）
     const stripeWidth = baseWidth / 5;
     for (let i = 0; i < 4; i += 1) {
-      const sx = -baseWidth / 2 + 6 + i * stripeWidth;
+      const sx = -baseWidth / 2 + 6 * (TANK_SIZE / 64) + i * stripeWidth;
       const color = i % 2 === 0 ? _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_DETAIL : 0x111827;
       this.turret
         .roundRect(
           sx,
-          _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 - baseHeight * 0.7,
+          TANK_SIZE / 2 - baseHeight * 0.7,
           stripeWidth * 0.5,
           baseHeight * 0.4,
           stripeWidth * 0.2,
@@ -78852,10 +79600,10 @@ class RocketTower {
     // 主塔身（多层结构）
     this.turret
       .roundRect(
-        -towerWidth / 2 - 2,
-        -towerHeight / 2 - 2,
-        towerWidth + 4,
-        towerHeight + 4,
+        -towerWidth / 2 - 2 * (TANK_SIZE / 64),
+        -towerHeight / 2 - 2 * (TANK_SIZE / 64),
+        towerWidth + 4 * (TANK_SIZE / 64),
+        towerHeight + 4 * (TANK_SIZE / 64),
         towerWidth * 0.5,
       )
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BODY, alpha: 0.15 })
@@ -78872,9 +79620,9 @@ class RocketTower {
     // 塔身高光
     this.turret
       .roundRect(
-        -towerWidth / 2 + 3,
-        -towerHeight / 2 + 3,
-        towerWidth - 6,
+        -towerWidth / 2 + 3 * (TANK_SIZE / 64),
+        -towerHeight / 2 + 3 * (TANK_SIZE / 64),
+        towerWidth - 6 * (TANK_SIZE / 64),
         towerHeight * 0.25,
         towerWidth * 0.4,
       )
@@ -78941,9 +79689,9 @@ class RocketTower {
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BULLET })
       .stroke({ width: 1.5, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BODY, alpha: 0.8 })
       // 弹头条纹
-      .rect(-towerWidth * 0.22, -towerHeight * 0.35, towerWidth * 0.44, 2)
+      .rect(-towerWidth * 0.22, -towerHeight * 0.35, towerWidth * 0.44, 2 * (TANK_SIZE / 64))
       .fill({ color: 0x000000, alpha: 0.4 })
-      .rect(-towerWidth * 0.22, -towerHeight * 0.25, towerWidth * 0.44, 2)
+      .rect(-towerWidth * 0.22, -towerHeight * 0.25, towerWidth * 0.44, 2 * (TANK_SIZE / 64))
       .fill({ color: 0x000000, alpha: 0.4 });
 
     // 顶部雷达/天线（多层光环）
@@ -78967,16 +79715,16 @@ class RocketTower {
     // 选中高亮圈 - 霓虹多层效果（紫色主题）（先添加，在turret下面）
     this.selectionRing = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
       // 外层光晕
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.85)
+      .circle(0, 0, TANK_SIZE * 0.85)
       .stroke({ width: 2, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_DETAIL, alpha: 0.3 })
       // 中层光晕
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.75)
+      .circle(0, 0, TANK_SIZE * 0.75)
       .stroke({ width: 3, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_DETAIL, alpha: 0.6 })
       // 内层主光环
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.7)
+      .circle(0, 0, TANK_SIZE * 0.7)
       .stroke({ width: 4, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BULLET, alpha: 1 })
       // 内圈细节
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.65)
+      .circle(0, 0, TANK_SIZE * 0.65)
       .stroke({ width: 1, color: 0xfbbf24, alpha: 0.8 });
     this.selectionRing.x = x;
     this.selectionRing.y = y;
@@ -78997,16 +79745,16 @@ class RocketTower {
 
   applyLevelStats() {
     if (this.level === 1) {
-    this.fireInterval = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_FIRE_INTERVAL * 1.2;
-    this.bulletRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 1.05;
+      this.fireInterval = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_FIRE_INTERVAL * 1.2;
+      this.bulletRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 0.6;  // 缩小火箭尺寸
       this.bulletSpeed = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_SPEED * 1.1;
     } else if (this.level === 2) {
       this.fireInterval = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_FIRE_INTERVAL * 1.0;
-      this.bulletRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 1.25;
+      this.bulletRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 0.7;  // 缩小火箭尺寸
       this.bulletSpeed = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_SPEED * 1.25;
     } else if (this.level === 3) {
       this.fireInterval = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_FIRE_INTERVAL * 0.8;
-      this.bulletRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 1.45;
+      this.bulletRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_RADIUS * 0.8;  // 缩小火箭尺寸
       this.bulletSpeed = _constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_SPEED * 1.35;
     }
   }
@@ -79075,6 +79823,11 @@ class RocketTower {
     }
 
     this.updateHpBar();
+    
+    // 获取当前敌人尺寸
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+    const ENEMY_SIZE = layout.ENEMY_SIZE;
+    
     const enemyList = Array.isArray(enemies) ? enemies : [];
     const aliveBullets = [];
     this.bullets.forEach((rocket) => {
@@ -79090,9 +79843,9 @@ class RocketTower {
         const dx2 = rocket.sprite.x - enemy.sprite.x;
         const dy2 = rocket.sprite.y - enemy.sprite.y;
         const distSq = dx2 * dx2 + dy2 * dy2;
-        const hitRadius = rocket.radius + _constants__WEBPACK_IMPORTED_MODULE_1__.ENEMY_SIZE * 0.5;
+        const hitRadius = rocket.radius + ENEMY_SIZE * 0.5;
         if (distSq <= hitRadius * hitRadius) {
-          _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createExplosion(rocket.sprite.x, rocket.sprite.y, rocket.color, 8);
+          _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__.particleSystem.createExplosion(rocket.sprite.x, rocket.sprite.y, rocket.color, 8);
           if (typeof enemy.registerHit === 'function') {
             enemy.registerHit(rocket.damage);
           }
@@ -79147,11 +79900,12 @@ class RocketTower {
   }
 
   fire(angle, target) {
-    const barrelLength = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.7;
+    const TANK_SIZE = this.currentTankSize;
+    const barrelLength = TANK_SIZE * 0.7;
     const muzzleX = this.turret.x + Math.cos(angle) * barrelLength;
     const muzzleY = this.turret.y + Math.sin(angle) * barrelLength;
 
-    const rocket = new _homingRocket__WEBPACK_IMPORTED_MODULE_4__.HomingRocket(this.app, muzzleX, muzzleY, angle, target, {
+    const rocket = new _homingRocket__WEBPACK_IMPORTED_MODULE_5__.HomingRocket(this.app, muzzleX, muzzleY, angle, target, {
       speed: this.bulletSpeed,
       radius: this.bulletRadius,
       color: this.bulletColor,
@@ -79160,8 +79914,8 @@ class RocketTower {
     });
 
     this.bullets.push(rocket);
-    _core_particleSystem__WEBPACK_IMPORTED_MODULE_3__.particleSystem.createMuzzleFlash(muzzleX, muzzleY, angle, _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BULLET);
-    _core_soundManager__WEBPACK_IMPORTED_MODULE_2__.soundManager.playFire();
+    _core_particleSystem__WEBPACK_IMPORTED_MODULE_4__.particleSystem.createMuzzleFlash(muzzleX, muzzleY, angle, _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BULLET);
+    _core_soundManager__WEBPACK_IMPORTED_MODULE_3__.soundManager.playFire();
   }
 
   registerHitFromEnemy(damage = 1) {
@@ -79177,11 +79931,13 @@ class RocketTower {
 
   updateHpBar() {
     if (!this.hpBarBg || !this.hpBarFill) return;
+    
+    const TANK_SIZE = this.currentTankSize;
     const ratio = Math.max(this.hp / this.maxHp, 0);
-    const hpBarWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.9;
-    const hpBarHeight = 6;
-    const offsetY = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.75;
-    const borderRadius = 3;
+    const hpBarWidth = TANK_SIZE * 0.9;
+    const hpBarHeight = 6 * (TANK_SIZE / 64);
+    const offsetY = TANK_SIZE * 0.75;
+    const borderRadius = 3 * (TANK_SIZE / 64);
 
     // 背景条（带边框和圆角）
     this.hpBarBg.clear()
@@ -79214,8 +79970,6 @@ class RocketTower {
 }
 
 
-
-
 /***/ }),
 
 /***/ "./src/systems/background.js":
@@ -79231,6 +79985,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * 网格背景系统
  * 负责绘制游戏战场的背景
@@ -79239,9 +79994,11 @@ __webpack_require__.r(__webpack_exports__);
  * - 绘制纯色背景，提供简洁的视觉效果
  * - 背景宽度为世界宽度，支持横向拖动查看
  * - 背景层级最低，不会遮挡其他游戏对象
+ * - 支持响应式布局
  * 
  * 注意：网格线和动画效果已禁用，保持简洁风格
  */
+
 
 
 
@@ -79274,9 +80031,12 @@ class GridBackground {
    * 设置背景的宽度和高度，并调用绘制方法
    */
   drawScene() {
+    // 从响应式布局获取当前尺寸
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+    
     // 战场背景的世界总宽度（可被相机左右拖拽观察）
-    const width = _constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH;
-    const height = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_HEIGHT;
+    const width = layout.WORLD_WIDTH;
+    const height = layout.BATTLE_HEIGHT;
     this.battleHeight = height;
     
     // 只绘制纯色背景，不绘制装饰和网格
@@ -79294,6 +80054,18 @@ class GridBackground {
     this.terrain.rect(0, 0, width, height).fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_BACKGROUND });
   }
 
+  /**
+   * 响应尺寸变化
+   * 重新绘制背景
+   * @param {Object} layout - 新的布局参数
+   */
+  onResize(layout) {
+    const width = layout.WORLD_WIDTH;
+    const height = layout.BATTLE_HEIGHT;
+    this.battleHeight = height;
+    this.drawSimpleBackground(width, height);
+  }
+
   // 网格线功能已禁用，保持简洁的视觉风格
 
   /**
@@ -79304,8 +80076,6 @@ class GridBackground {
     // 背景动画已禁用
   }
 }
-
-
 
 
 /***/ }),
@@ -79325,6 +80095,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _entities_enemies_enemyTank__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../entities/enemies/enemyTank */ "./src/entities/enemies/enemyTank.js");
 /* harmony import */ var _entities_enemies_sonicTank__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../entities/enemies/sonicTank */ "./src/entities/enemies/sonicTank.js");
 /* harmony import */ var _core_spawnPortal__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../core/spawnPortal */ "./src/core/spawnPortal.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * 敌人管理器
  * 负责生成、更新和管理所有敌人
@@ -79335,12 +80106,14 @@ __webpack_require__.r(__webpack_exports__);
  * - 实现波次系统，随时间增加难度
  * - 处理敌人击杀奖励
  * - 避免在同一位置重复生成敌人
+ * - 支持响应式布局
  * 
  * 波次系统：
  * - 每15秒一波，波次越高敌人越强
  * - 生成间隔随波次递减（但有最小值限制）
  * - 敌人血量随波次增加
  */
+
 
 
 
@@ -79383,13 +80156,23 @@ class EnemyManager {
   }
 
   /**
+   * 获取当前布局参数
+   */
+  getLayout() {
+    return _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_4__.responsiveLayout.getLayout();
+  }
+
+  /**
    * 生成一个敌人
    * 在左侧边界随机行位置生成敌人坦克
    * 会尝试避开已有敌人的位置
    * 根据波次和概率决定生成普通坦克还是声波坦克
    */
   spawnEnemy() {
-    const rows = _constants__WEBPACK_IMPORTED_MODULE_0__.BATTLE_ROWS;
+    const layout = this.getLayout();
+    const { BATTLE_ROWS, CELL_SIZE } = layout;
+    
+    const rows = BATTLE_ROWS;
     const minRow = 0;
     const maxRow = rows - 1;
     const playableRows = Math.max(0, rows);
@@ -79424,8 +80207,8 @@ class EnemyManager {
     
     // 在左侧边界（第0列）生成敌人
     const col = 0;
-    const centerX = col * _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2;
-    const centerY = row * _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2;
+    const centerX = col * CELL_SIZE + CELL_SIZE / 2;
+    const centerY = row * CELL_SIZE + CELL_SIZE / 2;
 
     // 决定生成哪种类型的敌人
     // 声波坦克出现概率随波次增加：从第1波开始，基础概率25%，每波增加5%，最高50%
@@ -79545,6 +80328,15 @@ class EnemyManager {
   }
 
   /**
+   * 响应尺寸变化
+   * @param {Object} layout - 新的布局参数
+   */
+  onResize(layout) {
+    // 敌人管理器不需要重新创建UI，
+    // 新生成的敌人会自动使用新的布局参数
+  }
+
+  /**
    * 获取所有活跃的敌人
    * @returns {Array<EnemyTank>} 敌人数组
    */
@@ -79552,8 +80344,6 @@ class EnemyManager {
     return this.enemies;
   }
 }
-
-
 
 
 /***/ }),
@@ -79572,6 +80362,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
 /* harmony import */ var _WeaponIconRenderer__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./WeaponIconRenderer */ "./src/ui/WeaponIconRenderer.js");
 /* harmony import */ var _config_weaponTypes__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../config/weaponTypes */ "./src/config/weaponTypes.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
+
 
 
 
@@ -79579,6 +80371,7 @@ __webpack_require__.r(__webpack_exports__);
 /**
  * 武器拖拽管理器
  * 负责处理武器拖拽、吸附、验证等逻辑
+ * 支持响应式布局
  */
 class WeaponDragManager {
   constructor(app, goldManager, checkOccupied) {
@@ -79589,6 +80382,13 @@ class WeaponDragManager {
     this.dragSprite = null;
     this.dragGlow = null;
     this.dragType = 'rocket'; // 当前拖拽的武器类型
+  }
+
+  /**
+   * 获取当前布局参数
+   */
+  getLayout() {
+    return _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_3__.responsiveLayout.getLayout();
   }
 
   /**
@@ -79692,6 +80492,9 @@ class WeaponDragManager {
    * 尝试吸附到网格
    */
   trySnapToGrid(globalX, globalY) {
+    const layout = this.getLayout();
+    const { CELL_SIZE, BATTLE_HEIGHT, BATTLE_ROWS, WORLD_WIDTH } = layout;
+    
     const world = this.app.world || this.app.stage;
     const worldPos = world.toLocal({ x: globalX, y: globalY });
     const wx = worldPos.x;
@@ -79699,25 +80502,25 @@ class WeaponDragManager {
 
     // 网格区域判定
     const gridMinY = 0;
-    const gridHeight = _constants__WEBPACK_IMPORTED_MODULE_0__.BATTLE_HEIGHT;
+    const gridHeight = BATTLE_HEIGHT;
     const gridMaxY = gridMinY + gridHeight;
     const minRowIndex = 0;
-    const maxRowIndex = Math.max(minRowIndex, _constants__WEBPACK_IMPORTED_MODULE_0__.BATTLE_ROWS - 1);
+    const maxRowIndex = Math.max(minRowIndex, BATTLE_ROWS - 1);
 
-    const inGrid = wy >= gridMinY && wy < gridMaxY && wx >= 0 && wx <= _constants__WEBPACK_IMPORTED_MODULE_0__.WORLD_WIDTH;
+    const inGrid = wy >= gridMinY && wy < gridMaxY && wx >= 0 && wx <= WORLD_WIDTH;
 
     if (!inGrid) {
       return { inGrid: false };
     }
 
     // 计算格子坐标
-    const col = Math.floor(wx / _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE);
-    const rawRow = Math.floor((wy - gridMinY) / _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE);
+    const col = Math.floor(wx / CELL_SIZE);
+    const rawRow = Math.floor((wy - gridMinY) / CELL_SIZE);
     const row = Math.min(maxRowIndex, Math.max(minRowIndex, rawRow));
 
     // 计算格子中心
-    const cellCenterX = col * _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2;
-    const cellCenterY = gridMinY + row * _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2;
+    const cellCenterX = col * CELL_SIZE + CELL_SIZE / 2;
+    const cellCenterY = gridMinY + row * CELL_SIZE + CELL_SIZE / 2;
 
     // 转换回全局坐标
     const snappedGlobal = world.toGlobal({ x: cellCenterX, y: cellCenterY });
@@ -79791,7 +80594,6 @@ class WeaponDragManager {
 }
 
 
-
 /***/ }),
 
 /***/ "./src/ui/WeaponIconRenderer.js":
@@ -79807,24 +80609,35 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
+
 
 
 
 /**
  * 武器图标渲染器
  * 统一管理所有武器图标的绘制逻辑，避免代码重复
+ * 支持响应式布局
  */
 class WeaponIconRenderer {
+  /**
+   * 获取当前的 TANK_SIZE
+   */
+  static getTankSize() {
+    return _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout().TANK_SIZE;
+  }
+
   /**
    * 创建坦克图标
    * @param {boolean} isGhost - 是否为拖拽幽灵（透明度降低）
    */
   static createTankIcon(isGhost = false) {
-    const hullRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.24;
-    const turretRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.18;
-    const barrelLength = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.75;
-    const barrelHalfHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.09;
-    const trackHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.22;
+    const TANK_SIZE = this.getTankSize();
+    const hullRadius = TANK_SIZE * 0.24;
+    const turretRadius = TANK_SIZE * 0.18;
+    const barrelLength = TANK_SIZE * 0.75;
+    const barrelHalfHeight = TANK_SIZE * 0.09;
+    const trackHeight = TANK_SIZE * 0.22;
 
     const icon = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
     const alpha = isGhost ? 0.9 : 1;
@@ -79832,22 +80645,22 @@ class WeaponIconRenderer {
     // 阴影
     icon
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + 4,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + 6,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - 8,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - 4,
+        -TANK_SIZE / 2 + 4 * (TANK_SIZE / 64),
+        -TANK_SIZE / 2 + 6 * (TANK_SIZE / 64),
+        TANK_SIZE - 8 * (TANK_SIZE / 64),
+        TANK_SIZE - 4 * (TANK_SIZE / 64),
         hullRadius
       )
       .fill({ color: 0x000000, alpha: 0.22 });
 
     // 上下履带
     icon
-      .roundRect(-_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2, -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE, trackHeight, trackHeight / 2)
+      .roundRect(-TANK_SIZE / 2, -TANK_SIZE / 2, TANK_SIZE, trackHeight, trackHeight / 2)
       .fill({ color: 0x111827 })
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 - trackHeight,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE,
+        -TANK_SIZE / 2,
+        TANK_SIZE / 2 - trackHeight,
+        TANK_SIZE,
         trackHeight,
         trackHeight / 2
       )
@@ -79858,9 +80671,9 @@ class WeaponIconRenderer {
     const wheelCount = 4;
     for (let i = 0; i < wheelCount; i += 1) {
       const t = wheelCount === 1 ? 0.5 : i / (wheelCount - 1);
-      const wx = -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * (0.18 + 0.64 * t);
-      const wyTop = -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + trackHeight / 2;
-      const wyBottom = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 - trackHeight / 2;
+      const wx = -TANK_SIZE / 2 + TANK_SIZE * (0.18 + 0.64 * t);
+      const wyTop = -TANK_SIZE / 2 + trackHeight / 2;
+      const wyBottom = TANK_SIZE / 2 - trackHeight / 2;
       icon.circle(wx, wyTop, wheelRadius).fill({ color: 0x1f2937 });
       icon.circle(wx, wyBottom, wheelRadius).fill({ color: 0x1f2937 });
     }
@@ -79868,10 +80681,10 @@ class WeaponIconRenderer {
     // 主车体
     icon
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + 6,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + trackHeight * 0.6,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - 12,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - trackHeight * 1.2,
+        -TANK_SIZE / 2 + 6 * (TANK_SIZE / 64),
+        -TANK_SIZE / 2 + trackHeight * 0.6,
+        TANK_SIZE - 12 * (TANK_SIZE / 64),
+        TANK_SIZE - trackHeight * 1.2,
         hullRadius
       )
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_COLOR, alpha })
@@ -79880,58 +80693,58 @@ class WeaponIconRenderer {
     // 装甲亮面与分割线
     icon
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + 10,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + trackHeight * 0.8,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - 20,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - trackHeight * 1.6,
+        -TANK_SIZE / 2 + 10 * (TANK_SIZE / 64),
+        -TANK_SIZE / 2 + trackHeight * 0.8,
+        TANK_SIZE - 20 * (TANK_SIZE / 64),
+        TANK_SIZE - trackHeight * 1.6,
         hullRadius * 0.85
       )
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY_DARK, alpha: 0.75 * alpha })
-      .rect(-_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + 12, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - 24, 2)
+      .rect(-TANK_SIZE / 2 + 12 * (TANK_SIZE / 64), 0, TANK_SIZE - 24 * (TANK_SIZE / 64), 2 * (TANK_SIZE / 64))
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY_DARK, alpha: 0.45 * alpha });
 
     // 前灯
-    const lightY = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 - trackHeight * 0.55;
-    const lightRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.08;
+    const lightY = TANK_SIZE / 2 - trackHeight * 0.55;
+    const lightRadius = TANK_SIZE * 0.08;
     icon
-      .circle(-_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.2, lightY, lightRadius)
+      .circle(-TANK_SIZE * 0.2, lightY, lightRadius)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_DETAIL, alpha: 0.9 * alpha })
-      .circle(_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.2, lightY, lightRadius)
+      .circle(TANK_SIZE * 0.2, lightY, lightRadius)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_DETAIL, alpha: 0.9 * alpha });
 
     // 侧边防护条
     icon
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + 8,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + trackHeight * 0.55,
-        6,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - trackHeight * 1.1,
-        3
+        -TANK_SIZE / 2 + 8 * (TANK_SIZE / 64),
+        -TANK_SIZE / 2 + trackHeight * 0.55,
+        6 * (TANK_SIZE / 64),
+        TANK_SIZE - trackHeight * 1.1,
+        3 * (TANK_SIZE / 64)
       )
       .fill({ color: 0x0f172a, alpha: 0.4 })
       .roundRect(
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 - 14,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE / 2 + trackHeight * 0.55,
-        6,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE - trackHeight * 1.1,
-        3
+        TANK_SIZE / 2 - 14 * (TANK_SIZE / 64),
+        -TANK_SIZE / 2 + trackHeight * 0.55,
+        6 * (TANK_SIZE / 64),
+        TANK_SIZE - trackHeight * 1.1,
+        3 * (TANK_SIZE / 64)
       )
       .fill({ color: 0x0f172a, alpha: 0.4 });
 
     // 炮塔 + 炮管
     icon
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.06, turretRadius * 1.05)
+      .circle(0, -TANK_SIZE * 0.06, turretRadius * 1.05)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BARREL, alpha })
       .stroke({ width: 2, color: 0x0f172a, alpha: 0.6 * alpha })
-      .circle(0, -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.06, turretRadius)
+      .circle(0, -TANK_SIZE * 0.06, turretRadius)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_BARREL_COLOR, alpha })
       .stroke({ width: 2, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY_DARK, alpha })
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.08,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.16,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.16,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.32,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.04
+        -TANK_SIZE * 0.08,
+        -TANK_SIZE * 0.16,
+        TANK_SIZE * 0.16,
+        TANK_SIZE * 0.32,
+        TANK_SIZE * 0.04
       )
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_DETAIL, alpha: 0.92 * alpha })
       .roundRect(0, -barrelHalfHeight, barrelLength, barrelHalfHeight * 2, barrelHalfHeight)
@@ -79960,12 +80773,13 @@ class WeaponIconRenderer {
    * 创建火箭塔图标
    */
   static createRocketIcon(isGhost = false) {
-    const rocketRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.18;
-    const rocketTrackHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.24;
-    const rocketBaseWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.7;
-    const rocketBaseHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.24;
-    const rocketTowerWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.32;
-    const rocketTowerHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.78;
+    const TANK_SIZE = this.getTankSize();
+    const rocketRadius = TANK_SIZE * 0.18;
+    const rocketTrackHeight = TANK_SIZE * 0.24;
+    const rocketBaseWidth = TANK_SIZE * 0.7;
+    const rocketBaseHeight = TANK_SIZE * 0.24;
+    const rocketTowerWidth = TANK_SIZE * 0.32;
+    const rocketTowerHeight = TANK_SIZE * 0.78;
 
     const icon = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
     const alpha = isGhost ? 0.9 : 1;
@@ -79974,17 +80788,17 @@ class WeaponIconRenderer {
     icon
       .roundRect(
         -rocketBaseWidth / 2,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.18,
+        TANK_SIZE * 0.18,
         rocketBaseWidth,
         rocketBaseHeight,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.12
+        TANK_SIZE * 0.12
       )
       .fill({ color: 0x1f2937, alpha })
       .stroke({ width: 2, color: 0x0f172a, alpha })
       .roundRect(
-        -rocketBaseWidth / 2 + 6,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.18 + rocketBaseHeight * 0.2,
-        rocketBaseWidth - 12,
+        -rocketBaseWidth / 2 + 6 * (TANK_SIZE / 64),
+        TANK_SIZE * 0.18 + rocketBaseHeight * 0.2,
+        rocketBaseWidth - 12 * (TANK_SIZE / 64),
         rocketBaseHeight * 0.45,
         rocketBaseHeight * 0.25
       )
@@ -79993,12 +80807,12 @@ class WeaponIconRenderer {
     // 条纹装饰
     const stripeWidth = rocketBaseWidth / 5;
     for (let i = 0; i < 4; i += 1) {
-      const sx = -rocketBaseWidth / 2 + 6 + i * stripeWidth;
+      const sx = -rocketBaseWidth / 2 + 6 * (TANK_SIZE / 64) + i * stripeWidth;
       const color = i % 2 === 0 ? _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_DETAIL : 0x111827;
       icon
         .roundRect(
           sx,
-          _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.18 + rocketBaseHeight * 0.35,
+          TANK_SIZE * 0.18 + rocketBaseHeight * 0.35,
           stripeWidth * 0.5,
           rocketBaseHeight * 0.4,
           stripeWidth * 0.2
@@ -80013,7 +80827,7 @@ class WeaponIconRenderer {
         -rocketTowerHeight / 2,
         rocketTowerWidth,
         rocketTowerHeight,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.12
+        TANK_SIZE * 0.12
       )
       .fill({ color: 0x334155, alpha })
       .stroke({ width: 2, color: 0x0ea5e9, alpha });
@@ -80041,14 +80855,14 @@ class WeaponIconRenderer {
     // 导轨与火箭头
     icon
       .roundRect(
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.26,
-        -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.1,
-        _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.52,
+        -TANK_SIZE * 0.26,
+        -TANK_SIZE * 0.1,
+        TANK_SIZE * 0.52,
         rocketTrackHeight,
         rocketTrackHeight * 0.4
       )
       .fill({ color: 0x0f172a })
-      .circle(_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.16, -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.02, rocketRadius)
+      .circle(TANK_SIZE * 0.16, -TANK_SIZE * 0.02, rocketRadius)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ROCKET_BULLET, alpha })
       .circle(0, -rocketTowerHeight * 0.5, rocketTowerWidth * 0.2)
       .fill({ color: 0xfef3c7, alpha: 0.95 * alpha });
@@ -80065,8 +80879,9 @@ class WeaponIconRenderer {
    * 创建激光塔图标
    */
   static createLaserIcon(isGhost = false) {
-    const coreRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.12;
-    const baseSize = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.4;
+    const TANK_SIZE = this.getTankSize();
+    const coreRadius = TANK_SIZE * 0.12;
+    const baseSize = TANK_SIZE * 0.4;
 
     const icon = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics();
     const alpha = isGhost ? 0.9 : 1;
@@ -80109,7 +80924,7 @@ class WeaponIconRenderer {
       const angle = (Math.PI / 3) * i;
       const dotX = Math.cos(angle) * baseSize * 0.75;
       const dotY = Math.sin(angle) * baseSize * 0.75;
-      icon.circle(dotX, dotY, 3).fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_DETAIL, alpha: 0.8 * alpha });
+      icon.circle(dotX, dotY, 3 * (TANK_SIZE / 64)).fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_DETAIL, alpha: 0.8 * alpha });
     }
 
     // 激光发射器
@@ -80119,7 +80934,7 @@ class WeaponIconRenderer {
       const emitX = Math.cos(angle) * emitterDist;
       const emitY = Math.sin(angle) * emitterDist;
       icon
-        .roundRect(emitX - 2, emitY - 4, 4, 8, 2)
+        .roundRect(emitX - 2 * (TANK_SIZE / 64), emitY - 4 * (TANK_SIZE / 64), 4 * (TANK_SIZE / 64), 8 * (TANK_SIZE / 64), 2 * (TANK_SIZE / 64))
         .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.LASER_BEAM, alpha: 0.7 * alpha });
     }
 
@@ -80130,14 +80945,15 @@ class WeaponIconRenderer {
    * 创建图标光晕背景
    */
   static createIconGlow(color) {
+    const TANK_SIZE = this.getTankSize();
     return new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.65)
+      .circle(0, 0, TANK_SIZE * 0.65)
       .fill({ color, alpha: 0.15 })
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.55)
+      .circle(0, 0, TANK_SIZE * 0.55)
       .fill({ color, alpha: 0.1 })
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.5)
+      .circle(0, 0, TANK_SIZE * 0.5)
       .stroke({ width: 2, color: color, alpha: 0.4 })
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.45)
+      .circle(0, 0, TANK_SIZE * 0.45)
       .stroke({ width: 1, color: color, alpha: 0.3 });
   }
 
@@ -80145,14 +80961,15 @@ class WeaponIconRenderer {
    * 创建拖拽光晕
    */
   static createDragGlow(color) {
+    const TANK_SIZE = this.getTankSize();
     return new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.8)
+      .circle(0, 0, TANK_SIZE * 0.8)
       .fill({ color, alpha: 0.2 })
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.65)
+      .circle(0, 0, TANK_SIZE * 0.65)
       .fill({ color, alpha: 0.15 })
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.55)
+      .circle(0, 0, TANK_SIZE * 0.55)
       .stroke({ width: 3, color, alpha: 0.5 })
-      .circle(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.5)
+      .circle(0, 0, TANK_SIZE * 0.5)
       .stroke({ width: 2, color, alpha: 0.3 });
   }
 
@@ -80171,7 +80988,6 @@ class WeaponIconRenderer {
 }
 
 
-
 /***/ }),
 
 /***/ "./src/ui/components/Button.js":
@@ -80187,28 +81003,34 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/constants.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
+
 
 
 
 /**
  * 霓虹风格按钮组件
+ * 支持响应式布局
  */
 class NeonButton extends pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics {
   constructor(text, color = _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.SUCCESS, options = {}) {
     super();
 
+    // 获取当前布局的按钮尺寸
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
     const {
-      width = _constants__WEBPACK_IMPORTED_MODULE_1__.ACTION_BUTTON_WIDTH,
-      height = _constants__WEBPACK_IMPORTED_MODULE_1__.ACTION_BUTTON_HEIGHT,
-      radius = _constants__WEBPACK_IMPORTED_MODULE_1__.ACTION_BUTTON_RADIUS,
-      fontSize = _constants__WEBPACK_IMPORTED_MODULE_1__.ACTION_BUTTON_FONT_SIZE,
-      strokeWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.ACTION_BUTTON_STROKE_WIDTH,
+      width = layout.ACTION_BUTTON_WIDTH,
+      height = layout.ACTION_BUTTON_HEIGHT,
+      radius = layout.ACTION_BUTTON_RADIUS,
+      fontSize = layout.ACTION_BUTTON_FONT_SIZE,
+      strokeWidth = layout.ACTION_BUTTON_STROKE_WIDTH,
     } = options;
 
     this.buttonColor = color;
     this.buttonWidth = width;
     this.buttonHeight = height;
     this.buttonRadius = radius;
+    this.strokeWidth = strokeWidth;
 
     // 绘制按钮
     this.draw();
@@ -80264,7 +81086,7 @@ class NeonButton extends pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics {
       this.buttonRadius
     )
       .fill({ color: this.buttonColor, alpha: 0.9 })
-      .stroke({ width: _constants__WEBPACK_IMPORTED_MODULE_1__.ACTION_BUTTON_STROKE_WIDTH, color: this.buttonColor, alpha: 1 });
+      .stroke({ width: this.strokeWidth, color: this.buttonColor, alpha: 1 });
 
     // 内部高光
     this.roundRect(
@@ -80290,6 +81112,22 @@ class NeonButton extends pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics {
     }
   }
 
+  /**
+   * 响应布局变化
+   */
+  onResize(layout) {
+    this.buttonWidth = layout.ACTION_BUTTON_WIDTH;
+    this.buttonHeight = layout.ACTION_BUTTON_HEIGHT;
+    this.buttonRadius = layout.ACTION_BUTTON_RADIUS;
+    this.strokeWidth = layout.ACTION_BUTTON_STROKE_WIDTH;
+    
+    this.draw();
+    
+    if (this.label) {
+      this.label.style.fontSize = layout.ACTION_BUTTON_FONT_SIZE;
+    }
+  }
+
   onClick(callback) {
     this.on('pointerdown', (event) => {
       if (event && typeof event.stopPropagation === 'function') {
@@ -80299,7 +81137,6 @@ class NeonButton extends pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics {
     });
   }
 }
-
 
 
 /***/ }),
@@ -80316,19 +81153,26 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   NeonCard: () => (/* binding */ NeonCard)
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
+
 
 
 /**
  * 霓虹风格卡片组件
+ * 支持响应式布局
  */
 class NeonCard extends pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics {
   constructor(width, height, color, options = {}) {
     super();
 
+    // 获取当前布局的缩放比例
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_1__.responsiveLayout.getLayout();
+    const scale = layout.scale;
+
     const {
-      borderRadius = 14,
-      glowSize = 3,
-      padding = 8,
+      borderRadius = 14 * scale,
+      glowSize = 3 * scale,
+      padding = 8 * scale,
     } = options;
 
     this.cardWidth = width;
@@ -80397,8 +81241,27 @@ class NeonCard extends pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics {
     this.cardColor = color;
     this.draw();
   }
-}
 
+  /**
+   * 更新卡片尺寸
+   */
+  setSize(width, height) {
+    this.cardWidth = width;
+    this.cardHeight = height;
+    this.draw();
+  }
+
+  /**
+   * 响应布局变化
+   */
+  onResize(layout) {
+    const scale = layout.scale;
+    this.borderRadius = 14 * scale;
+    this.glowSize = 3 * scale;
+    this.padding = 8 * scale;
+    this.draw();
+  }
+}
 
 
 /***/ }),
@@ -80437,6 +81300,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * 游戏UI管理器
  * 负责处理游戏的开始界面、帮助界面和结束界面
@@ -80446,10 +81310,19 @@ __webpack_require__.r(__webpack_exports__);
  * - 显示游戏说明界面（操作指南和返回按钮）
  * - 显示游戏结束界面（游戏失败提示）
  * - 管理UI层级和清理
+ * - 支持响应式布局
  */
 
 
 
+
+
+// 屏幕状态枚举
+const SCREEN_STATE = {
+  NONE: 'none',
+  START: 'start',
+  HELP: 'help',
+};
 
 /**
  * 游戏UI类
@@ -80458,9 +81331,21 @@ class GameUI {
   constructor(app, options = {}) {
     this.app = app;
     this.onStartGame = options.onStartGame || null;
+    this.currentScreen = SCREEN_STATE.NONE;
 
     this.layer = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Container();
     this.app.stage.addChild(this.layer);
+  }
+
+  /**
+   * 获取当前布局尺寸
+   */
+  getSize() {
+    return {
+      width: _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.APP_WIDTH,
+      height: _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.APP_HEIGHT,
+      scale: _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.scale,
+    };
   }
 
   clear() {
@@ -80468,48 +81353,79 @@ class GameUI {
   }
 
   /**
+   * 响应尺寸变化
+   * @param {Object} layout - 新的布局参数
+   */
+  onResize(layout) {
+    // 如果当前有显示的屏幕，重新渲染
+    switch (this.currentScreen) {
+      case SCREEN_STATE.START:
+        this.showStartScreen();
+        break;
+      case SCREEN_STATE.HELP:
+        this.showHelpScreen();
+        break;
+      default:
+        // 无需处理
+        break;
+    }
+  }
+
+  /**
    * 显示波次通知
    * @param {number} waveLevel - 波次等级
    */
   showWaveNotification(waveLevel) {
+    const { width, height, scale } = this.getSize();
+    
     // 创建通知容器
     const notification = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Container();
     
     // 半透明背景
     const bg = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .rect(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT)
-      .fill({ color: 0x000000, alpha: 0.4 });
+      .rect(0, 0, width, height)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.OVERLAY_BG, alpha: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_OVERLAY_ALPHA });
+    
+    // 按比例缩放面板尺寸
+    const panelWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_PANEL_WIDTH * scale;
+    const panelHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_PANEL_HEIGHT * scale;
+    const panelRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_PANEL_RADIUS * scale;
     
     // 主标题背景（发光效果）
+    const halfWidth = panelWidth / 2;
+    const halfHeight = panelHeight / 2;
     const titleBg = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .roundRect(-250, -60, 500, 120, 20)
-      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BG, alpha: 0.95 })
-      .stroke({ width: 3, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD, alpha: 0.8 });
-    titleBg.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 - 50);
+      .roundRect(-halfWidth, -halfHeight, panelWidth, panelHeight, panelRadius)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BG, alpha: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_PANEL_ALPHA })
+      .stroke({ width: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_BORDER_WIDTH, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD, alpha: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_BORDER_ALPHA });
+    titleBg.position.set(width / 2, height / 2 + _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_TITLE_OFFSET_Y * scale);
     
     // 外层光晕
+    const glowPadding = _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_GLOW_PADDING * scale;
+    const glowHalfWidth = halfWidth + glowPadding;
+    const glowHalfHeight = halfHeight + glowPadding;
     const glow = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .roundRect(-260, -70, 520, 140, 25)
-      .stroke({ width: 2, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD, alpha: 0.3 });
-    glow.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 - 50);
+      .roundRect(-glowHalfWidth, -glowHalfHeight, glowHalfWidth * 2, glowHalfHeight * 2, _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_GLOW_RADIUS * scale)
+      .stroke({ width: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_GLOW_WIDTH, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD, alpha: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_GLOW_ALPHA });
+    glow.position.set(width / 2, height / 2 + _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_TITLE_OFFSET_Y * scale);
     
     // 波次文字
     const waveText = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: `第 ${waveLevel} 波`,
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD,
-        fontSize: 56,
+        fontSize: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_TITLE_SIZE * scale,
         fontWeight: 'bold',
         dropShadow: {
           color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD,
-          blur: 10,
-          alpha: 0.8,
+          blur: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_TITLE_SHADOW_BLUR * scale,
+          alpha: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_TITLE_SHADOW_ALPHA,
           distance: 0,
         },
       },
     });
     waveText.anchor.set(0.5);
-    waveText.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 - 50);
+    waveText.position.set(width / 2, height / 2 + _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_TITLE_OFFSET_Y * scale);
     
     // 副标题
     let subtitle = '准备迎战！';
@@ -80525,28 +81441,30 @@ class GameUI {
       text: subtitle,
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.TEXT_MAIN,
-        fontSize: 24,
+        fontSize: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_SUBTITLE_SIZE * scale,
         dropShadow: {
           color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY,
-          blur: 6,
-          alpha: 0.6,
+          blur: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_SUBTITLE_SHADOW_BLUR * scale,
+          alpha: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_SUBTITLE_SHADOW_ALPHA,
           distance: 0,
         },
       },
     });
     subtitleText.anchor.set(0.5);
-    subtitleText.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 + 30);
+    subtitleText.position.set(width / 2, height / 2 + _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_SUBTITLE_OFFSET_Y * scale);
     
     // 装饰线条
+    const lineWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_LINE_WIDTH * scale;
+    const lineHalfWidth = lineWidth / 2;
     const decorLine1 = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .rect(-150, 0, 300, 2)
-      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 0.6 });
-    decorLine1.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 - 100);
+      .rect(-lineHalfWidth, 0, lineWidth, _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_LINE_HEIGHT)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_LINE_ALPHA });
+    decorLine1.position.set(width / 2, height / 2 + _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_LINE_TOP_OFFSET_Y * scale);
     
     const decorLine2 = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .rect(-150, 0, 300, 2)
-      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 0.6 });
-    decorLine2.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT / 2 + 60);
+      .rect(-lineHalfWidth, 0, lineWidth, _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_LINE_HEIGHT)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_LINE_ALPHA });
+    decorLine2.position.set(width / 2, height / 2 + _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_LINE_BOTTOM_OFFSET_Y * scale);
     
     // 组装
     notification.addChild(bg, glow, titleBg, decorLine1, waveText, subtitleText, decorLine2);
@@ -80554,30 +81472,29 @@ class GameUI {
     
     // 动画效果
     notification.alpha = 0;
-    waveText.scale.set(0.5);
+    waveText.scale.set(_constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_INITIAL_SCALE);
     subtitleText.alpha = 0;
     
     // 淡入和缩放动画
-    const duration = 2000; // 2秒
     const startTime = Date.now();
     
     const animate = () => {
       const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
+      const progress = Math.min(elapsed / _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_DURATION, 1);
       
-      if (progress < 0.3) {
+      if (progress < _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_FADE_IN_RATIO) {
         // 前30%：淡入和放大
-        const t = progress / 0.3;
+        const t = progress / _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_FADE_IN_RATIO;
         notification.alpha = t;
-        waveText.scale.set(0.5 + 0.5 * t);
-      } else if (progress < 0.7) {
+        waveText.scale.set(_constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_INITIAL_SCALE + (1 - _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_INITIAL_SCALE) * t);
+      } else if (progress < _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_STAY_RATIO) {
         // 中间40%：保持
         notification.alpha = 1;
         waveText.scale.set(1);
-        subtitleText.alpha = (progress - 0.3) / 0.4;
+        subtitleText.alpha = (progress - _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_FADE_IN_RATIO) / (_constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_STAY_RATIO - _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_FADE_IN_RATIO);
       } else {
         // 最后30%：淡出
-        const t = (progress - 0.7) / 0.3;
+        const t = (progress - _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_STAY_RATIO) / (1 - _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_NOTIFY_STAY_RATIO);
         notification.alpha = 1 - t;
       }
       
@@ -80594,54 +81511,61 @@ class GameUI {
 
   showHelpScreen() {
     this.clear();
+    this.currentScreen = SCREEN_STATE.HELP;
+    
+    const { width, height, scale } = this.getSize();
 
     const overlay = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .rect(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT)
-      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BG, alpha: 0.95 });
+      .rect(0, 0, width, height)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BG, alpha: _constants__WEBPACK_IMPORTED_MODULE_1__.START_OVERLAY_ALPHA });
 
     const title = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: '游戏说明',
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD,
-        fontSize: 32,
+        fontSize: _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_TITLE_SIZE * scale,
       },
     });
     title.anchor.set(0.5);
-    title.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT * 0.18);
+    title.position.set(width / 2, height * _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_TITLE_Y_RATIO);
 
     const body = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text:
         '1. 拖拽底部绿色坦克放到网格中即可部署武器（消耗金币）。\n'
-        + '2. 点击武器后可看到“升级 / 卖掉”按钮，升级会提升子弹大小、速度和颜色。\n'
+        + '2. 点击武器后可看到"升级 / 卖掉"按钮，升级会提升子弹大小、速度和颜色。\n'
         + '3. 敌人从左侧沿格子前进，会自动躲避武器并朝武器开火。\n'
         + '4. 敌人和武器都有血条；击毁敌人可获得金币，被击毁的武器需要重新部署。\n'
         + '5. 顶部显示当前金币数量，请合理规划布防和升级节奏。',
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.TEXT_MAIN,
-        fontSize: 18,
+        fontSize: _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_BODY_SIZE * scale,
         wordWrap: true,
-        wordWrapWidth: _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH * 0.78,
-        lineHeight: 26,
+        wordWrapWidth: width * _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_BODY_WIDTH_RATIO,
+        lineHeight: _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_BODY_LINE_HEIGHT * scale,
       },
     });
     body.anchor.set(0.5, 0);
-    body.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT * 0.24);
+    body.position.set(width / 2, height * _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_BODY_Y_RATIO);
 
+    const btnWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_BACK_BTN_WIDTH * scale;
+    const btnHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_BACK_BTN_HEIGHT * scale;
+    const btnRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_BACK_BTN_RADIUS * scale;
+    
     const backButton = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .roundRect(-80, -20, 160, 40, 12)
+      .roundRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, btnRadius)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BORDER })
-      .stroke({ width: 2, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 1 });
+      .stroke({ width: _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_BACK_BTN_STROKE, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 1 });
 
     const backLabel = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: '返回主菜单',
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.TEXT_MAIN,
-        fontSize: 18,
+        fontSize: _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_BACK_BTN_SIZE * scale,
       },
     });
     backLabel.anchor.set(0.5);
     backButton.addChild(backLabel);
-    backButton.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT * 0.78);
+    backButton.position.set(width / 2, height * _constants__WEBPACK_IMPORTED_MODULE_1__.HELP_BACK_BTN_Y_RATIO);
     backButton.eventMode = 'static';
     backButton.cursor = 'pointer';
     backButton.on('pointerdown', () => {
@@ -80653,71 +81577,83 @@ class GameUI {
 
   showStartScreen() {
     this.clear();
+    this.currentScreen = SCREEN_STATE.START;
+    
+    const { width, height, scale } = this.getSize();
 
     const overlay = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .rect(0, 0, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT)
-      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BG, alpha: 0.95 });
+      .rect(0, 0, width, height)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BG, alpha: _constants__WEBPACK_IMPORTED_MODULE_1__.START_OVERLAY_ALPHA });
 
     const title = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: '坦克防御 · Tower Game',
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD,
-        fontSize: 40,
+        fontSize: _constants__WEBPACK_IMPORTED_MODULE_1__.START_TITLE_SIZE * scale,
       },
     });
     title.anchor.set(0.5);
-    title.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT * 0.3);
+    title.position.set(width / 2, height * _constants__WEBPACK_IMPORTED_MODULE_1__.START_TITLE_Y_RATIO);
 
     const subtitle = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: '拖拽坦克布防，升级武器抵挡一波又一波敌人。',
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.TEXT_SUB,
-        fontSize: 20,
+        fontSize: _constants__WEBPACK_IMPORTED_MODULE_1__.START_SUBTITLE_SIZE * scale,
       },
     });
     subtitle.anchor.set(0.5);
-    subtitle.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT * 0.38);
+    subtitle.position.set(width / 2, height * _constants__WEBPACK_IMPORTED_MODULE_1__.START_SUBTITLE_Y_RATIO);
 
+    const startBtnWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.START_BTN_WIDTH * scale;
+    const startBtnHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.START_BTN_HEIGHT * scale;
+    const startBtnRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.START_BTN_RADIUS * scale;
+    
     const startButton = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .roundRect(-100, -26, 200, 52, 18)
+      .roundRect(-startBtnWidth / 2, -startBtnHeight / 2, startBtnWidth, startBtnHeight, startBtnRadius)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.SUCCESS })
-      .stroke({ width: 2, color: 0x16a34a, alpha: 1 });
+      .stroke({ width: _constants__WEBPACK_IMPORTED_MODULE_1__.START_BTN_STROKE, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.SUCCESS_DARK, alpha: 1 });
 
     const startLabel = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: '开始游戏',
       style: {
-        fill: 0xf9fafb,
-        fontSize: 22,
+        fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.TEXT_LIGHT,
+        fontSize: _constants__WEBPACK_IMPORTED_MODULE_1__.START_BTN_SIZE * scale,
       },
     });
     startLabel.anchor.set(0.5);
     startButton.addChild(startLabel);
-    startButton.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT * 0.52);
+    startButton.position.set(width / 2, height * _constants__WEBPACK_IMPORTED_MODULE_1__.START_BTN_Y_RATIO);
     startButton.eventMode = 'static';
     startButton.cursor = 'pointer';
     startButton.on('pointerdown', () => {
       // 清理 UI 层并回调到外部，真正开始游戏
       this.clear();
+      this.currentScreen = SCREEN_STATE.NONE;
       if (typeof this.onStartGame === 'function') {
         this.onStartGame();
       }
     });
 
+    const helpBtnWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.START_HELP_BTN_WIDTH * scale;
+    const helpBtnHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.START_HELP_BTN_HEIGHT * scale;
+    const helpBtnRadius = _constants__WEBPACK_IMPORTED_MODULE_1__.START_HELP_BTN_RADIUS * scale;
+    
     const helpButton = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Graphics()
-      .roundRect(-90, -22, 180, 44, 14)
+      .roundRect(-helpBtnWidth / 2, -helpBtnHeight / 2, helpBtnWidth, helpBtnHeight, helpBtnRadius)
       .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BORDER })
-      .stroke({ width: 2, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 1 });
+      .stroke({ width: _constants__WEBPACK_IMPORTED_MODULE_1__.START_BTN_STROKE, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 1 });
 
     const helpLabel = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: '游戏说明',
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.TEXT_MAIN,
-        fontSize: 18,
+        fontSize: _constants__WEBPACK_IMPORTED_MODULE_1__.START_HELP_BTN_SIZE * scale,
       },
     });
     helpLabel.anchor.set(0.5);
     helpButton.addChild(helpLabel);
-    helpButton.position.set(_constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2, _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT * 0.62);
+    helpButton.position.set(width / 2, height * _constants__WEBPACK_IMPORTED_MODULE_1__.START_HELP_BTN_Y_RATIO);
     helpButton.eventMode = 'static';
     helpButton.cursor = 'pointer';
     helpButton.on('pointerdown', () => {
@@ -80727,8 +81663,6 @@ class GameUI {
     this.layer.addChild(overlay, title, subtitle, startButton, helpButton);
   }
 }
-
-
 
 
 /***/ }),
@@ -80746,6 +81680,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var pixi_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! pixi.js */ "./node_modules/pixi.js/lib/index.mjs");
 /* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/constants.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * 金币管理器
  * 负责管理游戏货币系统和顶部UI显示
@@ -80755,12 +81690,14 @@ __webpack_require__.r(__webpack_exports__);
  * - 小地图显示（显示敌人、武器和视口位置）
  * - 波次信息显示
  * - 小地图交互（点击/拖动快速定位）
+ * - 支持响应式布局
  * 
  * UI布局：
  * ┌────────────────────────────────────┐
  * │ 💰金币  波次信息      [小地图]    │
  * └────────────────────────────────────┘
  */
+
 
 
 
@@ -80780,9 +81717,12 @@ class GoldManager {
     this.worldContainer = worldContainer;    // 世界容器引用
     this.isDraggingMinimap = false;         // 是否正在拖动小地图
 
+    // 从响应式布局获取当前尺寸
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+    
     // 顶部UI栏的尺寸
-    const barHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE;  // 占用一行格子的高度
-    const barWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH;
+    const barHeight = layout.CELL_SIZE;  // 占用一行格子的高度
+    const barWidth = layout.APP_WIDTH;
     const y = 0;
 
     // === 创建背景（霓虹赛博朋克风格） ===
@@ -80842,16 +81782,17 @@ class GoldManager {
 
     // ====== 缩略小地图（显示整个战场状态） ======
     // 小地图位置：放在顶部UI栏右上角
-    this.minimapWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_WIDTH;
+    this.minimapWidth = layout.MINIMAP_WIDTH;
     this.minimapHeight = Math.max(20, barHeight - _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_HEIGHT_PADDING);
-    this.minimapX = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH - this.minimapWidth - _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_HORIZONTAL_MARGIN;
+    this.minimapX = layout.APP_WIDTH - this.minimapWidth - _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_HORIZONTAL_MARGIN;
     this.minimapY = _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_VERTICAL_MARGIN;
 
     // 世界战场的总高度（不包含底部武器容器区域）
-    this.worldHeight = _constants__WEBPACK_IMPORTED_MODULE_1__.BATTLE_HEIGHT;
+    this.worldHeight = layout.BATTLE_HEIGHT;
+    this.worldWidth = layout.WORLD_WIDTH;
 
     // 计算小地图与世界坐标的缩放比例
-    this.minimapScaleX = this.minimapWidth / _constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH;
+    this.minimapScaleX = this.minimapWidth / this.worldWidth;
     this.minimapScaleY = this.minimapHeight / this.worldHeight;
 
     // === 创建小地图背景 - 多层霓虹发光效果 ===
@@ -81018,8 +81959,9 @@ class GoldManager {
     // 使用 worldContainer.x 确定可视区域在世界中的位置
     this.minimapViewport.clear();
     if (worldContainer) {
+      const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
       const worldLeft = -worldContainer.x; // 当前视口在世界中的左边界
-      const worldWidthVisible = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH;
+      const worldWidthVisible = layout.APP_WIDTH;
       const vx =
         this.minimapX + worldLeft * this.minimapScaleX;
       const vy = this.minimapY;
@@ -81089,6 +82031,8 @@ class GoldManager {
   updateWorldFromMinimap(event) {
     if (!this.worldContainer) return;
     
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_2__.responsiveLayout.getLayout();
+    
     // 获取点击位置相对于小地图的X坐标
     const globalX = event.global.x;
     const localX = globalX - this.minimapX;
@@ -81100,17 +82044,82 @@ class GoldManager {
     const normalized = clampedX / this.minimapWidth;
 
     // 计算世界坐标
-    const worldVisibleWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH;
-    const maxWorldLeft = Math.max(0, _constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH - worldVisibleWidth);
+    const worldVisibleWidth = layout.APP_WIDTH;
+    const maxWorldLeft = Math.max(0, layout.WORLD_WIDTH - worldVisibleWidth);
     
     // 计算期望的世界左边界（点击位置居中）
     const desiredLeft = Math.min(
-      Math.max(normalized * _constants__WEBPACK_IMPORTED_MODULE_1__.WORLD_WIDTH - worldVisibleWidth / 2, 0),
+      Math.max(normalized * layout.WORLD_WIDTH - worldVisibleWidth / 2, 0),
       maxWorldLeft,
     );
 
     // 更新世界容器位置
     this.worldContainer.x = -desiredLeft;
+  }
+
+  /**
+   * 响应尺寸变化
+   * 重新计算小地图位置和尺寸
+   * @param {Object} layout - 新的布局参数
+   */
+  onResize(layout) {
+    const barHeight = layout.CELL_SIZE;
+    const barWidth = layout.APP_WIDTH;
+    
+    // 更新背景
+    this.bg.clear();
+    this.bg.rect(0, 0, barWidth, barHeight)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BG, alpha: 0.98 })
+      .rect(0, 0, barWidth, 3)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 0.3 })
+      .rect(0, barHeight - 3, barWidth, 3)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BORDER, alpha: 0.8 })
+      .rect(0, barHeight - 1, barWidth, 1)
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 0.6 });
+    
+    // 更新小地图尺寸和位置
+    this.minimapWidth = layout.MINIMAP_WIDTH;
+    this.minimapHeight = Math.max(20, barHeight - _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_HEIGHT_PADDING);
+    this.minimapX = layout.APP_WIDTH - this.minimapWidth - _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_HORIZONTAL_MARGIN;
+    this.worldHeight = layout.BATTLE_HEIGHT;
+    this.worldWidth = layout.WORLD_WIDTH;
+    this.minimapScaleX = this.minimapWidth / this.worldWidth;
+    this.minimapScaleY = this.minimapHeight / this.worldHeight;
+    
+    // 重绘小地图背景
+    this.minimapBg.clear();
+    this.minimapBg
+      .roundRect(
+        this.minimapX - 2,
+        this.minimapY - 2,
+        this.minimapWidth + 4,
+        this.minimapHeight + 4,
+        _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_CORNER_RADIUS + 2,
+      )
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BORDER, alpha: 0.2 })
+      .roundRect(
+        this.minimapX,
+        this.minimapY,
+        this.minimapWidth,
+        this.minimapHeight,
+        _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_CORNER_RADIUS,
+      )
+      .fill({ color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BG, alpha: 0.95 })
+      .stroke({ width: _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_BORDER_WIDTH, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.UI_BORDER, alpha: 1 })
+      .roundRect(
+        this.minimapX + 2,
+        this.minimapY + 2,
+        this.minimapWidth - 4,
+        this.minimapHeight - 4,
+        _constants__WEBPACK_IMPORTED_MODULE_1__.MINIMAP_CORNER_RADIUS - 2,
+      )
+      .stroke({ width: 1, color: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY, alpha: 0.3 });
+    
+    // 更新波次文本位置
+    this.waveText.position.set(
+      this.minimapX - 8,
+      this.minimapY + _constants__WEBPACK_IMPORTED_MODULE_1__.WAVE_TEXT_OFFSET_Y,
+    );
   }
 }
 
@@ -81137,6 +82146,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _WeaponIconRenderer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./WeaponIconRenderer */ "./src/ui/WeaponIconRenderer.js");
 /* harmony import */ var _WeaponDragManager__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./WeaponDragManager */ "./src/ui/WeaponDragManager.js");
 /* harmony import */ var _components__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./components */ "./src/ui/components/index.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
+
 
 
 
@@ -81151,6 +82162,7 @@ __webpack_require__.r(__webpack_exports__);
  * 1. 管理武器容器UI
  * 2. 管理已放置的武器
  * 3. 处理武器选择、升级、出售
+ * 4. 支持响应式布局
  */
 class WeaponContainer {
   constructor(app, goldManager) {
@@ -81158,6 +82170,9 @@ class WeaponContainer {
     this.goldManager = goldManager;
     this.weapons = [];
     this.selectedWeapon = null;
+    
+    // 存储UI元素引用，用于resize时清理
+    this.uiElements = [];
 
     // 创建拖拽管理器
     this.dragManager = new _WeaponDragManager__WEBPACK_IMPORTED_MODULE_5__.WeaponDragManager(
@@ -81173,41 +82188,73 @@ class WeaponContainer {
   }
 
   /**
+   * 获取当前布局参数
+   */
+  getLayout() {
+    const layout = _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_7__.responsiveLayout.getLayout();
+    return {
+      ...layout,
+      WEAPON_CONTAINER_WIDTH: layout.CELL_SIZE * 10,
+      WEAPON_CONTAINER_HEIGHT: layout.CELL_SIZE * 2.5,
+      WEAPON_CONTAINER_MARGIN_BOTTOM: layout.CELL_SIZE * 0.2,
+      TANK_SIZE: layout.TANK_SIZE || Math.round(50 * layout.scale),
+    };
+  }
+
+  /**
+   * 清理UI元素
+   */
+  clearUIElements() {
+    this.uiElements.forEach(el => {
+      if (el && el.parent) {
+        el.parent.removeChild(el);
+      }
+    });
+    this.uiElements = [];
+  }
+
+  /**
    * 创建容器UI
    */
   createContainer() {
-    const width = _constants__WEBPACK_IMPORTED_MODULE_1__.WEAPON_CONTAINER_WIDTH;
-    const height = _constants__WEBPACK_IMPORTED_MODULE_1__.WEAPON_CONTAINER_HEIGHT;
-    const centerX = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_WIDTH / 2;
-    const centerY = _constants__WEBPACK_IMPORTED_MODULE_1__.APP_HEIGHT - _constants__WEBPACK_IMPORTED_MODULE_1__.WEAPON_CONTAINER_MARGIN_BOTTOM - height / 2;
+    const layout = this.getLayout();
+    const width = layout.WEAPON_CONTAINER_WIDTH;
+    const height = layout.WEAPON_CONTAINER_HEIGHT;
+    const centerX = layout.APP_WIDTH / 2;
+    const centerY = layout.APP_HEIGHT - layout.WEAPON_CONTAINER_MARGIN_BOTTOM - height / 2;
 
     // 主背景
     this.background = this.createBackground(width, height, centerX, centerY);
     this.app.stage.addChild(this.background);
+    this.uiElements.push(this.background);
 
     // 内层玻璃效果
     this.innerGlass = this.createInnerGlass(width, height, centerX, centerY);
     this.app.stage.addChild(this.innerGlass);
+    this.uiElements.push(this.innerGlass);
 
     // 标题
-    this.header = this.createHeader(centerX, centerY, height);
+    this.header = this.createHeader(centerX, centerY, height, layout.scale);
     this.app.stage.addChild(this.header);
+    this.uiElements.push(this.header);
 
-    this.subHeader = this.createSubHeader(centerX, centerY, height);
+    this.subHeader = this.createSubHeader(centerX, centerY, height, layout.scale);
     this.app.stage.addChild(this.subHeader);
+    this.uiElements.push(this.subHeader);
 
     // 两列武器卡片布局
-    const cardWidth = width / 2.5 - 30;  // 更宽的卡片，有足够空间显示文字
-    const cardHeight = height - 100;  // 减小卡片高度，为标题留出空间
-    const cardSpacing = 30;  // 增加卡片间距
-    const cardY = centerY + 35;  // 往下移动，避免遮挡副标题
+    const cardWidth = width / 2.5 - 30 * layout.scale;
+    const cardHeight = height - 100 * layout.scale;
+    const cardSpacing = 30 * layout.scale;
+    const cardY = centerY + 35 * layout.scale;
 
     this.weaponCards = this.createWeaponCards(
       cardWidth,
       cardHeight,
       centerX,
       cardY,
-      cardSpacing
+      cardSpacing,
+      layout
     );
   }
 
@@ -81270,12 +82317,12 @@ class WeaponContainer {
   /**
    * 创建标题
    */
-  createHeader(centerX, centerY, height) {
+  createHeader(centerX, centerY, height, scale = 1) {
     const header = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: '⚔️ 武器库 ⚔️',
       style: {
         fill: 0xf9fafb,
-        fontSize: 22,
+        fontSize: 22 * scale,
         fontWeight: 'bold',
         dropShadow: true,
         dropShadowColor: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.ALLY_BODY,
@@ -81284,19 +82331,19 @@ class WeaponContainer {
       },
     });
     header.anchor.set(0.5, 0.5);
-    header.position.set(centerX, centerY - height / 2 + 32);
+    header.position.set(centerX, centerY - height / 2 + 32 * scale);
     return header;
   }
 
   /**
    * 创建副标题
    */
-  createSubHeader(centerX, centerY, height) {
+  createSubHeader(centerX, centerY, height, scale = 1) {
     const subHeader = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: '点击图标拖拽部署武器  |  点击武器进行升级/出售',
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.TEXT_SUB,
-        fontSize: 12,
+        fontSize: 12 * scale,
         dropShadow: true,
         dropShadowColor: 0x000000,
         dropShadowBlur: 4,
@@ -81304,14 +82351,14 @@ class WeaponContainer {
       },
     });
     subHeader.anchor.set(0.5, 0);
-    subHeader.position.set(centerX, centerY - height / 2 + 52);
+    subHeader.position.set(centerX, centerY - height / 2 + 52 * scale);
     return subHeader;
   }
 
   /**
    * 创建武器卡片
    */
-  createWeaponCards(cardWidth, cardHeight, centerX, cardY, cardSpacing) {
+  createWeaponCards(cardWidth, cardHeight, centerX, cardY, cardSpacing, layout) {
     // 确保 WEAPON_TYPES 已加载
     if (!_config_weaponTypes__WEBPACK_IMPORTED_MODULE_2__.WEAPON_TYPES || !_config_weaponTypes__WEBPACK_IMPORTED_MODULE_2__.WEAPON_TYPES.LASER || !_config_weaponTypes__WEBPACK_IMPORTED_MODULE_2__.WEAPON_TYPES.ROCKET) {
       console.error('[WeaponContainer] WEAPON_TYPES not properly loaded!', _config_weaponTypes__WEBPACK_IMPORTED_MODULE_2__.WEAPON_TYPES);
@@ -81326,22 +82373,26 @@ class WeaponContainer {
     ];
 
     return types.map((type, index) => 
-      this.createWeaponCard(type, cardWidth, cardHeight, positions[index], cardY)
+      this.createWeaponCard(type, cardWidth, cardHeight, positions[index], cardY, layout)
     );
   }
 
   /**
    * 创建单个武器卡片
    */
-  createWeaponCard(weaponType, cardWidth, cardHeight, x, y) {
+  createWeaponCard(weaponType, cardWidth, cardHeight, x, y, layout) {
+    const scale = layout.scale;
+    const tankSize = layout.TANK_SIZE;
+    
     // 卡片背景
     const card = new _components__WEBPACK_IMPORTED_MODULE_6__.NeonCard(cardWidth, cardHeight, weaponType.color);
     card.x = x;
     card.y = y;
     this.app.stage.addChild(card);
+    this.uiElements.push(card);
 
     // 图标区域
-    const iconAreaWidth = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 1.6;
+    const iconAreaWidth = tankSize * 1.6;
     const iconX = x + cardWidth / 2 - iconAreaWidth / 2;
 
     // 光晕
@@ -81350,6 +82401,7 @@ class WeaponContainer {
     glow.y = y;
     glow.eventMode = 'none';
     this.app.stage.addChild(glow);
+    this.uiElements.push(glow);
 
     // 图标
     const icon = _WeaponIconRenderer__WEBPACK_IMPORTED_MODULE_4__.WeaponIconRenderer.createIcon(weaponType.id);
@@ -81375,14 +82427,15 @@ class WeaponContainer {
     });
 
     this.app.stage.addChild(icon);
+    this.uiElements.push(icon);
 
     // 价格标签
-    const cardPadding = 18;
+    const cardPadding = 18 * scale;
     const priceLabel = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: `💰 ${weaponType.baseCost}`,
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD,
-        fontSize: 16,
+        fontSize: 16 * scale,
         fontWeight: 'bold',
         dropShadow: true,
         dropShadowColor: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.GOLD,
@@ -81394,18 +82447,18 @@ class WeaponContainer {
     priceLabel.x = x - cardWidth / 2 + cardPadding;
     priceLabel.y = y - cardHeight / 2 + cardPadding;
     this.app.stage.addChild(priceLabel);
+    this.uiElements.push(priceLabel);
 
     // 描述文本
-    // 修正：图标在右侧，文字在左侧，需要留出更多空间
     const textAreaWidth = cardWidth - iconAreaWidth - cardPadding * 3;
     const desc = new pixi_js__WEBPACK_IMPORTED_MODULE_0__.Text({
       text: weaponType.description,
       style: {
         fill: _constants__WEBPACK_IMPORTED_MODULE_1__.COLORS.TEXT_SUB,
-        fontSize: 12,
-        lineHeight: 16,
+        fontSize: 12 * scale,
+        lineHeight: 16 * scale,
         wordWrap: true,
-        wordWrapWidth: textAreaWidth - 10, // 留出更多边距
+        wordWrapWidth: textAreaWidth - 10,
         dropShadow: true,
         dropShadowColor: 0x000000,
         dropShadowBlur: 2,
@@ -81413,8 +82466,9 @@ class WeaponContainer {
       },
     });
     desc.anchor.set(0, 0);
-    desc.position.set(priceLabel.x, priceLabel.y + 24);
+    desc.position.set(priceLabel.x, priceLabel.y + 24 * scale);
     this.app.stage.addChild(desc);
+    this.uiElements.push(desc);
 
     return { card, glow, icon, priceLabel, desc };
   }
@@ -81639,6 +82693,9 @@ class WeaponContainer {
   updateActionButtonsPosition() {
     if (!this.selectedWeapon) return;
 
+    const layout = this.getLayout();
+    const tankSize = layout.TANK_SIZE;
+    
     const targetDisplay =
       this.selectedWeapon.turret ||
       this.selectedWeapon.turretHead ||
@@ -81650,8 +82707,8 @@ class WeaponContainer {
     }
 
     const { x, y } = targetDisplay.getGlobalPosition();
-    const offsetY = -_constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.9;
-    const offsetX = _constants__WEBPACK_IMPORTED_MODULE_1__.TANK_SIZE * 0.65;
+    const offsetY = -tankSize * 0.9;
+    const offsetX = tankSize * 0.65;
 
     this.upgradeButton.x = x - offsetX;
     this.upgradeButton.y = y + offsetY;
@@ -81670,6 +82727,19 @@ class WeaponContainer {
     if (this.sellButton) {
       this.sellButton.visible = visible && !!this.selectedWeapon;
     }
+  }
+
+  /**
+   * 响应尺寸变化
+   * 重新创建武器容器UI
+   * @param {Object} layout - 新的布局参数
+   */
+  onResize(layout) {
+    // 清理现有UI元素
+    this.clearUIElements();
+    
+    // 重新创建容器UI
+    this.createContainer();
   }
 
   /**
@@ -81711,6 +82781,7 @@ class WeaponContainer {
    */
   dispose() {
     window.removeEventListener('keydown', this.handleKeyDown);
+    this.clearUIElements();
     this.weapons.forEach((w) => this.removeWeapon(w));
   }
 }
@@ -81989,6 +83060,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _app_createWorldLayers__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./app/createWorldLayers */ "./src/app/createWorldLayers.js");
 /* harmony import */ var _app_setupStagePanning__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./app/setupStagePanning */ "./src/app/setupStagePanning.js");
 /* harmony import */ var _app_attachGameLoop__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./app/attachGameLoop */ "./src/app/attachGameLoop.js");
+/* harmony import */ var _app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
 /**
  * 塔防游戏主入口文件
  * 负责初始化游戏的所有核心系统、管理器和UI组件
@@ -82012,6 +83084,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
 /**
  * 主函数 - 初始化并启动游戏
  * 执行步骤：
@@ -82022,6 +83095,7 @@ __webpack_require__.r(__webpack_exports__);
  * 5. 附加游戏循环
  * 6. 构建战斗系统
  * 7. 显示游戏UI
+ * 8. 设置响应式布局监听
  */
 async function main() {
   // 创建游戏上下文，用于管理游戏状态和生命周期
@@ -82035,7 +83109,7 @@ async function main() {
   _core_soundManager__WEBPACK_IMPORTED_MODULE_5__.soundManager.init();
 
   // 创建世界图层容器，用于组织游戏对象的层级关系
-  const { worldContainer } = (0,_app_createWorldLayers__WEBPACK_IMPORTED_MODULE_9__.createWorldLayers)(app);
+  const { worldContainer, layoutBackground } = (0,_app_createWorldLayers__WEBPACK_IMPORTED_MODULE_9__.createWorldLayers)(app);
   context.setWorld(worldContainer);
 
   // 初始化粒子系统，用于游戏特效
@@ -82052,6 +83126,9 @@ async function main() {
   const detachTicker = (0,_app_attachGameLoop__WEBPACK_IMPORTED_MODULE_11__.attachGameLoop)(context);
   context.attachCleanup(detachTicker);
 
+  // 存储战斗系统引用
+  let battleSystems = null;
+
   // 创建并注册游戏UI系统（需要在buildBattleSystems之前）
   const gameUI = context.registerSystem(
     'gameUI',
@@ -82065,7 +83142,7 @@ async function main() {
         _core_soundManager__WEBPACK_IMPORTED_MODULE_5__.soundManager.playBackground();
         
         // 构建所有战斗系统
-        buildBattleSystems();
+        battleSystems = buildBattleSystems();
       },
     }),
   );
@@ -82094,12 +83171,76 @@ async function main() {
     return { gridBackground, weaponContainer, enemyManager };
   };
 
+  /**
+   * 处理布局变化
+   * 当窗口/容器大小改变时，更新所有相关组件
+   */
+  const handleLayoutChange = (layout) => {
+    // 更新世界图层背景
+    if (layoutBackground && typeof layoutBackground.clear === 'function') {
+      redrawLayoutBackground(layoutBackground, layout);
+    }
+    
+    // 更新世界容器位置
+    if (worldContainer) {
+      worldContainer.y = layout.TOP_UI_HEIGHT;
+    }
+    
+    // 更新金币管理器
+    if (goldManager && typeof goldManager.onResize === 'function') {
+      goldManager.onResize(layout);
+    }
+    
+    // 更新游戏UI
+    if (gameUI && typeof gameUI.onResize === 'function') {
+      gameUI.onResize(layout);
+    }
+    
+    // 更新战斗系统
+    if (battleSystems) {
+      if (battleSystems.gridBackground && typeof battleSystems.gridBackground.onResize === 'function') {
+        battleSystems.gridBackground.onResize(layout);
+      }
+      if (battleSystems.weaponContainer && typeof battleSystems.weaponContainer.onResize === 'function') {
+        battleSystems.weaponContainer.onResize(layout);
+      }
+      if (battleSystems.enemyManager && typeof battleSystems.enemyManager.onResize === 'function') {
+        battleSystems.enemyManager.onResize(layout);
+      }
+    }
+  };
+
+  /**
+   * 重绘布局背景
+   */
+  const redrawLayoutBackground = (bg, layout) => {
+    const { APP_WIDTH, APP_HEIGHT, TOP_UI_HEIGHT, BATTLE_HEIGHT } = layout;
+    const bottomHeight = APP_HEIGHT - TOP_UI_HEIGHT - BATTLE_HEIGHT;
+    
+    bg.clear();
+    bg.rect(0, 0, APP_WIDTH, TOP_UI_HEIGHT).fill({ color: 0x0f0a1f });
+    bg.rect(0, TOP_UI_HEIGHT, APP_WIDTH, BATTLE_HEIGHT).fill({ color: 0x0a0014 });
+    bg.rect(0, TOP_UI_HEIGHT + BATTLE_HEIGHT, APP_WIDTH, bottomHeight).fill({ color: 0x0a0a1a });
+  };
+
+  // 注册布局变化监听器
+  (0,_app_ResponsiveLayout__WEBPACK_IMPORTED_MODULE_12__.onLayoutChange)(handleLayoutChange);
+  context.attachCleanup(() => {
+    const { offLayoutChange } = __webpack_require__(/*! ./app/ResponsiveLayout */ "./src/app/ResponsiveLayout.js");
+    offLayoutChange(handleLayoutChange);
+  });
+
   // 显示游戏开始界面
   gameUI.showStartScreen();
 
   // 在浏览器关闭前清理资源
   if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', () => context.dispose());
+    window.addEventListener('beforeunload', () => {
+      if (app.disposeResize) {
+        app.disposeResize();
+      }
+      context.dispose();
+    });
   }
 }
 
@@ -82109,9 +83250,8 @@ main().catch((err) => {
   console.error(err);
 });
 
-
 })();
 
 /******/ })()
 ;
-//# sourceMappingURL=bundle.86729c6f6236ba997f44.js.map
+//# sourceMappingURL=bundle.f3cf6ec5837ea4ba12ff.js.map

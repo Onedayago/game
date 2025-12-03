@@ -7,6 +7,7 @@
  * - 平滑转向，不会瞬间改变方向
  * - 带有呼吸动画效果
  * - 造成更高伤害
+ * - 支持响应式布局
  */
 
 import { Graphics } from 'pixi.js';
@@ -14,10 +15,9 @@ import {
   BULLET_DAMAGE,
   BULLET_RADIUS,
   BULLET_SPEED,
-  WORLD_WIDTH,
-  APP_HEIGHT,
   COLORS,
 } from '../../constants';
+import { responsiveLayout } from '../../app/ResponsiveLayout';
 
 /**
  * 追踪火箭类
@@ -40,10 +40,17 @@ export class HomingRocket {
   constructor(app, x, y, angle, target, options = {}) {
     this.app = app;
     this.target = target;                                  // 追踪目标
-    this.speed = options.speed ?? BULLET_SPEED * 1.2;      // 飞行速度
+    
+    // 获取当前布局的缩放比例
+    const layout = responsiveLayout.getLayout();
+    const scale = layout.scale || 1;
+    
+    // 速度按比例缩放
+    const baseSpeed = options.speed ?? BULLET_SPEED * 1.2;
+    this.speed = baseSpeed * scale;                        // 飞行速度（按比例缩放）
     this.turnRate = options.turnRate ?? Math.PI * 1.5;     // 转向速率（弧度/秒）
     this.damage = options.damage ?? BULLET_DAMAGE * 2;     // 伤害值
-    this.radius = options.radius ?? BULLET_RADIUS * 1.2;   // 碰撞半径
+    this.radius = options.radius ?? BULLET_RADIUS * 0.7;   // 碰撞半径（缩小火箭尺寸）
     this.color = options.color ?? COLORS.ROCKET_BULLET;    // 火箭颜色
     this.angle = angle;                                    // 当前飞行角度
     this.age = 0;                                          // 存活时间（用于动画）
@@ -165,12 +172,13 @@ export class HomingRocket {
    * @returns {boolean} 是否超出边界
    */
   isOutOfBounds() {
+    const layout = responsiveLayout.getLayout();
     const r = this.radius;
     return (
       this.sprite.x < -r
-      || this.sprite.x > WORLD_WIDTH + r
+      || this.sprite.x > layout.WORLD_WIDTH + r
       || this.sprite.y < -r
-      || this.sprite.y > APP_HEIGHT + r
+      || this.sprite.y > layout.BATTLE_HEIGHT + r
     );
   }
 
@@ -183,5 +191,3 @@ export class HomingRocket {
     world.removeChild(this.sprite);
   }
 }
-
-

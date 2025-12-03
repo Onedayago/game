@@ -1,16 +1,22 @@
 import { Graphics } from 'pixi.js';
+import { responsiveLayout } from '../../app/ResponsiveLayout';
 
 /**
  * 霓虹风格卡片组件
+ * 支持响应式布局
  */
 export class NeonCard extends Graphics {
   constructor(width, height, color, options = {}) {
     super();
 
+    // 获取当前布局的缩放比例
+    const layout = responsiveLayout.getLayout();
+    const scale = layout.scale;
+
     const {
-      borderRadius = 14,
-      glowSize = 3,
-      padding = 8,
+      borderRadius = 14 * scale,
+      glowSize = 3 * scale,
+      padding = 8 * scale,
     } = options;
 
     this.cardWidth = width;
@@ -79,5 +85,24 @@ export class NeonCard extends Graphics {
     this.cardColor = color;
     this.draw();
   }
-}
 
+  /**
+   * 更新卡片尺寸
+   */
+  setSize(width, height) {
+    this.cardWidth = width;
+    this.cardHeight = height;
+    this.draw();
+  }
+
+  /**
+   * 响应布局变化
+   */
+  onResize(layout) {
+    const scale = layout.scale;
+    this.borderRadius = 14 * scale;
+    this.glowSize = 3 * scale;
+    this.padding = 8 * scale;
+    this.draw();
+  }
+}

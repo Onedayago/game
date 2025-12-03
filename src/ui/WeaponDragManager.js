@@ -1,10 +1,12 @@
-import { COLORS, CELL_SIZE, BATTLE_HEIGHT, BATTLE_ROWS, WORLD_WIDTH } from '../constants';
+import { COLORS } from '../constants';
 import { WeaponIconRenderer } from './WeaponIconRenderer';
-import { WeaponConfig, WEAPON_TYPES } from '../config/weaponTypes';
+import { WeaponConfig } from '../config/weaponTypes';
+import { responsiveLayout } from '../app/ResponsiveLayout';
 
 /**
  * 武器拖拽管理器
  * 负责处理武器拖拽、吸附、验证等逻辑
+ * 支持响应式布局
  */
 export class WeaponDragManager {
   constructor(app, goldManager, checkOccupied) {
@@ -15,6 +17,13 @@ export class WeaponDragManager {
     this.dragSprite = null;
     this.dragGlow = null;
     this.dragType = 'rocket'; // 当前拖拽的武器类型
+  }
+
+  /**
+   * 获取当前布局参数
+   */
+  getLayout() {
+    return responsiveLayout.getLayout();
   }
 
   /**
@@ -118,6 +127,9 @@ export class WeaponDragManager {
    * 尝试吸附到网格
    */
   trySnapToGrid(globalX, globalY) {
+    const layout = this.getLayout();
+    const { CELL_SIZE, BATTLE_HEIGHT, BATTLE_ROWS, WORLD_WIDTH } = layout;
+    
     const world = this.app.world || this.app.stage;
     const worldPos = world.toLocal({ x: globalX, y: globalY });
     const wx = worldPos.x;
@@ -215,4 +227,3 @@ export class WeaponDragManager {
     return this.dragType;
   }
 }
-

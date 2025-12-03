@@ -1,11 +1,5 @@
 import { Graphics, Text } from 'pixi.js';
 import {
-  APP_WIDTH,
-  APP_HEIGHT,
-  TANK_SIZE,
-  WEAPON_CONTAINER_WIDTH,
-  WEAPON_CONTAINER_HEIGHT,
-  WEAPON_CONTAINER_MARGIN_BOTTOM,
   WEAPON_CONTAINER_BG_COLOR,
   WEAPON_CONTAINER_BORDER_COLOR,
   WEAPON_CONTAINER_BORDER_WIDTH,
@@ -16,6 +10,7 @@ import { WeaponFactory } from '../entities/weapons/WeaponFactory';
 import { WeaponIconRenderer } from './WeaponIconRenderer';
 import { WeaponDragManager } from './WeaponDragManager';
 import { NeonButton, NeonCard } from './components';
+import { responsiveLayout } from '../app/ResponsiveLayout';
 
 /**
  * 武器容器 - 重构版
@@ -23,6 +18,7 @@ import { NeonButton, NeonCard } from './components';
  * 1. 管理武器容器UI
  * 2. 管理已放置的武器
  * 3. 处理武器选择、升级、出售
+ * 4. 支持响应式布局
  */
 export class WeaponContainer {
   constructor(app, goldManager) {
@@ -30,6 +26,9 @@ export class WeaponContainer {
     this.goldManager = goldManager;
     this.weapons = [];
     this.selectedWeapon = null;
+    
+    // 存储UI元素引用，用于resize时清理
+    this.uiElements = [];
 
     // 创建拖拽管理器
     this.dragManager = new WeaponDragManager(
@@ -45,41 +44,73 @@ export class WeaponContainer {
   }
 
   /**
+   * 获取当前布局参数
+   */
+  getLayout() {
+    const layout = responsiveLayout.getLayout();
+    return {
+      ...layout,
+      WEAPON_CONTAINER_WIDTH: layout.CELL_SIZE * 10,
+      WEAPON_CONTAINER_HEIGHT: layout.CELL_SIZE * 2.5,
+      WEAPON_CONTAINER_MARGIN_BOTTOM: layout.CELL_SIZE * 0.2,
+      TANK_SIZE: layout.TANK_SIZE || Math.round(50 * layout.scale),
+    };
+  }
+
+  /**
+   * 清理UI元素
+   */
+  clearUIElements() {
+    this.uiElements.forEach(el => {
+      if (el && el.parent) {
+        el.parent.removeChild(el);
+      }
+    });
+    this.uiElements = [];
+  }
+
+  /**
    * 创建容器UI
    */
   createContainer() {
-    const width = WEAPON_CONTAINER_WIDTH;
-    const height = WEAPON_CONTAINER_HEIGHT;
-    const centerX = APP_WIDTH / 2;
-    const centerY = APP_HEIGHT - WEAPON_CONTAINER_MARGIN_BOTTOM - height / 2;
+    const layout = this.getLayout();
+    const width = layout.WEAPON_CONTAINER_WIDTH;
+    const height = layout.WEAPON_CONTAINER_HEIGHT;
+    const centerX = layout.APP_WIDTH / 2;
+    const centerY = layout.APP_HEIGHT - layout.WEAPON_CONTAINER_MARGIN_BOTTOM - height / 2;
 
     // 主背景
     this.background = this.createBackground(width, height, centerX, centerY);
     this.app.stage.addChild(this.background);
+    this.uiElements.push(this.background);
 
     // 内层玻璃效果
     this.innerGlass = this.createInnerGlass(width, height, centerX, centerY);
     this.app.stage.addChild(this.innerGlass);
+    this.uiElements.push(this.innerGlass);
 
     // 标题
-    this.header = this.createHeader(centerX, centerY, height);
+    this.header = this.createHeader(centerX, centerY, height, layout.scale);
     this.app.stage.addChild(this.header);
+    this.uiElements.push(this.header);
 
-    this.subHeader = this.createSubHeader(centerX, centerY, height);
+    this.subHeader = this.createSubHeader(centerX, centerY, height, layout.scale);
     this.app.stage.addChild(this.subHeader);
+    this.uiElements.push(this.subHeader);
 
     // 两列武器卡片布局
-    const cardWidth = width / 2.5 - 30;  // 更宽的卡片，有足够空间显示文字
-    const cardHeight = height - 100;  // 减小卡片高度，为标题留出空间
-    const cardSpacing = 30;  // 增加卡片间距
-    const cardY = centerY + 35;  // 往下移动，避免遮挡副标题
+    const cardWidth = width / 2.5 - 30 * layout.scale;
+    const cardHeight = height - 100 * layout.scale;
+    const cardSpacing = 30 * layout.scale;
+    const cardY = centerY + 35 * layout.scale;
 
     this.weaponCards = this.createWeaponCards(
       cardWidth,
       cardHeight,
       centerX,
       cardY,
-      cardSpacing
+      cardSpacing,
+      layout
     );
   }
 
@@ -142,12 +173,12 @@ export class WeaponContainer {
   /**
    * 创建标题
    */
-  createHeader(centerX, centerY, height) {
+  createHeader(centerX, centerY, height, scale = 1) {
     const header = new Text({
       text: '⚔️ 武器库 ⚔️',
       style: {
         fill: 0xf9fafb,
-        fontSize: 22,
+        fontSize: 22 * scale,
         fontWeight: 'bold',
         dropShadow: true,
         dropShadowColor: COLORS.ALLY_BODY,
@@ -156,19 +187,19 @@ export class WeaponContainer {
       },
     });
     header.anchor.set(0.5, 0.5);
-    header.position.set(centerX, centerY - height / 2 + 32);
+    header.position.set(centerX, centerY - height / 2 + 32 * scale);
     return header;
   }
 
   /**
    * 创建副标题
    */
-  createSubHeader(centerX, centerY, height) {
+  createSubHeader(centerX, centerY, height, scale = 1) {
     const subHeader = new Text({
       text: '点击图标拖拽部署武器  |  点击武器进行升级/出售',
       style: {
         fill: COLORS.TEXT_SUB,
-        fontSize: 12,
+        fontSize: 12 * scale,
         dropShadow: true,
         dropShadowColor: 0x000000,
         dropShadowBlur: 4,
@@ -176,14 +207,14 @@ export class WeaponContainer {
       },
     });
     subHeader.anchor.set(0.5, 0);
-    subHeader.position.set(centerX, centerY - height / 2 + 52);
+    subHeader.position.set(centerX, centerY - height / 2 + 52 * scale);
     return subHeader;
   }
 
   /**
    * 创建武器卡片
    */
-  createWeaponCards(cardWidth, cardHeight, centerX, cardY, cardSpacing) {
+  createWeaponCards(cardWidth, cardHeight, centerX, cardY, cardSpacing, layout) {
     // 确保 WEAPON_TYPES 已加载
     if (!WEAPON_TYPES || !WEAPON_TYPES.LASER || !WEAPON_TYPES.ROCKET) {
       console.error('[WeaponContainer] WEAPON_TYPES not properly loaded!', WEAPON_TYPES);
@@ -198,22 +229,26 @@ export class WeaponContainer {
     ];
 
     return types.map((type, index) => 
-      this.createWeaponCard(type, cardWidth, cardHeight, positions[index], cardY)
+      this.createWeaponCard(type, cardWidth, cardHeight, positions[index], cardY, layout)
     );
   }
 
   /**
    * 创建单个武器卡片
    */
-  createWeaponCard(weaponType, cardWidth, cardHeight, x, y) {
+  createWeaponCard(weaponType, cardWidth, cardHeight, x, y, layout) {
+    const scale = layout.scale;
+    const tankSize = layout.TANK_SIZE;
+    
     // 卡片背景
     const card = new NeonCard(cardWidth, cardHeight, weaponType.color);
     card.x = x;
     card.y = y;
     this.app.stage.addChild(card);
+    this.uiElements.push(card);
 
     // 图标区域
-    const iconAreaWidth = TANK_SIZE * 1.6;
+    const iconAreaWidth = tankSize * 1.6;
     const iconX = x + cardWidth / 2 - iconAreaWidth / 2;
 
     // 光晕
@@ -222,6 +257,7 @@ export class WeaponContainer {
     glow.y = y;
     glow.eventMode = 'none';
     this.app.stage.addChild(glow);
+    this.uiElements.push(glow);
 
     // 图标
     const icon = WeaponIconRenderer.createIcon(weaponType.id);
@@ -247,14 +283,15 @@ export class WeaponContainer {
     });
 
     this.app.stage.addChild(icon);
+    this.uiElements.push(icon);
 
     // 价格标签
-    const cardPadding = 18;
+    const cardPadding = 18 * scale;
     const priceLabel = new Text({
       text: `💰 ${weaponType.baseCost}`,
       style: {
         fill: COLORS.GOLD,
-        fontSize: 16,
+        fontSize: 16 * scale,
         fontWeight: 'bold',
         dropShadow: true,
         dropShadowColor: COLORS.GOLD,
@@ -266,18 +303,18 @@ export class WeaponContainer {
     priceLabel.x = x - cardWidth / 2 + cardPadding;
     priceLabel.y = y - cardHeight / 2 + cardPadding;
     this.app.stage.addChild(priceLabel);
+    this.uiElements.push(priceLabel);
 
     // 描述文本
-    // 修正：图标在右侧，文字在左侧，需要留出更多空间
     const textAreaWidth = cardWidth - iconAreaWidth - cardPadding * 3;
     const desc = new Text({
       text: weaponType.description,
       style: {
         fill: COLORS.TEXT_SUB,
-        fontSize: 12,
-        lineHeight: 16,
+        fontSize: 12 * scale,
+        lineHeight: 16 * scale,
         wordWrap: true,
-        wordWrapWidth: textAreaWidth - 10, // 留出更多边距
+        wordWrapWidth: textAreaWidth - 10,
         dropShadow: true,
         dropShadowColor: 0x000000,
         dropShadowBlur: 2,
@@ -285,8 +322,9 @@ export class WeaponContainer {
       },
     });
     desc.anchor.set(0, 0);
-    desc.position.set(priceLabel.x, priceLabel.y + 24);
+    desc.position.set(priceLabel.x, priceLabel.y + 24 * scale);
     this.app.stage.addChild(desc);
+    this.uiElements.push(desc);
 
     return { card, glow, icon, priceLabel, desc };
   }
@@ -511,6 +549,9 @@ export class WeaponContainer {
   updateActionButtonsPosition() {
     if (!this.selectedWeapon) return;
 
+    const layout = this.getLayout();
+    const tankSize = layout.TANK_SIZE;
+    
     const targetDisplay =
       this.selectedWeapon.turret ||
       this.selectedWeapon.turretHead ||
@@ -522,8 +563,8 @@ export class WeaponContainer {
     }
 
     const { x, y } = targetDisplay.getGlobalPosition();
-    const offsetY = -TANK_SIZE * 0.9;
-    const offsetX = TANK_SIZE * 0.65;
+    const offsetY = -tankSize * 0.9;
+    const offsetX = tankSize * 0.65;
 
     this.upgradeButton.x = x - offsetX;
     this.upgradeButton.y = y + offsetY;
@@ -542,6 +583,19 @@ export class WeaponContainer {
     if (this.sellButton) {
       this.sellButton.visible = visible && !!this.selectedWeapon;
     }
+  }
+
+  /**
+   * 响应尺寸变化
+   * 重新创建武器容器UI
+   * @param {Object} layout - 新的布局参数
+   */
+  onResize(layout) {
+    // 清理现有UI元素
+    this.clearUIElements();
+    
+    // 重新创建容器UI
+    this.createContainer();
   }
 
   /**
@@ -583,6 +637,7 @@ export class WeaponContainer {
    */
   dispose() {
     window.removeEventListener('keydown', this.handleKeyDown);
+    this.clearUIElements();
     this.weapons.forEach((w) => this.removeWeapon(w));
   }
 }

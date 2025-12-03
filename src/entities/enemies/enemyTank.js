@@ -1,8 +1,5 @@
 import { Graphics } from 'pixi.js';
 import {
-  CELL_SIZE,
-  BATTLE_ROWS,
-  WORLD_WIDTH,
   ENEMY_MOVE_SPEED,
   ENEMY_ATTACK_RANGE_CELLS,
   ENEMY_FIRE_INTERVAL,
@@ -12,12 +9,14 @@ import {
   TANK_SIZE,
   ENEMY_BULLET_DAMAGE,
 } from '../../constants';
+import { responsiveLayout } from '../../app/ResponsiveLayout';
 import { soundManager } from '../../core/soundManager';
 import { particleSystem } from '../../core/particleSystem';
 import { EnemyBullet } from './enemyBullet';
 
 /**
  * 敌方坦克实体，负责寻路、攻击、受击和子弹管理。
+ * 支持响应式布局
  */
 export class EnemyTank {
   constructor(app, gridCol, gridRow, hpBonus = 0) {
@@ -25,34 +24,42 @@ export class EnemyTank {
     this.gridCol = gridCol;
     this.gridRow = gridRow;
 
+    // 获取当前布局参数
+    const layout = this.getLayout();
+    const { CELL_SIZE, ENEMY_SIZE: dynamicEnemySize } = layout;
+    
+    // 使用动态的敌人尺寸
+    const ENEMY_SIZE_LOCAL = dynamicEnemySize || ENEMY_SIZE;
+    this.currentEnemySize = ENEMY_SIZE_LOCAL;
+    
     const centerX = gridCol * CELL_SIZE + CELL_SIZE / 2;
     const centerY = gridRow * CELL_SIZE + CELL_SIZE / 2;
 
-    const hullRadius = ENEMY_SIZE * 0.25;
-    const trackHeight = ENEMY_SIZE * 0.22;
-    const turretRadius = ENEMY_SIZE * 0.22;
-    const barrelLength = ENEMY_SIZE * 0.78;
-    const barrelHalfHeight = ENEMY_SIZE * 0.08;
+    const hullRadius = ENEMY_SIZE_LOCAL * 0.25;
+    const trackHeight = ENEMY_SIZE_LOCAL * 0.22;
+    const turretRadius = ENEMY_SIZE_LOCAL * 0.22;
+    const barrelLength = ENEMY_SIZE_LOCAL * 0.78;
+    const barrelHalfHeight = ENEMY_SIZE_LOCAL * 0.08;
 
     this.sprite = new Graphics();
     this.idleAnimTime = 0; // 待机动画计时器
 
     // 多层阴影
     this.sprite
-      .roundRect(-ENEMY_SIZE / 2 + 4, -ENEMY_SIZE / 2 + 6, ENEMY_SIZE - 8, ENEMY_SIZE - 6, hullRadius)
+      .roundRect(-ENEMY_SIZE_LOCAL / 2 + 4, -ENEMY_SIZE_LOCAL / 2 + 6, ENEMY_SIZE_LOCAL - 8, ENEMY_SIZE_LOCAL - 6, hullRadius)
       .fill({ color: 0x000000, alpha: 0.3 })
-      .roundRect(-ENEMY_SIZE / 2 + 6, -ENEMY_SIZE / 2 + 8, ENEMY_SIZE - 12, ENEMY_SIZE - 10, hullRadius * 0.8)
+      .roundRect(-ENEMY_SIZE_LOCAL / 2 + 6, -ENEMY_SIZE_LOCAL / 2 + 8, ENEMY_SIZE_LOCAL - 12, ENEMY_SIZE_LOCAL - 10, hullRadius * 0.8)
       .fill({ color: 0x000000, alpha: 0.15 });
 
     // 上下履带（增强立体感）
     this.sprite
-      .roundRect(-ENEMY_SIZE / 2, -ENEMY_SIZE / 2, ENEMY_SIZE, trackHeight, trackHeight / 2)
+      .roundRect(-ENEMY_SIZE_LOCAL / 2, -ENEMY_SIZE_LOCAL / 2, ENEMY_SIZE_LOCAL, trackHeight, trackHeight / 2)
       .fill({ color: 0x0a0f1a })
       .stroke({ width: 1, color: COLORS.ENEMY_BODY_DARK, alpha: 0.6 })
       .roundRect(
-        -ENEMY_SIZE / 2,
-        ENEMY_SIZE / 2 - trackHeight,
-        ENEMY_SIZE,
+        -ENEMY_SIZE_LOCAL / 2,
+        ENEMY_SIZE_LOCAL / 2 - trackHeight,
+        ENEMY_SIZE_LOCAL,
         trackHeight,
         trackHeight / 2,
       )
@@ -62,11 +69,11 @@ export class EnemyTank {
     // 履带装甲板纹理
     const plateCount = 5;
     for (let i = 0; i < plateCount; i += 1) {
-      const px = -ENEMY_SIZE / 2 + (ENEMY_SIZE / plateCount) * i + 3;
+      const px = -ENEMY_SIZE_LOCAL / 2 + (ENEMY_SIZE_LOCAL / plateCount) * i + 3;
       this.sprite
-        .rect(px, -ENEMY_SIZE / 2 + 2, ENEMY_SIZE / plateCount - 2, trackHeight - 4)
+        .rect(px, -ENEMY_SIZE_LOCAL / 2 + 2, ENEMY_SIZE_LOCAL / plateCount - 2, trackHeight - 4)
         .fill({ color: 0x1e293b, alpha: 0.4 })
-        .rect(px, ENEMY_SIZE / 2 - trackHeight + 2, ENEMY_SIZE / plateCount - 2, trackHeight - 4)
+        .rect(px, ENEMY_SIZE_LOCAL / 2 - trackHeight + 2, ENEMY_SIZE_LOCAL / plateCount - 2, trackHeight - 4)
         .fill({ color: 0x1e293b, alpha: 0.4 });
     }
 
@@ -75,9 +82,9 @@ export class EnemyTank {
     const wheelCount = 4;
     for (let i = 0; i < wheelCount; i += 1) {
       const t = wheelCount === 1 ? 0.5 : i / (wheelCount - 1);
-      const wx = -ENEMY_SIZE / 2 + ENEMY_SIZE * (0.18 + 0.64 * t);
-      const wyTop = -ENEMY_SIZE / 2 + trackHeight / 2;
-      const wyBottom = ENEMY_SIZE / 2 - trackHeight / 2;
+      const wx = -ENEMY_SIZE_LOCAL / 2 + ENEMY_SIZE_LOCAL * (0.18 + 0.64 * t);
+      const wyTop = -ENEMY_SIZE_LOCAL / 2 + trackHeight / 2;
+      const wyBottom = ENEMY_SIZE_LOCAL / 2 - trackHeight / 2;
       
       this.sprite
         .circle(wx, wyTop, wheelRadius)
@@ -95,10 +102,10 @@ export class EnemyTank {
     // 主车体（渐变效果）
     this.sprite
       .roundRect(
-        -ENEMY_SIZE / 2 + 6,
-        -ENEMY_SIZE / 2 + trackHeight * 0.65,
-        ENEMY_SIZE - 12,
-        ENEMY_SIZE - trackHeight * 1.3,
+        -ENEMY_SIZE_LOCAL / 2 + 6,
+        -ENEMY_SIZE_LOCAL / 2 + trackHeight * 0.65,
+        ENEMY_SIZE_LOCAL - 12,
+        ENEMY_SIZE_LOCAL - trackHeight * 1.3,
         hullRadius,
       )
       .fill({ color: COLORS.ENEMY_BODY })
@@ -107,10 +114,10 @@ export class EnemyTank {
     // 车体高光
     this.sprite
       .roundRect(
-        -ENEMY_SIZE / 2 + 8,
-        -ENEMY_SIZE / 2 + trackHeight * 0.7,
-        ENEMY_SIZE - 16,
-        (ENEMY_SIZE - trackHeight * 1.3) * 0.25,
+        -ENEMY_SIZE_LOCAL / 2 + 8,
+        -ENEMY_SIZE_LOCAL / 2 + trackHeight * 0.7,
+        ENEMY_SIZE_LOCAL - 16,
+        (ENEMY_SIZE_LOCAL - trackHeight * 1.3) * 0.25,
         hullRadius * 0.6,
       )
       .fill({ color: COLORS.ENEMY_DETAIL, alpha: 0.1 });
@@ -118,11 +125,11 @@ export class EnemyTank {
     // 前装甲条与徽记（增强细节）
     this.sprite
       .roundRect(
-        -ENEMY_SIZE / 2 + 10,
-        -ENEMY_SIZE * 0.08,
-        ENEMY_SIZE - 20,
-        ENEMY_SIZE * 0.18,
-        ENEMY_SIZE * 0.05,
+        -ENEMY_SIZE_LOCAL / 2 + 10,
+        -ENEMY_SIZE_LOCAL * 0.08,
+        ENEMY_SIZE_LOCAL - 20,
+        ENEMY_SIZE_LOCAL * 0.18,
+        ENEMY_SIZE_LOCAL * 0.05,
       )
       .fill({ color: COLORS.ENEMY_BODY_DARK, alpha: 0.95 })
       .stroke({ width: 1, color: COLORS.ENEMY_DETAIL, alpha: 0.3 });
@@ -130,49 +137,49 @@ export class EnemyTank {
     // 装甲条纹
     const enemyStripeCount = 2;
     for (let i = 0; i < enemyStripeCount; i += 1) {
-      const sy = -ENEMY_SIZE / 2 + trackHeight * 0.75 + i * ((ENEMY_SIZE - trackHeight * 1.4) / enemyStripeCount);
+      const sy = -ENEMY_SIZE_LOCAL / 2 + trackHeight * 0.75 + i * ((ENEMY_SIZE_LOCAL - trackHeight * 1.4) / enemyStripeCount);
       this.sprite
-        .rect(-ENEMY_SIZE / 2 + 12, sy, ENEMY_SIZE - 24, 1.5)
+        .rect(-ENEMY_SIZE_LOCAL / 2 + 12, sy, ENEMY_SIZE_LOCAL - 24, 1.5)
         .fill({ color: COLORS.ENEMY_BODY_DARK, alpha: 0.7 });
     }
 
     // 威胁标识（红色辉光）
     this.sprite
-      .circle(-ENEMY_SIZE * 0.18, -ENEMY_SIZE * 0.02, ENEMY_SIZE * 0.09)
+      .circle(-ENEMY_SIZE_LOCAL * 0.18, -ENEMY_SIZE_LOCAL * 0.02, ENEMY_SIZE_LOCAL * 0.09)
       .fill({ color: COLORS.ENEMY_DETAIL, alpha: 0.3 })
-      .circle(-ENEMY_SIZE * 0.18, -ENEMY_SIZE * 0.02, ENEMY_SIZE * 0.07)
+      .circle(-ENEMY_SIZE_LOCAL * 0.18, -ENEMY_SIZE_LOCAL * 0.02, ENEMY_SIZE_LOCAL * 0.07)
       .fill({ color: COLORS.ENEMY_DETAIL, alpha: 0.95 })
       .stroke({ width: 1, color: 0xfb7185, alpha: 0.8 })
-      .circle(-ENEMY_SIZE * 0.18, -ENEMY_SIZE * 0.02, ENEMY_SIZE * 0.04)
+      .circle(-ENEMY_SIZE_LOCAL * 0.18, -ENEMY_SIZE_LOCAL * 0.02, ENEMY_SIZE_LOCAL * 0.04)
       .fill({ color: 0xffffff, alpha: 0.7 });
 
     // 炮塔（多层结构）
     this.sprite
-      .circle(0, -ENEMY_SIZE * 0.05, turretRadius * 1.1)
+      .circle(0, -ENEMY_SIZE_LOCAL * 0.05, turretRadius * 1.1)
       .fill({ color: COLORS.ENEMY_DETAIL, alpha: 0.15 })
-      .circle(0, -ENEMY_SIZE * 0.05, turretRadius)
+      .circle(0, -ENEMY_SIZE_LOCAL * 0.05, turretRadius)
       .fill({ color: COLORS.ENEMY_BODY_DARK })
       .stroke({ width: 2, color: 0x000000, alpha: 0.6 })
-      .circle(0, -ENEMY_SIZE * 0.05, turretRadius * 0.85)
+      .circle(0, -ENEMY_SIZE_LOCAL * 0.05, turretRadius * 0.85)
       .fill({ color: COLORS.ENEMY_BODY, alpha: 0.8 });
 
     // 炮塔顶部细节
     this.sprite
       .roundRect(
-        -ENEMY_SIZE * 0.08,
-        -ENEMY_SIZE * 0.18,
-        ENEMY_SIZE * 0.16,
-        ENEMY_SIZE * 0.36,
-        ENEMY_SIZE * 0.06,
+        -ENEMY_SIZE_LOCAL * 0.08,
+        -ENEMY_SIZE_LOCAL * 0.18,
+        ENEMY_SIZE_LOCAL * 0.16,
+        ENEMY_SIZE_LOCAL * 0.36,
+        ENEMY_SIZE_LOCAL * 0.06,
       )
       .fill({ color: COLORS.ENEMY_BODY, alpha: 0.95 })
       .stroke({ width: 1, color: COLORS.ENEMY_DETAIL, alpha: 0.4 });
 
     // 炮塔警示灯
     this.sprite
-      .circle(0, -ENEMY_SIZE * 0.2, ENEMY_SIZE * 0.035)
+      .circle(0, -ENEMY_SIZE_LOCAL * 0.2, ENEMY_SIZE_LOCAL * 0.035)
       .fill({ color: COLORS.ENEMY_DETAIL, alpha: 0.9 })
-      .circle(0, -ENEMY_SIZE * 0.2, ENEMY_SIZE * 0.022)
+      .circle(0, -ENEMY_SIZE_LOCAL * 0.2, ENEMY_SIZE_LOCAL * 0.022)
       .fill({ color: 0xffffff, alpha: 0.8 });
 
     // 炮管（增强细节）
@@ -229,7 +236,17 @@ export class EnemyTank {
     this.fireTimer = 0;
   }
 
+  /**
+   * 获取当前布局参数
+   */
+  getLayout() {
+    return responsiveLayout.getLayout();
+  }
+
   findPath(weaponContainer, allEnemies, allowThroughTowers = false) {
+    const layout = this.getLayout();
+    const { CELL_SIZE, BATTLE_ROWS, WORLD_WIDTH } = layout;
+    
     const cols = Math.floor(WORLD_WIDTH / CELL_SIZE);
     const rows = BATTLE_ROWS;
     const minRow = 0;
@@ -308,6 +325,9 @@ export class EnemyTank {
   }
 
   update(delta, deltaMS, weaponContainer, allEnemies) {
+    const layout = this.getLayout();
+    const { CELL_SIZE, BATTLE_ROWS, WORLD_WIDTH } = layout;
+    
     const cols = Math.floor(WORLD_WIDTH / CELL_SIZE);
     const rows = BATTLE_ROWS;
     const minRow = 0;
@@ -363,8 +383,9 @@ export class EnemyTank {
       this.fireTimer += deltaMS;
       if (this.fireTimer >= ENEMY_FIRE_INTERVAL) {
         this.fireTimer = 0;
-        const muzzleX = sx + Math.cos(angle) * (ENEMY_SIZE * 0.6);
-        const muzzleY = sy + Math.sin(angle) * (ENEMY_SIZE * 0.6);
+        const enemySize = this.currentEnemySize || ENEMY_SIZE;
+        const muzzleX = sx + Math.cos(angle) * (enemySize * 0.6);
+        const muzzleY = sy + Math.sin(angle) * (enemySize * 0.6);
         const bullet = new EnemyBullet(this.app, muzzleX, muzzleY, angle);
         this.bullets.push(bullet);
 
@@ -450,7 +471,9 @@ export class EnemyTank {
       const moveDist = Math.hypot(moveDx, moveDy);
 
       if (moveDist > 0) {
-        const step = (ENEMY_MOVE_SPEED * deltaMS) / 1000;
+        // 速度按比例缩放，保持穿越一个格子的时间不变
+        const scale = layout.scale || 1;
+        const step = (ENEMY_MOVE_SPEED * scale * deltaMS) / 1000;
         const ratio = Math.min(step / moveDist, 1);
         this.sprite.x += moveDx * ratio;
         this.sprite.y += moveDy * ratio;
@@ -467,6 +490,8 @@ export class EnemyTank {
       }
 
       let hit = false;
+      // 获取动态的 TANK_SIZE 用于碰撞检测
+      const dynamicTankSize = layout.TANK_SIZE || TANK_SIZE;
       for (const weapon of weapons) {
         // TankWeapon使用turretHead，其他武器使用turret或container
         const targetDisplay = weapon.turret || weapon.turretHead || weapon.container;
@@ -474,7 +499,7 @@ export class EnemyTank {
         const dx = bullet.sprite.x - targetDisplay.x;
         const dy = bullet.sprite.y - targetDisplay.y;
         const distSq = dx * dx + dy * dy;
-        const hitRadius = bullet.radius + TANK_SIZE * 0.4;
+        const hitRadius = bullet.radius + dynamicTankSize * 0.4;
         if (distSq <= hitRadius * hitRadius) {
           bullet.destroy();
           hit = true;
@@ -529,11 +554,12 @@ export class EnemyTank {
   updateHpBar() {
     if (!this.hpBarBg || !this.hpBarFill) return;
 
+    const enemySize = this.currentEnemySize || ENEMY_SIZE;
     const ratio = Math.max(this.hp / this.maxHp, 0);
-    const barWidth = ENEMY_SIZE * 0.8;
-    const barHeight = 6;
-    const offsetY = ENEMY_SIZE * 0.7;
-    const borderRadius = 3;
+    const barWidth = enemySize * 0.8;
+    const barHeight = 6 * (enemySize / 56); // 按比例缩放
+    const offsetY = enemySize * 0.7;
+    const borderRadius = 3 * (enemySize / 56);
 
     // 背景条（带边框和圆角）
     this.hpBarBg
@@ -565,5 +591,3 @@ export class EnemyTank {
     }
   }
 }
-
-

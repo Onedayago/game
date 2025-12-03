@@ -6,16 +6,16 @@
  * - 直线飞行，不会追踪目标
  * - 碰到武器会造成伤害
  * - 超出边界自动销毁
+ * - 支持响应式布局
  */
 
 import { Graphics } from 'pixi.js';
 import {
-  APP_HEIGHT,
   ENEMY_BULLET_COLOR,
   ENEMY_BULLET_RADIUS,
   ENEMY_BULLET_SPEED,
-  WORLD_WIDTH,
 } from '../../constants';
+import { responsiveLayout } from '../../app/ResponsiveLayout';
 
 /**
  * 敌军子弹类
@@ -32,8 +32,12 @@ export class EnemyBullet {
   constructor(app, x, y, angle) {
     this.app = app;
     this.angle = angle;                   // 飞行角度
-    this.speed = ENEMY_BULLET_SPEED;      // 飞行速度
-    this.radius = ENEMY_BULLET_RADIUS;    // 碰撞半径
+    
+    // 速度和尺寸按比例缩放，保持视觉一致性
+    const layout = responsiveLayout.getLayout();
+    const scale = layout.scale || 1;
+    this.speed = ENEMY_BULLET_SPEED * scale;  // 飞行速度（按比例缩放）
+    this.radius = layout.ENEMY_BULLET_RADIUS || ENEMY_BULLET_RADIUS;  // 碰撞半径（按比例缩放）
 
     // 创建圆形子弹图形
     this.sprite = new Graphics().circle(0, 0, this.radius).fill({ color: ENEMY_BULLET_COLOR });
@@ -63,9 +67,10 @@ export class EnemyBullet {
    * @returns {boolean} 是否超出边界
    */
   isOutOfBounds() {
+    const layout = responsiveLayout.getLayout();
     const { x, y } = this.sprite;
     const r = this.radius;
-    return x < -r || x > WORLD_WIDTH + r || y < -r || y > APP_HEIGHT + r;
+    return x < -r || x > layout.WORLD_WIDTH + r || y < -r || y > layout.BATTLE_HEIGHT + r;
   }
 
   /**
@@ -77,5 +82,3 @@ export class EnemyBullet {
     world.removeChild(this.sprite);
   }
 }
-
-

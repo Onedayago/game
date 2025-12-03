@@ -1,32 +1,30 @@
 import { Graphics, Text } from 'pixi.js';
-import { 
-  ACTION_BUTTON_WIDTH, 
-  ACTION_BUTTON_HEIGHT, 
-  ACTION_BUTTON_RADIUS, 
-  ACTION_BUTTON_FONT_SIZE,
-  ACTION_BUTTON_STROKE_WIDTH,
-  COLORS,
-} from '../../constants';
+import { COLORS } from '../../constants';
+import { responsiveLayout } from '../../app/ResponsiveLayout';
 
 /**
  * 霓虹风格按钮组件
+ * 支持响应式布局
  */
 export class NeonButton extends Graphics {
   constructor(text, color = COLORS.SUCCESS, options = {}) {
     super();
 
+    // 获取当前布局的按钮尺寸
+    const layout = responsiveLayout.getLayout();
     const {
-      width = ACTION_BUTTON_WIDTH,
-      height = ACTION_BUTTON_HEIGHT,
-      radius = ACTION_BUTTON_RADIUS,
-      fontSize = ACTION_BUTTON_FONT_SIZE,
-      strokeWidth = ACTION_BUTTON_STROKE_WIDTH,
+      width = layout.ACTION_BUTTON_WIDTH,
+      height = layout.ACTION_BUTTON_HEIGHT,
+      radius = layout.ACTION_BUTTON_RADIUS,
+      fontSize = layout.ACTION_BUTTON_FONT_SIZE,
+      strokeWidth = layout.ACTION_BUTTON_STROKE_WIDTH,
     } = options;
 
     this.buttonColor = color;
     this.buttonWidth = width;
     this.buttonHeight = height;
     this.buttonRadius = radius;
+    this.strokeWidth = strokeWidth;
 
     // 绘制按钮
     this.draw();
@@ -82,7 +80,7 @@ export class NeonButton extends Graphics {
       this.buttonRadius
     )
       .fill({ color: this.buttonColor, alpha: 0.9 })
-      .stroke({ width: ACTION_BUTTON_STROKE_WIDTH, color: this.buttonColor, alpha: 1 });
+      .stroke({ width: this.strokeWidth, color: this.buttonColor, alpha: 1 });
 
     // 内部高光
     this.roundRect(
@@ -108,6 +106,22 @@ export class NeonButton extends Graphics {
     }
   }
 
+  /**
+   * 响应布局变化
+   */
+  onResize(layout) {
+    this.buttonWidth = layout.ACTION_BUTTON_WIDTH;
+    this.buttonHeight = layout.ACTION_BUTTON_HEIGHT;
+    this.buttonRadius = layout.ACTION_BUTTON_RADIUS;
+    this.strokeWidth = layout.ACTION_BUTTON_STROKE_WIDTH;
+    
+    this.draw();
+    
+    if (this.label) {
+      this.label.style.fontSize = layout.ACTION_BUTTON_FONT_SIZE;
+    }
+  }
+
   onClick(callback) {
     this.on('pointerdown', (event) => {
       if (event && typeof event.stopPropagation === 'function') {
@@ -117,4 +131,3 @@ export class NeonButton extends Graphics {
     });
   }
 }
-

@@ -8,6 +8,7 @@
  * - 实现波次系统，随时间增加难度
  * - 处理敌人击杀奖励
  * - 避免在同一位置重复生成敌人
+ * - 支持响应式布局
  * 
  * 波次系统：
  * - 每15秒一波，波次越高敌人越强
@@ -15,10 +16,11 @@
  * - 敌人血量随波次增加
  */
 
-import { ENEMY_SPAWN_INTERVAL, ENEMY_KILL_REWARD, BATTLE_ROWS, CELL_SIZE } from '../constants';
+import { ENEMY_SPAWN_INTERVAL, ENEMY_KILL_REWARD } from '../constants';
 import { EnemyTank } from '../entities/enemies/enemyTank';
 import { SonicTank } from '../entities/enemies/sonicTank';
 import { SpawnPortal } from '../core/spawnPortal';
+import { responsiveLayout } from '../app/ResponsiveLayout';
 
 /**
  * 敌人管理器类
@@ -56,12 +58,22 @@ export class EnemyManager {
   }
 
   /**
+   * 获取当前布局参数
+   */
+  getLayout() {
+    return responsiveLayout.getLayout();
+  }
+
+  /**
    * 生成一个敌人
    * 在左侧边界随机行位置生成敌人坦克
    * 会尝试避开已有敌人的位置
    * 根据波次和概率决定生成普通坦克还是声波坦克
    */
   spawnEnemy() {
+    const layout = this.getLayout();
+    const { BATTLE_ROWS, CELL_SIZE } = layout;
+    
     const rows = BATTLE_ROWS;
     const minRow = 0;
     const maxRow = rows - 1;
@@ -218,6 +230,15 @@ export class EnemyManager {
   }
 
   /**
+   * 响应尺寸变化
+   * @param {Object} layout - 新的布局参数
+   */
+  onResize(layout) {
+    // 敌人管理器不需要重新创建UI，
+    // 新生成的敌人会自动使用新的布局参数
+  }
+
+  /**
    * 获取所有活跃的敌人
    * @returns {Array<EnemyTank>} 敌人数组
    */
@@ -225,5 +246,3 @@ export class EnemyManager {
     return this.enemies;
   }
 }
-
-

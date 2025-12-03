@@ -7,6 +7,7 @@
  * - 小地图显示（显示敌人、武器和视口位置）
  * - 波次信息显示
  * - 小地图交互（点击/拖动快速定位）
+ * - 支持响应式布局
  * 
  * UI布局：
  * ┌────────────────────────────────────┐
@@ -16,16 +17,10 @@
 
 import { Graphics, Text } from 'pixi.js';
 import {
-  APP_WIDTH,
-  APP_HEIGHT,
-  CELL_SIZE,
   INITIAL_GOLD,
-  WORLD_WIDTH,
   COLORS,
-  BATTLE_HEIGHT,
   GOLD_TEXT_FONT_SIZE,
   GOLD_TEXT_PADDING_X,
-  MINIMAP_WIDTH,
   MINIMAP_HEIGHT_PADDING,
   MINIMAP_HORIZONTAL_MARGIN,
   MINIMAP_VERTICAL_MARGIN,
@@ -39,6 +34,7 @@ import {
   WAVE_TEXT_FONT_SIZE,
   WAVE_TEXT_OFFSET_Y,
 } from '../constants';
+import { responsiveLayout } from '../app/ResponsiveLayout';
 
 /**
  * 金币管理器类
@@ -55,9 +51,12 @@ export class GoldManager {
     this.worldContainer = worldContainer;    // 世界容器引用
     this.isDraggingMinimap = false;         // 是否正在拖动小地图
 
+    // 从响应式布局获取当前尺寸
+    const layout = responsiveLayout.getLayout();
+    
     // 顶部UI栏的尺寸
-    const barHeight = CELL_SIZE;  // 占用一行格子的高度
-    const barWidth = APP_WIDTH;
+    const barHeight = layout.CELL_SIZE;  // 占用一行格子的高度
+    const barWidth = layout.APP_WIDTH;
     const y = 0;
 
     // === 创建背景（霓虹赛博朋克风格） ===
@@ -117,16 +116,17 @@ export class GoldManager {
 
     // ====== 缩略小地图（显示整个战场状态） ======
     // 小地图位置：放在顶部UI栏右上角
-    this.minimapWidth = MINIMAP_WIDTH;
+    this.minimapWidth = layout.MINIMAP_WIDTH;
     this.minimapHeight = Math.max(20, barHeight - MINIMAP_HEIGHT_PADDING);
-    this.minimapX = APP_WIDTH - this.minimapWidth - MINIMAP_HORIZONTAL_MARGIN;
+    this.minimapX = layout.APP_WIDTH - this.minimapWidth - MINIMAP_HORIZONTAL_MARGIN;
     this.minimapY = MINIMAP_VERTICAL_MARGIN;
 
     // 世界战场的总高度（不包含底部武器容器区域）
-    this.worldHeight = BATTLE_HEIGHT;
+    this.worldHeight = layout.BATTLE_HEIGHT;
+    this.worldWidth = layout.WORLD_WIDTH;
 
     // 计算小地图与世界坐标的缩放比例
-    this.minimapScaleX = this.minimapWidth / WORLD_WIDTH;
+    this.minimapScaleX = this.minimapWidth / this.worldWidth;
     this.minimapScaleY = this.minimapHeight / this.worldHeight;
 
     // === 创建小地图背景 - 多层霓虹发光效果 ===
@@ -293,8 +293,9 @@ export class GoldManager {
     // 使用 worldContainer.x 确定可视区域在世界中的位置
     this.minimapViewport.clear();
     if (worldContainer) {
+      const layout = responsiveLayout.getLayout();
       const worldLeft = -worldContainer.x; // 当前视口在世界中的左边界
-      const worldWidthVisible = APP_WIDTH;
+      const worldWidthVisible = layout.APP_WIDTH;
       const vx =
         this.minimapX + worldLeft * this.minimapScaleX;
       const vy = this.minimapY;
@@ -364,6 +365,8 @@ export class GoldManager {
   updateWorldFromMinimap(event) {
     if (!this.worldContainer) return;
     
+    const layout = responsiveLayout.getLayout();
+    
     // 获取点击位置相对于小地图的X坐标
     const globalX = event.global.x;
     const localX = globalX - this.minimapX;
@@ -375,17 +378,82 @@ export class GoldManager {
     const normalized = clampedX / this.minimapWidth;
 
     // 计算世界坐标
-    const worldVisibleWidth = APP_WIDTH;
-    const maxWorldLeft = Math.max(0, WORLD_WIDTH - worldVisibleWidth);
+    const worldVisibleWidth = layout.APP_WIDTH;
+    const maxWorldLeft = Math.max(0, layout.WORLD_WIDTH - worldVisibleWidth);
     
     // 计算期望的世界左边界（点击位置居中）
     const desiredLeft = Math.min(
-      Math.max(normalized * WORLD_WIDTH - worldVisibleWidth / 2, 0),
+      Math.max(normalized * layout.WORLD_WIDTH - worldVisibleWidth / 2, 0),
       maxWorldLeft,
     );
 
     // 更新世界容器位置
     this.worldContainer.x = -desiredLeft;
+  }
+
+  /**
+   * 响应尺寸变化
+   * 重新计算小地图位置和尺寸
+   * @param {Object} layout - 新的布局参数
+   */
+  onResize(layout) {
+    const barHeight = layout.CELL_SIZE;
+    const barWidth = layout.APP_WIDTH;
+    
+    // 更新背景
+    this.bg.clear();
+    this.bg.rect(0, 0, barWidth, barHeight)
+      .fill({ color: COLORS.UI_BG, alpha: 0.98 })
+      .rect(0, 0, barWidth, 3)
+      .fill({ color: COLORS.ALLY_BODY, alpha: 0.3 })
+      .rect(0, barHeight - 3, barWidth, 3)
+      .fill({ color: COLORS.UI_BORDER, alpha: 0.8 })
+      .rect(0, barHeight - 1, barWidth, 1)
+      .fill({ color: COLORS.ALLY_BODY, alpha: 0.6 });
+    
+    // 更新小地图尺寸和位置
+    this.minimapWidth = layout.MINIMAP_WIDTH;
+    this.minimapHeight = Math.max(20, barHeight - MINIMAP_HEIGHT_PADDING);
+    this.minimapX = layout.APP_WIDTH - this.minimapWidth - MINIMAP_HORIZONTAL_MARGIN;
+    this.worldHeight = layout.BATTLE_HEIGHT;
+    this.worldWidth = layout.WORLD_WIDTH;
+    this.minimapScaleX = this.minimapWidth / this.worldWidth;
+    this.minimapScaleY = this.minimapHeight / this.worldHeight;
+    
+    // 重绘小地图背景
+    this.minimapBg.clear();
+    this.minimapBg
+      .roundRect(
+        this.minimapX - 2,
+        this.minimapY - 2,
+        this.minimapWidth + 4,
+        this.minimapHeight + 4,
+        MINIMAP_CORNER_RADIUS + 2,
+      )
+      .fill({ color: COLORS.UI_BORDER, alpha: 0.2 })
+      .roundRect(
+        this.minimapX,
+        this.minimapY,
+        this.minimapWidth,
+        this.minimapHeight,
+        MINIMAP_CORNER_RADIUS,
+      )
+      .fill({ color: COLORS.UI_BG, alpha: 0.95 })
+      .stroke({ width: MINIMAP_BORDER_WIDTH, color: COLORS.UI_BORDER, alpha: 1 })
+      .roundRect(
+        this.minimapX + 2,
+        this.minimapY + 2,
+        this.minimapWidth - 4,
+        this.minimapHeight - 4,
+        MINIMAP_CORNER_RADIUS - 2,
+      )
+      .stroke({ width: 1, color: COLORS.ALLY_BODY, alpha: 0.3 });
+    
+    // 更新波次文本位置
+    this.waveText.position.set(
+      this.minimapX - 8,
+      this.minimapY + WAVE_TEXT_OFFSET_Y,
+    );
   }
 }
 

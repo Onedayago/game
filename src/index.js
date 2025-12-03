@@ -20,6 +20,7 @@ import { createPixiApp } from './app/createPixiApp';
 import { createWorldLayers } from './app/createWorldLayers';
 import { setupStagePanning } from './app/setupStagePanning';
 import { attachGameLoop } from './app/attachGameLoop';
+import { responsiveLayout, onLayoutChange } from './app/ResponsiveLayout';
 
 /**
  * 主函数 - 初始化并启动游戏
@@ -31,6 +32,7 @@ import { attachGameLoop } from './app/attachGameLoop';
  * 5. 附加游戏循环
  * 6. 构建战斗系统
  * 7. 显示游戏UI
+ * 8. 设置响应式布局监听
  */
 async function main() {
   // 创建游戏上下文，用于管理游戏状态和生命周期
@@ -44,7 +46,7 @@ async function main() {
   soundManager.init();
 
   // 创建世界图层容器，用于组织游戏对象的层级关系
-  const { worldContainer } = createWorldLayers(app);
+  const { worldContainer, layoutBackground } = createWorldLayers(app);
   context.setWorld(worldContainer);
 
   // 初始化粒子系统，用于游戏特效
@@ -61,6 +63,9 @@ async function main() {
   const detachTicker = attachGameLoop(context);
   context.attachCleanup(detachTicker);
 
+  // 存储战斗系统引用
+  let battleSystems = null;
+
   // 创建并注册游戏UI系统（需要在buildBattleSystems之前）
   const gameUI = context.registerSystem(
     'gameUI',
@@ -74,7 +79,7 @@ async function main() {
         soundManager.playBackground();
         
         // 构建所有战斗系统
-        buildBattleSystems();
+        battleSystems = buildBattleSystems();
       },
     }),
   );
@@ -103,12 +108,76 @@ async function main() {
     return { gridBackground, weaponContainer, enemyManager };
   };
 
+  /**
+   * 处理布局变化
+   * 当窗口/容器大小改变时，更新所有相关组件
+   */
+  const handleLayoutChange = (layout) => {
+    // 更新世界图层背景
+    if (layoutBackground && typeof layoutBackground.clear === 'function') {
+      redrawLayoutBackground(layoutBackground, layout);
+    }
+    
+    // 更新世界容器位置
+    if (worldContainer) {
+      worldContainer.y = layout.TOP_UI_HEIGHT;
+    }
+    
+    // 更新金币管理器
+    if (goldManager && typeof goldManager.onResize === 'function') {
+      goldManager.onResize(layout);
+    }
+    
+    // 更新游戏UI
+    if (gameUI && typeof gameUI.onResize === 'function') {
+      gameUI.onResize(layout);
+    }
+    
+    // 更新战斗系统
+    if (battleSystems) {
+      if (battleSystems.gridBackground && typeof battleSystems.gridBackground.onResize === 'function') {
+        battleSystems.gridBackground.onResize(layout);
+      }
+      if (battleSystems.weaponContainer && typeof battleSystems.weaponContainer.onResize === 'function') {
+        battleSystems.weaponContainer.onResize(layout);
+      }
+      if (battleSystems.enemyManager && typeof battleSystems.enemyManager.onResize === 'function') {
+        battleSystems.enemyManager.onResize(layout);
+      }
+    }
+  };
+
+  /**
+   * 重绘布局背景
+   */
+  const redrawLayoutBackground = (bg, layout) => {
+    const { APP_WIDTH, APP_HEIGHT, TOP_UI_HEIGHT, BATTLE_HEIGHT } = layout;
+    const bottomHeight = APP_HEIGHT - TOP_UI_HEIGHT - BATTLE_HEIGHT;
+    
+    bg.clear();
+    bg.rect(0, 0, APP_WIDTH, TOP_UI_HEIGHT).fill({ color: 0x0f0a1f });
+    bg.rect(0, TOP_UI_HEIGHT, APP_WIDTH, BATTLE_HEIGHT).fill({ color: 0x0a0014 });
+    bg.rect(0, TOP_UI_HEIGHT + BATTLE_HEIGHT, APP_WIDTH, bottomHeight).fill({ color: 0x0a0a1a });
+  };
+
+  // 注册布局变化监听器
+  onLayoutChange(handleLayoutChange);
+  context.attachCleanup(() => {
+    const { offLayoutChange } = require('./app/ResponsiveLayout');
+    offLayoutChange(handleLayoutChange);
+  });
+
   // 显示游戏开始界面
   gameUI.showStartScreen();
 
   // 在浏览器关闭前清理资源
   if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', () => context.dispose());
+    window.addEventListener('beforeunload', () => {
+      if (app.disposeResize) {
+        app.disposeResize();
+      }
+      context.dispose();
+    });
   }
 }
 
@@ -117,4 +186,3 @@ main().catch((err) => {
   // eslint-disable-next-line no-console
   console.error(err);
 });
-

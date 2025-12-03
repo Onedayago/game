@@ -3,21 +3,28 @@
  * 定义游戏画布、网格、战场等空间布局相关的常量
  * 
  * 布局结构：
- * ┌─────────────────────┐
- * │    顶部 UI 区域      │ TOP_UI_HEIGHT
- * ├─────────────────────┤
- * │                     │
- * │     战斗区域        │ BATTLE_HEIGHT
- * │   (可拖动滚动)       │
- * │                     │
- * ├─────────────────────┤
- * │   底部武器选择区     │ WEAPON_CONTAINER_HEIGHT
- * └─────────────────────┘
+ * ┌─────────────────────────────────────┐
+ * │         顶部 UI 区域                 │ TOP_UI_HEIGHT
+ * ├─────────────────────────────────────┤
+ * │                                     │
+ * │          战斗区域                    │ BATTLE_HEIGHT
+ * │        (可拖动滚动)                  │
+ * │                                     │
+ * ├─────────────────────────────────────┤
+ * │        底部武器选择区                 │ WEAPON_CONTAINER_HEIGHT
+ * └─────────────────────────────────────┘
+ * 
+ * 注意：这些是设计基准值，实际运行时会根据画布大小动态调整
+ * 组件应该使用 responsiveLayout 获取当前实际值
  */
 
 import { COLORS } from './colors';
 
-// === 画布相关常量 ===
+// === 设计基准尺寸（1600x640 设计稿） ===
+export const DESIGN_WIDTH = 1600;
+export const DESIGN_HEIGHT = 640;
+
+// === 画布相关常量（设计基准值） ===
 export const APP_WIDTH = 1600;              // PIXI 画布宽度（px）
 export const APP_HEIGHT = 640;              // PIXI 画布高度（px）
 export const APP_BACKGROUND = 0x0a0014;     // 全局默认背景色（深紫黑赛博朋克）
@@ -57,3 +64,39 @@ export const BATTLE_HEIGHT = BATTLE_ROWS * CELL_SIZE;                           
 export const WORLD_COLS = Math.ceil((APP_WIDTH * 2) / CELL_SIZE); // 战场列数
 export const WORLD_WIDTH = WORLD_COLS * CELL_SIZE;                 // 战场像素宽度
 
+/**
+ * 根据当前布局参数计算动态值
+ * 用于需要响应尺寸变化的组件
+ * 
+ * @param {Object} layout - 来自 responsiveLayout 的布局参数
+ * @returns {Object} 计算后的布局值
+ */
+export function calculateDynamicLayout(layout) {
+  const { APP_WIDTH: w, APP_HEIGHT: h, CELL_SIZE: cell } = layout;
+  
+  const weaponContainerWidth = cell * 10;
+  const weaponContainerHeight = cell * 2.5;
+  const weaponContainerMarginBottom = cell * 0.2;
+  const topUiHeight = cell;
+  
+  const rawBattleSpace = h - topUiHeight - (weaponContainerHeight + weaponContainerMarginBottom * 2);
+  const battleRows = Math.max(1, Math.floor(rawBattleSpace / cell));
+  const battleHeight = battleRows * cell;
+  
+  const worldCols = Math.ceil((w * 2) / cell);
+  const worldWidth = worldCols * cell;
+  
+  return {
+    APP_WIDTH: w,
+    APP_HEIGHT: h,
+    CELL_SIZE: cell,
+    WEAPON_CONTAINER_WIDTH: weaponContainerWidth,
+    WEAPON_CONTAINER_HEIGHT: weaponContainerHeight,
+    WEAPON_CONTAINER_MARGIN_BOTTOM: weaponContainerMarginBottom,
+    TOP_UI_HEIGHT: topUiHeight,
+    BATTLE_ROWS: battleRows,
+    BATTLE_HEIGHT: battleHeight,
+    WORLD_COLS: worldCols,
+    WORLD_WIDTH: worldWidth,
+  };
+}

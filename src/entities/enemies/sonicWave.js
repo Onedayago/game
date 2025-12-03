@@ -7,18 +7,18 @@
  * - 可以同时攻击范围内的多个武器
  * - 有存活时间限制
  * - 视觉效果为波纹扩散
+ * - 支持响应式布局
  */
 
 import { Graphics } from 'pixi.js';
 import {
-  APP_HEIGHT,
-  WORLD_WIDTH,
   SONIC_WAVE_INITIAL_RADIUS,
   SONIC_WAVE_MAX_RADIUS,
   SONIC_WAVE_EXPAND_SPEED,
   SONIC_WAVE_LIFETIME,
   SONIC_WAVE_COLOR,
 } from '../../constants';
+import { responsiveLayout } from '../../app/ResponsiveLayout';
 
 /**
  * 声波类
@@ -33,9 +33,14 @@ export class SonicWave {
    */
   constructor(app, x, y) {
     this.app = app;
+    
+    // 获取当前布局的缩放比例
+    const layout = responsiveLayout.getLayout();
+    const scale = layout.scale || 1;
+    
     this.radius = SONIC_WAVE_INITIAL_RADIUS; // 当前半径
     this.maxRadius = SONIC_WAVE_MAX_RADIUS;  // 最大半径
-    this.expandSpeed = SONIC_WAVE_EXPAND_SPEED; // 扩散速度
+    this.expandSpeed = SONIC_WAVE_EXPAND_SPEED * scale; // 扩散速度（按比例缩放）
     this.lifetime = SONIC_WAVE_LIFETIME;     // 存活时间
     this.age = 0;                            // 已存活时间
     this.hitTargets = new Set();             // 已经击中的目标（防止重复伤害）
@@ -140,8 +145,6 @@ export class SonicWave {
     const distance = Math.sqrt(dx * dx + dy * dy);
     
     // 检查目标是否在当前声波范围内
-    // 使用扩散波纹判定：目标在当前半径内，且在之前还没被标记为击中
-    // 这样声波扩散到目标时就会击中
     const isInWave = distance <= this.radius + targetRadius;
     
     return isInWave;
@@ -164,4 +167,3 @@ export class SonicWave {
     world.removeChild(this.sprite);
   }
 }
-

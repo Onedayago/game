@@ -3,7 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <title>Tower Game - Webpack 前端工程</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 优化移动端显示，禁用缩放以获得更好的游戏体验 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- 防止 iOS Safari 双击缩放 -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <style>
+      /* 优化移动端触摸体验 */
+      html, body {
+        touch-action: manipulation;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* 确保 canvas 清晰显示 */
+      canvas {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+      }
+    </style>
   </head>
   <body>
   </body>

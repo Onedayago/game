@@ -1,21 +1,20 @@
 import { Graphics } from 'pixi.js';
 import {
-  TANK_SIZE,
   LASER_FIRE_INTERVAL,
   LASER_ATTACK_RANGE_CELLS,
-  CELL_SIZE,
   LASER_DAMAGE,
   LASER_BEAM_DURATION,
-  ENEMY_SIZE,
   WEAPON_MAX_HP,
   COLORS,
 } from '../../constants';
+import { responsiveLayout } from '../../app/ResponsiveLayout';
 import { soundManager } from '../../core/soundManager';
 import { particleSystem } from '../../core/particleSystem';
 
 /**
  * 激光塔武器：发射持续性激光束，快速攻击，中等伤害
  * 特点：绿色霓虹主题，持续激光束，高射速
+ * 支持响应式布局
  */
 export class LaserTower {
   constructor(app, gridCol, gridRow, x, y) {
@@ -38,6 +37,11 @@ export class LaserTower {
     this.damage = LASER_DAMAGE;
     this.beamDuration = LASER_BEAM_DURATION;
     this.visualScale = 1;
+
+    // 获取当前布局的 TANK_SIZE
+    const layout = responsiveLayout.getLayout();
+    const TANK_SIZE = layout.TANK_SIZE;
+    this.currentTankSize = TANK_SIZE;
 
     // 创建激光塔炮塔
     const towerRadius = TANK_SIZE * 0.20;
@@ -99,7 +103,7 @@ export class LaserTower {
       const dotX = Math.cos(angle) * baseSize * 0.75;
       const dotY = Math.sin(angle) * baseSize * 0.75;
       this.turret
-        .circle(dotX, dotY, 3)
+        .circle(dotX, dotY, 3 * (TANK_SIZE / 64))
         .fill({ color: COLORS.LASER_DETAIL, alpha: 0.8 });
     }
 
@@ -110,7 +114,7 @@ export class LaserTower {
       const emitX = Math.cos(angle) * emitterDist;
       const emitY = Math.sin(angle) * emitterDist;
       this.turret
-        .roundRect(emitX - 2, emitY - 4, 4, 8, 2)
+        .roundRect(emitX - 2 * (TANK_SIZE / 64), emitY - 4 * (TANK_SIZE / 64), 4 * (TANK_SIZE / 64), 8 * (TANK_SIZE / 64), 2 * (TANK_SIZE / 64))
         .fill({ color: COLORS.LASER_BEAM, alpha: 0.7 });
     }
 
@@ -387,11 +391,12 @@ export class LaserTower {
   updateHpBar() {
     if (!this.hpBarBg || !this.hpBarFill) return;
     
+    const TANK_SIZE = this.currentTankSize;
     const ratio = Math.max(0, this.hp / this.maxHp);
     const barWidth = TANK_SIZE * 0.9;
-    const barHeight = 6;
+    const barHeight = 6 * (TANK_SIZE / 64);
     const offsetY = TANK_SIZE * 0.7;
-    const borderRadius = 3;
+    const borderRadius = 3 * (TANK_SIZE / 64);
 
     // 背景条（带边框和圆角）
     this.hpBarBg.clear()
@@ -422,4 +427,3 @@ export class LaserTower {
     }
   }
 }
-

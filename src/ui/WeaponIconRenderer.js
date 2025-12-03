@@ -1,16 +1,26 @@
 import { Graphics } from 'pixi.js';
-import { TANK_SIZE, COLORS, TANK_COLOR, TANK_BARREL_COLOR } from '../constants';
+import { COLORS, TANK_COLOR, TANK_BARREL_COLOR } from '../constants';
+import { responsiveLayout } from '../app/ResponsiveLayout';
 
 /**
  * 武器图标渲染器
  * 统一管理所有武器图标的绘制逻辑，避免代码重复
+ * 支持响应式布局
  */
 export class WeaponIconRenderer {
+  /**
+   * 获取当前的 TANK_SIZE
+   */
+  static getTankSize() {
+    return responsiveLayout.getLayout().TANK_SIZE;
+  }
+
   /**
    * 创建坦克图标
    * @param {boolean} isGhost - 是否为拖拽幽灵（透明度降低）
    */
   static createTankIcon(isGhost = false) {
+    const TANK_SIZE = this.getTankSize();
     const hullRadius = TANK_SIZE * 0.24;
     const turretRadius = TANK_SIZE * 0.18;
     const barrelLength = TANK_SIZE * 0.75;
@@ -23,10 +33,10 @@ export class WeaponIconRenderer {
     // 阴影
     icon
       .roundRect(
-        -TANK_SIZE / 2 + 4,
-        -TANK_SIZE / 2 + 6,
-        TANK_SIZE - 8,
-        TANK_SIZE - 4,
+        -TANK_SIZE / 2 + 4 * (TANK_SIZE / 64),
+        -TANK_SIZE / 2 + 6 * (TANK_SIZE / 64),
+        TANK_SIZE - 8 * (TANK_SIZE / 64),
+        TANK_SIZE - 4 * (TANK_SIZE / 64),
         hullRadius
       )
       .fill({ color: 0x000000, alpha: 0.22 });
@@ -59,9 +69,9 @@ export class WeaponIconRenderer {
     // 主车体
     icon
       .roundRect(
-        -TANK_SIZE / 2 + 6,
+        -TANK_SIZE / 2 + 6 * (TANK_SIZE / 64),
         -TANK_SIZE / 2 + trackHeight * 0.6,
-        TANK_SIZE - 12,
+        TANK_SIZE - 12 * (TANK_SIZE / 64),
         TANK_SIZE - trackHeight * 1.2,
         hullRadius
       )
@@ -71,14 +81,14 @@ export class WeaponIconRenderer {
     // 装甲亮面与分割线
     icon
       .roundRect(
-        -TANK_SIZE / 2 + 10,
+        -TANK_SIZE / 2 + 10 * (TANK_SIZE / 64),
         -TANK_SIZE / 2 + trackHeight * 0.8,
-        TANK_SIZE - 20,
+        TANK_SIZE - 20 * (TANK_SIZE / 64),
         TANK_SIZE - trackHeight * 1.6,
         hullRadius * 0.85
       )
       .fill({ color: COLORS.ALLY_BODY_DARK, alpha: 0.75 * alpha })
-      .rect(-TANK_SIZE / 2 + 12, 0, TANK_SIZE - 24, 2)
+      .rect(-TANK_SIZE / 2 + 12 * (TANK_SIZE / 64), 0, TANK_SIZE - 24 * (TANK_SIZE / 64), 2 * (TANK_SIZE / 64))
       .fill({ color: COLORS.ALLY_BODY_DARK, alpha: 0.45 * alpha });
 
     // 前灯
@@ -93,19 +103,19 @@ export class WeaponIconRenderer {
     // 侧边防护条
     icon
       .roundRect(
-        -TANK_SIZE / 2 + 8,
+        -TANK_SIZE / 2 + 8 * (TANK_SIZE / 64),
         -TANK_SIZE / 2 + trackHeight * 0.55,
-        6,
+        6 * (TANK_SIZE / 64),
         TANK_SIZE - trackHeight * 1.1,
-        3
+        3 * (TANK_SIZE / 64)
       )
       .fill({ color: 0x0f172a, alpha: 0.4 })
       .roundRect(
-        TANK_SIZE / 2 - 14,
+        TANK_SIZE / 2 - 14 * (TANK_SIZE / 64),
         -TANK_SIZE / 2 + trackHeight * 0.55,
-        6,
+        6 * (TANK_SIZE / 64),
         TANK_SIZE - trackHeight * 1.1,
-        3
+        3 * (TANK_SIZE / 64)
       )
       .fill({ color: 0x0f172a, alpha: 0.4 });
 
@@ -151,6 +161,7 @@ export class WeaponIconRenderer {
    * 创建火箭塔图标
    */
   static createRocketIcon(isGhost = false) {
+    const TANK_SIZE = this.getTankSize();
     const rocketRadius = TANK_SIZE * 0.18;
     const rocketTrackHeight = TANK_SIZE * 0.24;
     const rocketBaseWidth = TANK_SIZE * 0.7;
@@ -173,9 +184,9 @@ export class WeaponIconRenderer {
       .fill({ color: 0x1f2937, alpha })
       .stroke({ width: 2, color: 0x0f172a, alpha })
       .roundRect(
-        -rocketBaseWidth / 2 + 6,
+        -rocketBaseWidth / 2 + 6 * (TANK_SIZE / 64),
         TANK_SIZE * 0.18 + rocketBaseHeight * 0.2,
-        rocketBaseWidth - 12,
+        rocketBaseWidth - 12 * (TANK_SIZE / 64),
         rocketBaseHeight * 0.45,
         rocketBaseHeight * 0.25
       )
@@ -184,7 +195,7 @@ export class WeaponIconRenderer {
     // 条纹装饰
     const stripeWidth = rocketBaseWidth / 5;
     for (let i = 0; i < 4; i += 1) {
-      const sx = -rocketBaseWidth / 2 + 6 + i * stripeWidth;
+      const sx = -rocketBaseWidth / 2 + 6 * (TANK_SIZE / 64) + i * stripeWidth;
       const color = i % 2 === 0 ? COLORS.ROCKET_DETAIL : 0x111827;
       icon
         .roundRect(
@@ -256,6 +267,7 @@ export class WeaponIconRenderer {
    * 创建激光塔图标
    */
   static createLaserIcon(isGhost = false) {
+    const TANK_SIZE = this.getTankSize();
     const coreRadius = TANK_SIZE * 0.12;
     const baseSize = TANK_SIZE * 0.4;
 
@@ -300,7 +312,7 @@ export class WeaponIconRenderer {
       const angle = (Math.PI / 3) * i;
       const dotX = Math.cos(angle) * baseSize * 0.75;
       const dotY = Math.sin(angle) * baseSize * 0.75;
-      icon.circle(dotX, dotY, 3).fill({ color: COLORS.LASER_DETAIL, alpha: 0.8 * alpha });
+      icon.circle(dotX, dotY, 3 * (TANK_SIZE / 64)).fill({ color: COLORS.LASER_DETAIL, alpha: 0.8 * alpha });
     }
 
     // 激光发射器
@@ -310,7 +322,7 @@ export class WeaponIconRenderer {
       const emitX = Math.cos(angle) * emitterDist;
       const emitY = Math.sin(angle) * emitterDist;
       icon
-        .roundRect(emitX - 2, emitY - 4, 4, 8, 2)
+        .roundRect(emitX - 2 * (TANK_SIZE / 64), emitY - 4 * (TANK_SIZE / 64), 4 * (TANK_SIZE / 64), 8 * (TANK_SIZE / 64), 2 * (TANK_SIZE / 64))
         .fill({ color: COLORS.LASER_BEAM, alpha: 0.7 * alpha });
     }
 
@@ -321,6 +333,7 @@ export class WeaponIconRenderer {
    * 创建图标光晕背景
    */
   static createIconGlow(color) {
+    const TANK_SIZE = this.getTankSize();
     return new Graphics()
       .circle(0, 0, TANK_SIZE * 0.65)
       .fill({ color, alpha: 0.15 })
@@ -336,6 +349,7 @@ export class WeaponIconRenderer {
    * 创建拖拽光晕
    */
   static createDragGlow(color) {
+    const TANK_SIZE = this.getTankSize();
     return new Graphics()
       .circle(0, 0, TANK_SIZE * 0.8)
       .fill({ color, alpha: 0.2 })
@@ -360,4 +374,3 @@ export class WeaponIconRenderer {
     }
   }
 }
-

@@ -6,14 +6,10 @@
  * - 只在战斗区域内响应拖动
  * - 限制拖动范围，防止场景移出可视区域
  * - 提供清理函数，用于移除事件监听器
+ * - 支持响应式布局
  */
 
-import {
-  APP_WIDTH,
-  WORLD_WIDTH,
-  TOP_UI_HEIGHT,
-  BATTLE_HEIGHT,
-} from '../constants';
+import { responsiveLayout } from './ResponsiveLayout';
 
 /**
  * 设置舞台平移功能
@@ -28,9 +24,18 @@ export function setupStagePanning(app, worldContainer) {
   let panStartX = 0;          // 拖动开始时的鼠标X坐标
   let worldStartX = 0;        // 拖动开始时世界容器的X坐标
 
-  // 可拖动区域的边界（只在战斗区域内响应拖动）
-  const playableTop = TOP_UI_HEIGHT;
-  const playableBottom = TOP_UI_HEIGHT + BATTLE_HEIGHT;
+  /**
+   * 获取当前布局的可拖动区域边界
+   */
+  const getBounds = () => {
+    const layout = responsiveLayout.getLayout();
+    return {
+      playableTop: layout.TOP_UI_HEIGHT,
+      playableBottom: layout.TOP_UI_HEIGHT + layout.BATTLE_HEIGHT,
+      minX: layout.APP_WIDTH - layout.WORLD_WIDTH,
+      maxX: 0,
+    };
+  };
 
   /**
    * 指针按下事件处理
@@ -38,8 +43,10 @@ export function setupStagePanning(app, worldContainer) {
    */
   const onPointerDown = (event) => {
     const { x, y } = event.global;
+    const bounds = getBounds();
+    
     // 只在战斗区域内响应
-    if (y >= playableTop && y <= playableBottom) {
+    if (y >= bounds.playableTop && y <= bounds.playableBottom) {
       isPanning = true;
       panStartX = x;                    // 记录起始X坐标
       worldStartX = worldContainer.x;   // 记录世界容器起始位置
@@ -53,6 +60,8 @@ export function setupStagePanning(app, worldContainer) {
   const onPointerMove = (event) => {
     if (!isPanning) return;
     
+    const bounds = getBounds();
+    
     // 计算鼠标移动距离
     const dx = event.global.x - panStartX;
     
@@ -60,11 +69,8 @@ export function setupStagePanning(app, worldContainer) {
     let nextX = worldStartX + dx;
     
     // 限制拖动范围
-    const minX = APP_WIDTH - WORLD_WIDTH; // 最小X值（向左拖动的极限）
-    const maxX = 0;                       // 最大X值（向右拖动的极限）
-    
-    if (nextX < minX) nextX = minX;
-    if (nextX > maxX) nextX = maxX;
+    if (nextX < bounds.minX) nextX = bounds.minX;
+    if (nextX > bounds.maxX) nextX = bounds.maxX;
     
     // 更新世界容器位置
     worldContainer.x = nextX;
@@ -99,5 +105,3 @@ export function setupStagePanning(app, worldContainer) {
     app.stage.off('pointerupoutside', stopPanning);
   };
 }
-
-

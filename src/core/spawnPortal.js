@@ -1,10 +1,12 @@
 /**
  * 敌人生成传送门特效
  * 在敌人出现位置显示传送门动画
+ * 支持响应式布局
  */
 
 import { Graphics } from 'pixi.js';
-import { COLORS, CELL_SIZE } from '../constants';
+import { COLORS } from '../constants';
+import { responsiveLayout } from '../app/ResponsiveLayout';
 
 /**
  * 传送门特效类
@@ -23,7 +25,10 @@ export class SpawnPortal {
     this.color = color;
     this.age = 0;
     this.lifetime = 800; // 存活时间（毫秒）
-    this.maxRadius = CELL_SIZE * 0.7;
+    
+    // 从响应式布局获取当前格子大小
+    const layout = responsiveLayout.getLayout();
+    this.maxRadius = layout.CELL_SIZE * 0.7;
     
     // 创建传送门图形
     this.sprite = new Graphics();
@@ -134,4 +139,3 @@ export class SpawnPortal {
     world.removeChild(this.sprite);
   }
 }
-

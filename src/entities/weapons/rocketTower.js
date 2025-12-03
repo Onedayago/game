@@ -1,19 +1,22 @@
 import { Graphics } from 'pixi.js';
 import {
-  TANK_SIZE,
   TANK_FIRE_INTERVAL,
   TANK_ATTACK_RANGE_CELLS,
   BULLET_RADIUS,
   BULLET_SPEED,
   BULLET_DAMAGE,
   WEAPON_MAX_HP,
-  ENEMY_SIZE,
   COLORS,
 } from '../../constants';
+import { responsiveLayout } from '../../app/ResponsiveLayout';
 import { soundManager } from '../../core/soundManager';
 import { particleSystem } from '../../core/particleSystem';
 import { HomingRocket } from './homingRocket';
 
+/**
+ * 火箭塔武器：发射追踪火箭，高伤害，追踪能力
+ * 支持响应式布局
+ */
 export class RocketTower {
   constructor(app, gridCol, gridRow, x, y) {
     this.app = app;
@@ -30,10 +33,16 @@ export class RocketTower {
     this.hitFlashTimer = 0;
 
     this.fireInterval = TANK_FIRE_INTERVAL * 1.2;
-    this.bulletRadius = BULLET_RADIUS * 1.05;
+    this.bulletRadius = BULLET_RADIUS * 0.6;  // 缩小火箭尺寸
     this.bulletSpeed = BULLET_SPEED * 1.1;
     this.bulletColor = COLORS.ROCKET_BULLET;
     this.visualScale = 1;
+
+    // 获取当前布局的 TANK_SIZE 和 ENEMY_SIZE
+    const layout = responsiveLayout.getLayout();
+    const TANK_SIZE = layout.TANK_SIZE;
+    this.currentTankSize = TANK_SIZE;
+    this.currentEnemySize = layout.ENEMY_SIZE;
 
     const baseWidth = TANK_SIZE * 0.7;
     const baseHeight = TANK_SIZE * 0.3;
@@ -47,17 +56,17 @@ export class RocketTower {
     this.turret
       .roundRect(
         -baseWidth / 2,
-        -TANK_SIZE / 2 + 8,
+        -TANK_SIZE / 2 + 8 * (TANK_SIZE / 64),
         baseWidth,
-        TANK_SIZE - 10,
+        TANK_SIZE - 10 * (TANK_SIZE / 64),
         TANK_SIZE * 0.18,
       )
       .fill({ color: 0x000000, alpha: 0.35 })
       .roundRect(
-        -baseWidth / 2 + 4,
-        -TANK_SIZE / 2 + 10,
-        baseWidth - 8,
-        TANK_SIZE - 14,
+        -baseWidth / 2 + 4 * (TANK_SIZE / 64),
+        -TANK_SIZE / 2 + 10 * (TANK_SIZE / 64),
+        baseWidth - 8 * (TANK_SIZE / 64),
+        TANK_SIZE - 14 * (TANK_SIZE / 64),
         TANK_SIZE * 0.15,
       )
       .fill({ color: 0x000000, alpha: 0.15 });
@@ -74,9 +83,9 @@ export class RocketTower {
       .fill({ color: 0x1f2937 })
       .stroke({ width: 2.5, color: 0x0f172a, alpha: 1 })
       .roundRect(
-        -baseWidth / 2 + 6,
+        -baseWidth / 2 + 6 * (TANK_SIZE / 64),
         TANK_SIZE / 2 - baseHeight * 0.75,
-        baseWidth - 12,
+        baseWidth - 12 * (TANK_SIZE / 64),
         baseHeight * 0.45,
         baseHeight * 0.25,
       )
@@ -86,7 +95,7 @@ export class RocketTower {
     // 底座装甲条纹（增强对比）
     const stripeWidth = baseWidth / 5;
     for (let i = 0; i < 4; i += 1) {
-      const sx = -baseWidth / 2 + 6 + i * stripeWidth;
+      const sx = -baseWidth / 2 + 6 * (TANK_SIZE / 64) + i * stripeWidth;
       const color = i % 2 === 0 ? COLORS.ROCKET_DETAIL : 0x111827;
       this.turret
         .roundRect(
@@ -103,10 +112,10 @@ export class RocketTower {
     // 主塔身（多层结构）
     this.turret
       .roundRect(
-        -towerWidth / 2 - 2,
-        -towerHeight / 2 - 2,
-        towerWidth + 4,
-        towerHeight + 4,
+        -towerWidth / 2 - 2 * (TANK_SIZE / 64),
+        -towerHeight / 2 - 2 * (TANK_SIZE / 64),
+        towerWidth + 4 * (TANK_SIZE / 64),
+        towerHeight + 4 * (TANK_SIZE / 64),
         towerWidth * 0.5,
       )
       .fill({ color: COLORS.ROCKET_BODY, alpha: 0.15 })
@@ -123,9 +132,9 @@ export class RocketTower {
     // 塔身高光
     this.turret
       .roundRect(
-        -towerWidth / 2 + 3,
-        -towerHeight / 2 + 3,
-        towerWidth - 6,
+        -towerWidth / 2 + 3 * (TANK_SIZE / 64),
+        -towerHeight / 2 + 3 * (TANK_SIZE / 64),
+        towerWidth - 6 * (TANK_SIZE / 64),
         towerHeight * 0.25,
         towerWidth * 0.4,
       )
@@ -192,9 +201,9 @@ export class RocketTower {
       .fill({ color: COLORS.ROCKET_BULLET })
       .stroke({ width: 1.5, color: COLORS.ROCKET_BODY, alpha: 0.8 })
       // 弹头条纹
-      .rect(-towerWidth * 0.22, -towerHeight * 0.35, towerWidth * 0.44, 2)
+      .rect(-towerWidth * 0.22, -towerHeight * 0.35, towerWidth * 0.44, 2 * (TANK_SIZE / 64))
       .fill({ color: 0x000000, alpha: 0.4 })
-      .rect(-towerWidth * 0.22, -towerHeight * 0.25, towerWidth * 0.44, 2)
+      .rect(-towerWidth * 0.22, -towerHeight * 0.25, towerWidth * 0.44, 2 * (TANK_SIZE / 64))
       .fill({ color: 0x000000, alpha: 0.4 });
 
     // 顶部雷达/天线（多层光环）
@@ -248,16 +257,16 @@ export class RocketTower {
 
   applyLevelStats() {
     if (this.level === 1) {
-    this.fireInterval = TANK_FIRE_INTERVAL * 1.2;
-    this.bulletRadius = BULLET_RADIUS * 1.05;
+      this.fireInterval = TANK_FIRE_INTERVAL * 1.2;
+      this.bulletRadius = BULLET_RADIUS * 0.6;  // 缩小火箭尺寸
       this.bulletSpeed = BULLET_SPEED * 1.1;
     } else if (this.level === 2) {
       this.fireInterval = TANK_FIRE_INTERVAL * 1.0;
-      this.bulletRadius = BULLET_RADIUS * 1.25;
+      this.bulletRadius = BULLET_RADIUS * 0.7;  // 缩小火箭尺寸
       this.bulletSpeed = BULLET_SPEED * 1.25;
     } else if (this.level === 3) {
       this.fireInterval = TANK_FIRE_INTERVAL * 0.8;
-      this.bulletRadius = BULLET_RADIUS * 1.45;
+      this.bulletRadius = BULLET_RADIUS * 0.8;  // 缩小火箭尺寸
       this.bulletSpeed = BULLET_SPEED * 1.35;
     }
   }
@@ -326,6 +335,11 @@ export class RocketTower {
     }
 
     this.updateHpBar();
+    
+    // 获取当前敌人尺寸
+    const layout = responsiveLayout.getLayout();
+    const ENEMY_SIZE = layout.ENEMY_SIZE;
+    
     const enemyList = Array.isArray(enemies) ? enemies : [];
     const aliveBullets = [];
     this.bullets.forEach((rocket) => {
@@ -398,6 +412,7 @@ export class RocketTower {
   }
 
   fire(angle, target) {
+    const TANK_SIZE = this.currentTankSize;
     const barrelLength = TANK_SIZE * 0.7;
     const muzzleX = this.turret.x + Math.cos(angle) * barrelLength;
     const muzzleY = this.turret.y + Math.sin(angle) * barrelLength;
@@ -428,11 +443,13 @@ export class RocketTower {
 
   updateHpBar() {
     if (!this.hpBarBg || !this.hpBarFill) return;
+    
+    const TANK_SIZE = this.currentTankSize;
     const ratio = Math.max(this.hp / this.maxHp, 0);
     const hpBarWidth = TANK_SIZE * 0.9;
-    const hpBarHeight = 6;
+    const hpBarHeight = 6 * (TANK_SIZE / 64);
     const offsetY = TANK_SIZE * 0.75;
-    const borderRadius = 3;
+    const borderRadius = 3 * (TANK_SIZE / 64);
 
     // 背景条（带边框和圆角）
     this.hpBarBg.clear()
@@ -463,5 +480,3 @@ export class RocketTower {
     }
   }
 }
-
-
