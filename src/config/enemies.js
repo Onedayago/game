@@ -37,3 +37,15 @@ export const SONIC_WAVE_LIFETIME = 2000;                   // 声波存活时间
 export const SONIC_WAVE_COLOR = 0x8b5cf6;                  // 声波颜色（紫色）
 export const SONIC_WAVE_DAMAGE = 2;                        // 声波伤害（比普通子弹高）
 
+// === 敌人管理器配置 ===
+export const ENEMY_MIN_SPAWN_INTERVAL = 800;       // 最小生成间隔（毫秒）
+export const ENEMY_WAVE_DURATION = 15000;          // 每波持续时间（15秒）
+export const ENEMY_HP_BONUS_PER_WAVE = 2;          // 每波增加的血量
+export const ENEMY_SPAWN_INTERVAL_REDUCTION_RATE = 0.92; // 每波生成间隔递减率
+
+// === 敌人动画配置 ===
+export const ENEMY_IDLE_ANIM_SPEED = 0.0015;       // 待机动画速度
+export const ENEMY_IDLE_PULSE_AMPLITUDE = 0.03;    // 待机脉冲幅度
+export const ENEMY_HIT_FLASH_DURATION = 150;       // 受击闪烁时长（毫秒）
+export const ENEMY_HIT_FLASH_FREQUENCY = 5;        // 受击闪烁频率
+

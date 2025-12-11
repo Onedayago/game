@@ -27,6 +27,7 @@ export function createWorldLayers(app) {
   // 从响应式布局管理器获取当前尺寸
   const layout = responsiveLayout.getLayout();
   const { APP_WIDTH, APP_HEIGHT, TOP_UI_HEIGHT, BATTLE_HEIGHT } = layout;
+  console.log(APP_WIDTH, APP_HEIGHT, TOP_UI_HEIGHT);
   
   // 创建布局背景图形，用于绘制三个区域的背景色
   const layoutBackground = new Graphics();

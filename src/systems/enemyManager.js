@@ -16,7 +16,14 @@
  * - 敌人血量随波次增加
  */
 
-import { ENEMY_SPAWN_INTERVAL, ENEMY_KILL_REWARD } from '../constants';
+import { 
+  ENEMY_SPAWN_INTERVAL, 
+  ENEMY_KILL_REWARD,
+  ENEMY_MIN_SPAWN_INTERVAL,
+  ENEMY_WAVE_DURATION,
+  ENEMY_HP_BONUS_PER_WAVE,
+  ENEMY_SPAWN_INTERVAL_REDUCTION_RATE,
+} from '../constants';
 import { EnemyTank } from '../entities/enemies/enemyTank';
 import { SonicTank } from '../entities/enemies/sonicTank';
 import { SpawnPortal } from '../core/spawnPortal';
@@ -47,13 +54,13 @@ export class EnemyManager {
     this.timeSinceLastSpawn = 0;             // 距上次生成的时间
     this.baseSpawnInterval = ENEMY_SPAWN_INTERVAL; // 基础生成间隔
     this.spawnInterval = this.baseSpawnInterval;   // 当前生成间隔
-    this.minSpawnInterval = 800;             // 最小生成间隔（毫秒）
+    this.minSpawnInterval = ENEMY_MIN_SPAWN_INTERVAL; // 最小生成间隔（毫秒）
     
     // 波次系统
-    this.waveDuration = 15000;               // 每波持续时间（15秒）
+    this.waveDuration = ENEMY_WAVE_DURATION; // 每波持续时间
     this.waveTimer = 0;                      // 当前波次计时器
     this.waveLevel = 1;                      // 当前波次等级
-    this.hpBonusPerWave = 2;                 // 每波增加的血量
+    this.hpBonusPerWave = ENEMY_HP_BONUS_PER_WAVE; // 每波增加的血量
     this.hpBonus = 0;                        // 当前波次的血量加成
   }
 
