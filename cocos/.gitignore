@@ -1,0 +1,28 @@
+# Cocos Creator 项目忽略文件
+
+# 构建输出
+build/
+temp/
+library/
+local/
+
+# 编辑器文件
+.creator/
+profile*/
+
+# npm
+node_modules/
+package-lock.json
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# 日志
+*.log
+npm-debug.log*
+

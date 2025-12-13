@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "module": "ES2015",
+    "lib": ["ES2015", "DOM", "DOM.Iterable"],
+    "target": "ES2015",
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "types": ["@cocos/creator-types"],
+    "baseUrl": "./",
+    "paths": {
+      "db://*": ["./assets/*"]
+    }
+  },
+  "include": [
+    "assets/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "temp",
+    "library",
+    "local",
+    "build"
+  ]
+}
+

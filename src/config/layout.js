@@ -28,12 +28,9 @@ export const DESIGN_HEIGHT = 640;
 export const APP_WIDTH = 1600;              // PIXI 画布宽度（px）
 export const APP_HEIGHT = 640;              // PIXI 画布高度（px）
 export const APP_BACKGROUND = 0x0a0014;     // 全局默认背景色（深紫黑赛博朋克）
-export const APP_ANTIALIAS = true;          // 是否开启抗锯齿
 export const TOP_UI_BG_COLOR = 0x0f0a1f;    // 顶部 UI 区域背景色（深紫）
 export const BOTTOM_UI_BG_COLOR = 0x0a0a1a; // 底部武器库背景色（深蓝紫）
 
-// === DOM 相关常量 ===
-export const BODY_MARGIN = '0'; // <body> 外边距（避免滚动条白边）
 
 // === 网格与线条相关常量 ===
 export const CELL_SIZE = 80;               // 每个格子的边长（px）

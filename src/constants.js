@@ -20,3 +20,6 @@ export * from './config/enemies';
 
 // 导出武器类型配置常量
 export * from './config/weaponTypes';
+
+// 导出视觉效果配置常量
+export * from './config/visual';
