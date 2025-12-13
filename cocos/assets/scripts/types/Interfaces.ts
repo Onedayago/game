@@ -4,7 +4,7 @@
  */
 
 import { Node, Vec3 } from 'cc';
-import { WeaponType } from '../config/GameConfig';
+import { WeaponType } from '../config/WeaponConfig';
 
 /**
  * 基础实体接口

@@ -3,7 +3,7 @@
  * 从左向右移动，攻击我方武器
  */
 
-import { _decorator, Vec3, Graphics, instantiate, Prefab, Component } from 'cc';
+import { _decorator, Vec3, Graphics, instantiate, Prefab } from 'cc';
 import { EnemyBase } from '../base/EnemyBase';
 import { GameConfig } from '../../config/GameConfig';
 import { GameColors } from '../../config/Colors';
@@ -33,12 +33,10 @@ export class EnemyTank extends EnemyBase {
     }
     
     /**
-     * 创建敌人坦克视觉（使用统一渲染器）
+     * 创建敌人坦克视觉
      */
     private createVisual() {
-        const graphics = this.node.addComponent(Graphics);
-        if (!graphics) return;
-        
+        const graphics = this.node.getComponent(Graphics) || this.node.addComponent(Graphics);
         const size = GameConfig.ENEMY_SIZE;
         EnemyRenderer.renderEnemyTank(graphics, size);
     }

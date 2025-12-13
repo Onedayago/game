@@ -32,10 +32,10 @@ export class SonicTank extends EnemyBase {
     }
     
     /**
-     * 创建声波坦克视觉（参考原游戏设计）
+     * 创建声波坦克视觉
      */
     private createVisual() {
-        const graphics = this.node.addComponent(Graphics);
+        const graphics = this.node.getComponent(Graphics) || this.node.addComponent(Graphics);
         if (!graphics) return;
         
         const SONIC_SIZE = GameConfig.CELL_SIZE * 0.6;  // 比普通坦克稍大，但确保血条不超出格子

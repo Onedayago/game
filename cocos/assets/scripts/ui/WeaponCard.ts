@@ -4,7 +4,7 @@
  */
 
 import { _decorator, Component, Node, Button, Label, Sprite, Color } from 'cc';
-import { WeaponType, WeaponConfigs } from '../config/GameConfig';
+import { WeaponType, WeaponConfigs } from '../config/WeaponConfig';
 
 const { ccclass, property } = _decorator;
 

@@ -5,7 +5,8 @@
 
 import { _decorator, Component, Node, Prefab, instantiate, Vec3 } from 'cc';
 import { GameContext } from '../core/GameContext';
-import { GameConfig, WeaponType } from '../config/GameConfig';
+import { GameConfig } from '../config/GameConfig';
+import { WeaponType } from '../config/WeaponConfig';
 import { GoldManager } from './GoldManager';
 
 const { ccclass, property } = _decorator;
