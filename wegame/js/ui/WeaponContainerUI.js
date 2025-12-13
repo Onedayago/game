@@ -29,7 +29,6 @@ export class WeaponContainerUI {
    */
   init() {
     // TODO: 初始化武器容器 UI
-    console.log('武器容器 UI 初始化');
   }
   
   /**

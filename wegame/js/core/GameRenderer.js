@@ -11,7 +11,6 @@ export class GameRenderer {
   constructor(ctx, gameContext) {
     this.ctx = ctx;
     this.gameContext = gameContext;
-    this.saveCount = 0; // 跟踪 save/restore 调用次数，优化性能
   }
   
   /**
@@ -25,8 +24,7 @@ export class GameRenderer {
       particleManager,
       weaponContainerUI,
       startScreen,
-      goldManager,
-      performanceMonitor
+      goldManager
     } = managers;
     
     // 清空画布
@@ -40,9 +38,8 @@ export class GameRenderer {
       this.ctx.fillRect(0, 0, windowWidth, windowHeight);
     }
     
-    // 保存上下文状态（优化：只在需要变换时保存）
+    // 保存上下文状态
     this.ctx.save();
-    this.saveCount++;
     
     // 应用战场偏移（拖拽）
     const gameContext = this.gameContext;
@@ -50,11 +47,9 @@ export class GameRenderer {
     const offsetY = 0;
     this.ctx.translate(offsetX, offsetY);
     
-    // 测量背景渲染耗时
+    // 渲染背景
     if (backgroundRenderer) {
-      if (performanceMonitor) performanceMonitor.startMeasure('backgroundRender');
       backgroundRenderer.render();
-      if (performanceMonitor) performanceMonitor.endMeasure('backgroundRender');
     }
     
     // 计算视锥范围（考虑战场偏移）
@@ -66,43 +61,20 @@ export class GameRenderer {
     // 更新和渲染武器（需要传入敌人列表用于寻找目标）
     if (weaponManager) {
       const enemies = enemyManager ? enemyManager.getEnemies() : [];
-      
-      // 批量更新目标查找（优化性能，限制频率）
-      if (enemies.length > 0 && weaponManager.weapons.length > 0) {
-        if (performanceMonitor) performanceMonitor.startMeasure('batchTargetFind');
-        weaponManager.batchUpdateTargets(enemies, deltaMS);
-        if (performanceMonitor) performanceMonitor.endMeasure('batchTargetFind');
-      }
-      
-      // 测量武器管理器更新和渲染耗时
-      if (performanceMonitor) performanceMonitor.startMeasure('weaponManagerUpdate');
       weaponManager.update(deltaTime, deltaMS, enemies);
-      if (performanceMonitor) performanceMonitor.endMeasure('weaponManagerUpdate');
-      
-      if (performanceMonitor) performanceMonitor.startMeasure('weaponManagerRender');
       weaponManager.render(viewLeft, viewRight, viewTop, viewBottom);
-      if (performanceMonitor) performanceMonitor.endMeasure('weaponManagerRender');
     }
     
     // 更新和渲染敌人（需要传入武器列表用于寻找目标）
     if (enemyManager) {
       const weapons = weaponManager ? weaponManager.getWeapons() : [];
-      
-      // 测量敌人管理器更新和渲染耗时
-      if (performanceMonitor) performanceMonitor.startMeasure('enemyManagerUpdate');
       enemyManager.update(deltaTime, deltaMS, weapons);
-      if (performanceMonitor) performanceMonitor.endMeasure('enemyManagerUpdate');
-      
-      if (performanceMonitor) performanceMonitor.startMeasure('enemyManagerRender');
       enemyManager.render(viewLeft, viewRight, viewTop, viewBottom);
-      if (performanceMonitor) performanceMonitor.endMeasure('enemyManagerRender');
     }
     
-    // 测量粒子渲染耗时
+    // 渲染粒子
     if (particleManager) {
-      if (performanceMonitor) performanceMonitor.startMeasure('particleManagerRender');
       particleManager.render();
-      if (performanceMonitor) performanceMonitor.endMeasure('particleManagerRender');
     }
     
     // 渲染拖拽预览（在战场区域内）
@@ -129,10 +101,6 @@ export class GameRenderer {
     
     // 恢复上下文状态
     this.ctx.restore();
-    this.saveCount--;
-    
-    // 测量 UI 渲染耗时
-    if (managers.performanceMonitor) managers.performanceMonitor.startMeasure('uiRender');
     
     // 渲染 UI（不受战场偏移影响）
     if (weaponContainerUI) {
@@ -157,8 +125,6 @@ export class GameRenderer {
     if (managers.battlefieldMinimap) {
       managers.battlefieldMinimap.render();
     }
-    
-    if (managers.performanceMonitor) managers.performanceMonitor.endMeasure('uiRender');
   }
 }
 

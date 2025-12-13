@@ -17,7 +17,6 @@ export class EnemyRenderer {
    * @param {number} angle - 角度（弧度）
    */
   static renderEnemyTank(ctx, x, y, size, angle = 0) {
-    // 优化：只在需要旋转时才执行 rotate，但总是需要 save/restore 来恢复 translate
     const needsRotation = Math.abs(angle) > 0.01;
     
     polyfillRoundRect(ctx);
@@ -76,7 +75,6 @@ export class EnemyRenderer {
     // === 炮管 ===
     this.drawBarrel(ctx, barrelLength, barrelHalfHeight, detailColor, enemyDarkColor, enemyColor);
     
-    // 恢复上下文（包括 translate 和可能的 rotate）
     ctx.restore();
   }
   

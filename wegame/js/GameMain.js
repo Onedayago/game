@@ -19,7 +19,6 @@ import { initCanvasUtils } from './utils/CanvasUtils';
 import { GameInputHandler } from './core/GameInputHandler';
 import { GameRenderer } from './core/GameRenderer';
 import { GameLoop } from './core/GameLoop';
-import { PerformanceMonitor } from './core/PerformanceMonitor';
 
 export default class GameMain {
   constructor(canvas, ctx) {
@@ -28,9 +27,6 @@ export default class GameMain {
     
     // 游戏上下文
     this.gameContext = GameContext.getInstance();
-    
-    // 性能监控器
-    this.performanceMonitor = new PerformanceMonitor();
     
     // 管理器
     this.backgroundRenderer = null;
@@ -50,6 +46,11 @@ export default class GameMain {
     this.gameLoop = new GameLoop();
     this.gameRenderer = null;
     this.inputHandler = new GameInputHandler(this.gameContext);
+    
+    // FPS 监控
+    this.fpsFrameCount = 0;
+    this.fpsLastTime = Date.now();
+    this.fps = 60;
   }
   
   /**
@@ -122,8 +123,6 @@ export default class GameMain {
   createManagers() {
     // 背景渲染器
     this.backgroundRenderer = new BackgroundRenderer(this.ctx);
-    // 初始化背景网格（只绘制一次）
-    this.backgroundRenderer.init();
     
     // 金币管理器
     this.goldManager = new GoldManager();
@@ -275,31 +274,36 @@ export default class GameMain {
    * 更新回调
    */
   onUpdate(deltaTime, deltaMS) {
-    // 开始测量更新时间
-    this.performanceMonitor.startUpdate();
+    // 计算FPS
+    this.updateFPS();
     
     if (this.gameContext.gameStarted && !this.gameContext.gamePaused) {
       this.update(deltaTime, deltaMS);
     }
+  }
+  
+  /**
+   * 更新FPS
+   */
+  updateFPS() {
+    this.fpsFrameCount++;
+    const currentTime = Date.now();
+    const elapsed = currentTime - this.fpsLastTime;
     
-    // 结束测量更新时间
-    this.performanceMonitor.endUpdate();
-    
-    // 更新性能监控
-    this.performanceMonitor.update(deltaMS);
+    // 每秒更新一次FPS
+    if (elapsed >= 1000) {
+      this.fps = Math.round((this.fpsFrameCount * 1000) / elapsed);
+      console.log(`FPS: ${this.fps}`);
+      this.fpsFrameCount = 0;
+      this.fpsLastTime = currentTime;
+    }
   }
   
   /**
    * 渲染回调
    */
   onRender(deltaTime, deltaMS) {
-    // 开始测量渲染时间
-    this.performanceMonitor.startRender();
-    
     this.render(deltaTime, deltaMS);
-    
-    // 结束测量渲染时间
-    this.performanceMonitor.endRender();
   }
   
   /**
@@ -319,11 +323,9 @@ export default class GameMain {
       this.goldManager.update();
     }
     
-    // 测量粒子管理器更新耗时
+    // 更新粒子管理器
     if (this.particleManager) {
-      this.performanceMonitor.startMeasure('particleManagerUpdate');
       this.particleManager.update(deltaTime);
-      this.performanceMonitor.endMeasure('particleManagerUpdate');
     }
     
     // 更新 UI
@@ -335,41 +337,6 @@ export default class GameMain {
     if (this.startScreen) {
       this.startScreen.update(deltaMS);
     }
-    
-    // 更新对象数量统计
-    this.updatePerformanceCounts();
-  }
-  
-  /**
-   * 更新性能统计的对象数量
-   */
-  updatePerformanceCounts() {
-    const counts = {
-      weapons: this.weaponManager ? this.weaponManager.weapons.length : 0,
-      enemies: this.enemyManager ? this.enemyManager.enemies.length : 0,
-      particles: this.particleManager ? this.particleManager.particles.length : 0,
-      rockets: 0,
-      bullets: 0
-    };
-    
-    // 统计火箭和子弹数量
-    if (this.weaponManager) {
-      for (const weapon of this.weaponManager.weapons) {
-        if (weapon.rockets) {
-          counts.rockets += weapon.rockets.length;
-        }
-      }
-    }
-    
-    if (this.enemyManager) {
-      for (const enemy of this.enemyManager.enemies) {
-        if (enemy.bullets) {
-          counts.bullets += enemy.bullets.length;
-        }
-      }
-    }
-    
-    this.performanceMonitor.updateObjectCounts(counts);
   }
   
   /**
@@ -388,8 +355,7 @@ export default class GameMain {
         startScreen: this.startScreen,
         helpScreen: this.helpScreen,
         goldManager: this.goldManager,
-        battlefieldMinimap: this.battlefieldMinimap,
-        performanceMonitor: this.performanceMonitor
+        battlefieldMinimap: this.battlefieldMinimap
       });
     }
   }

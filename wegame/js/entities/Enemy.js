@@ -68,7 +68,7 @@ export class Enemy {
   }
   
   /**
-   * 更新敌人
+   * 更新敌人（优化：减少目标验证频率）
    */
   update(deltaTime, deltaMS, weapons) {
     if (this.destroyed || this.finished) return;
@@ -76,45 +76,58 @@ export class Enemy {
     this.timeSinceLastFire += deltaMS;
     this.targetSearchTimer += deltaMS;
     
-    // 降低目标查找频率：每200ms查找一次，而不是每帧
+    // 降低目标查找频率：每300ms查找一次，而不是每帧
     const shouldSearchTarget = this.targetSearchTimer >= this.TARGET_SEARCH_INTERVAL || !this.currentTarget;
     
     if (shouldSearchTarget) {
       this.targetSearchTimer = 0;
       
-      // 寻找目标武器
-      const target = EnemyTargeting.findNearestWeapon(this, weapons);
-      
-      if (target) {
-        this.currentTarget = target;
+      // 如果当前目标无效，清除它
+      if (this.currentTarget && !EnemyTargeting.isTargetValid(this.currentTarget)) {
+        this.currentTarget = null;
         this.targetLostTime = 0;
+      }
+      
+      // 如果没有目标，寻找新目标
+      if (!this.currentTarget) {
+        const target = EnemyTargeting.findNearestWeapon(this, weapons);
+        if (target) {
+          this.currentTarget = target;
+          this.targetLostTime = 0;
+        }
       }
     }
     
-    // 如果有目标，攻击目标
+    // 如果有目标，攻击目标（优化：减少每帧的距离计算）
     if (this.currentTarget) {
-      // 检查锁定目标是否仍然有效
-      if (EnemyTargeting.isTargetValid(this.currentTarget)) {
-        const attackRangeSq = (this.attackRange * GameConfig.CELL_SIZE) ** 2;
-        const distSq = EnemyTargeting.getDistanceSqToTarget(this, this.currentTarget);
-        
-        if (distSq <= attackRangeSq) {
+      // 只在查找目标时验证有效性，减少每帧验证
+      if (shouldSearchTarget) {
+        // 检查锁定目标是否仍然有效
+        if (!EnemyTargeting.isTargetValid(this.currentTarget)) {
+          this.currentTarget = null;
           this.targetLostTime = 0;
-          this.attackTarget(this.currentTarget, deltaMS);
+          this.timeSinceLastFire = 0;
         } else {
-          this.targetLostTime += deltaMS;
-          if (this.targetLostTime <= this.TARGET_LOCK_DURATION) {
-            this.attackTarget(this.currentTarget, deltaMS);
+          // 验证距离（只在查找目标时）
+          const attackRangeSq = (this.attackRange * GameConfig.CELL_SIZE) ** 2;
+          const distSq = EnemyTargeting.getDistanceSqToTarget(this, this.currentTarget);
+          
+          if (distSq > attackRangeSq) {
+            this.targetLostTime += deltaMS;
+            if (this.targetLostTime > this.TARGET_LOCK_DURATION) {
+              this.currentTarget = null;
+              this.targetLostTime = 0;
+              this.timeSinceLastFire = 0;
+            }
           } else {
-            this.currentTarget = null;
             this.targetLostTime = 0;
-            this.timeSinceLastFire = 0;
           }
         }
-      } else {
-        this.currentTarget = null;
-        this.targetLostTime = 0;
-        this.timeSinceLastFire = 0;
+      }
+      
+      // 如果目标仍然有效，攻击它
+      if (this.currentTarget && this.targetLostTime <= this.TARGET_LOCK_DURATION) {
+        this.attackTarget(this.currentTarget, deltaMS);
       }
     }
     

@@ -202,13 +202,14 @@ export class BattlefieldMinimap {
     const scaleX = this.width / GameConfig.BATTLE_WIDTH;
     const scaleY = this.height / (GameConfig.BATTLE_ROWS * GameConfig.CELL_SIZE);
     
-    // 绘制网格（更精细的样式）
-    this.ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.GRID_LINE, 0.25);
+    // 绘制网格（优化：减少绘制操作，使用更粗的线条）
+    this.ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.GRID_LINE, 0.2);
     this.ctx.lineWidth = 0.5;
     
-    // 绘制垂直线
-    const cols = GameConfig.BATTLE_COLS;
-    for (let col = 0; col <= cols; col++) {
+    // 优化：减少网格线数量，只绘制主要网格
+    const cols = Math.min(GameConfig.BATTLE_COLS, 20); // 最多20条垂直线
+    const stepCol = Math.max(1, Math.floor(GameConfig.BATTLE_COLS / cols));
+    for (let col = 0; col <= cols; col += stepCol) {
       const x = this.x + col * GameConfig.CELL_SIZE * scaleX;
       this.ctx.beginPath();
       this.ctx.moveTo(x, this.y);
@@ -216,7 +217,7 @@ export class BattlefieldMinimap {
       this.ctx.stroke();
     }
     
-    // 绘制水平线
+    // 水平线数量较少，全部绘制
     const rows = GameConfig.BATTLE_ROWS;
     for (let row = 0; row <= rows; row++) {
       const y = this.y + row * GameConfig.CELL_SIZE * scaleY;
@@ -235,12 +236,7 @@ export class BattlefieldMinimap {
           const minimapY = this.y + weapon.y * scaleY;
           const size = 3;
           
-          // 绘制武器图标（带发光效果）
-          this.ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.ROCKET_TOWER, 0.6);
-          this.ctx.shadowBlur = 4;
-          this.ctx.shadowOffsetX = 0;
-          this.ctx.shadowOffsetY = 0;
-          
+          // 优化：移除阴影效果，减少渲染开销
           // 根据武器类型选择颜色
           const weaponColor = weapon.weaponType === WeaponType.ROCKET 
             ? GameColors.ROCKET_TOWER 
@@ -254,10 +250,6 @@ export class BattlefieldMinimap {
           this.ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.5);
           this.ctx.lineWidth = 0.5;
           this.ctx.strokeRect(minimapX - size, minimapY - size, size * 2, size * 2);
-          
-          // 重置阴影
-          this.ctx.shadowColor = 'transparent';
-          this.ctx.shadowBlur = 0;
         }
       }
     }
@@ -271,12 +263,7 @@ export class BattlefieldMinimap {
           const minimapY = this.y + enemy.y * scaleY;
           const size = 2.5;
           
-          // 绘制敌人图标（带发光效果）
-          this.ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.ENEMY_TANK, 0.6);
-          this.ctx.shadowBlur = 4;
-          this.ctx.shadowOffsetX = 0;
-          this.ctx.shadowOffsetY = 0;
-          
+          // 优化：移除阴影效果，减少渲染开销
           // 绘制敌人图标（小圆点）
           this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_TANK, 0.95);
           this.ctx.beginPath();
@@ -289,10 +276,6 @@ export class BattlefieldMinimap {
           this.ctx.beginPath();
           this.ctx.arc(minimapX, minimapY, size + 0.5, 0, Math.PI * 2);
           this.ctx.stroke();
-          
-          // 重置阴影
-          this.ctx.shadowColor = 'transparent';
-          this.ctx.shadowBlur = 0;
         }
       }
     }
