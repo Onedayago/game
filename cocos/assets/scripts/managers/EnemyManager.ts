@@ -303,11 +303,21 @@ export class EnemyManager extends Component {
      * 更新所有敌人
      */
     private updateEnemies(deltaTime: number, deltaMS: number) {
-        // 获取武器列表（确保不为 undefined）
+        // 从 gameContext 获取所有武器（包括拖拽创建的）
+        // 武器是 Node 数组，需要转换为组件数组
         let weapons: any[] = [];
-        if (this.weaponManager) {
-            weapons = this.weaponManager.getWeapons() || [];
+        const weaponNodes = this.gameContext.weapons || [];
+        
+        // 将 Node 数组转换为组件数组
+        for (const weaponNode of weaponNodes) {
+            if (!weaponNode || !weaponNode.isValid) continue;
+            
+            const weaponComp = weaponNode.getComponent('WeaponBase');
+            if (weaponComp) {
+                weapons.push(weaponComp);  // 添加组件而不是 Node
+            }
         }
+        
         
         // 更新寻路系统的障碍物信息
         this.updatePathfindingObstacles();

@@ -5,6 +5,7 @@
 
 import { Node } from 'cc';
 import { SoundManager } from './SoundManager';
+import { ParticleManager } from './ParticleManager';
 
 export class GameContext {
     private static instance: GameContext;
@@ -21,10 +22,12 @@ export class GameContext {
     
     // 管理器引用
     soundManager: SoundManager | null = null;
+    particleManager: ParticleManager | null = null;  // 粒子管理器引用
+    weaponManager: any = null;  // 武器管理器引用
+    weaponContainerUI: any = null;  // 武器容器 UI 引用
     
     // 场景节点引用
     worldNode: Node | null = null;
-    uiNode: Node | null = null;
     
     // 敌人和武器数组
     enemies: any[] = [];

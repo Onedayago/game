@@ -33,14 +33,17 @@ export class GameColors {
     static readonly ENEMY_BULLET = 0xff00ff;
     
     // === 火箭塔配色 ===
-    static readonly ROCKET_BODY = 0x9d00ff;
-    static readonly ROCKET_DETAIL = 0xd946ff;
-    static readonly ROCKET_BULLET = 0xc026d3;
+    static readonly ROCKET_BASE = 0x1f2937;      // 底座颜色
+    static readonly ROCKET_TOWER = 0x334155;     // 塔身颜色
+    static readonly ROCKET_BODY = 0x9d00ff;      // 火箭主体颜色
+    static readonly ROCKET_DETAIL = 0xd946ff;    // 细节颜色
+    static readonly ROCKET_BULLET = 0xc026d3;    // 火箭弹颜色
     
     // === 激光塔配色 ===
-    static readonly LASER_BODY = 0x00ff41;
-    static readonly LASER_DETAIL = 0x39ff14;
-    static readonly LASER_BEAM = 0x00ff88;
+    static readonly LASER_BASE = 0x0a1a0f;       // 基座颜色
+    static readonly LASER_BODY = 0x00ff41;       // 激光塔主体颜色
+    static readonly LASER_DETAIL = 0x39ff14;     // 细节颜色
+    static readonly LASER_BEAM = 0x00ff88;       // 激光束颜色
     
     // === UI 和系统配色 ===
     static readonly GOLD = 0xffff00;

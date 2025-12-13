@@ -4,8 +4,11 @@
  */
 
 import { _decorator, Component, Node, Vec3, Graphics } from 'cc';
-import { GameConfig, WeaponType, WeaponConfigs } from '../config/GameConfig';
-import { ColorCache } from '../config/Colors';
+import { GameConfig } from '../../config/GameConfig';
+import { UIConfig } from '../../config/UIConfig';
+import { WeaponType, WeaponConfigs } from '../../config/WeaponConfig';
+import { ColorCache, GameColors } from '../../config/Colors';
+import { WeaponRenderer } from '../../rendering/WeaponRenderer';
 
 const { ccclass, property } = _decorator;
 
@@ -36,24 +39,95 @@ export class WeaponBase extends Component {
     private hitFlashTimer: number = 0;
     private upgradeFlashTimer: number = 0;
     
+    // 血条
+    private hpBarBg: Node | null = null;
+    private hpBarFill: Node | null = null;
+    
     onLoad() {
         this.createSelectionRing();
+        this.createHealthBar();
     }
     
     /**
-     * 创建选中光环
+     * 创建选中光环（使用统一渲染器）
      */
     private createSelectionRing() {
-        this.selectionRing = new Node('SelectionRing');
-        const graphics = this.selectionRing.addComponent(Graphics);
+        this.selectionRing = WeaponRenderer.renderSelectionRing(this.node);
+    }
+    
+    /**
+     * 创建血条（使用统一渲染器）
+     */
+    private createHealthBar() {
+        const world = this.node.parent;
+        if (!world) return;
         
-        graphics.lineWidth = 4;
-        graphics.strokeColor = ColorCache.UI_BORDER;
-        graphics.circle(0, 0, GameConfig.CELL_SIZE * 0.7);
-        graphics.stroke();
+        // 所有武器使用统一的尺寸比例
+        const entitySize = GameConfig.CELL_SIZE * UIConfig.WEAPON_MAP_SIZE_RATIO;
+        const normalColor = this.weaponType === WeaponType.ROCKET 
+            ? GameColors.ROCKET_BULLET 
+            : GameColors.LASER_BEAM;
         
-        this.selectionRing.active = false;
-        this.node.addChild(this.selectionRing);
+        const entityTopY = entitySize / 2;  // 实体顶部相对于实体中心的偏移
+        const gap = entitySize * 0.2;  // 血条和实体顶部之间的间隔
+        const offsetY = entityTopY + gap;  // 从实体中心到血条的总偏移
+        
+        const healthBar = WeaponRenderer.renderHealthBar(world, {
+            hp: this.hp,
+            maxHp: this.maxHp,
+            entitySize: entitySize,
+            offsetY: offsetY,  // 从实体中心到血条的总偏移（实体顶部 + 间隔）
+            barWidthRatio: 0.9,
+            normalColor: normalColor
+        });
+        
+        this.hpBarBg = healthBar.bg;
+        this.hpBarFill = healthBar.fill;
+        
+        this.updateHealthBar();
+    }
+    
+    /**
+     * 更新血条
+     */
+    protected updateHealthBar() {
+        if (!this.hpBarBg || !this.hpBarFill) return;
+        
+        const world = this.node.parent;
+        if (!world) return;
+        
+        // 更新血条位置（跟随武器）
+        // 使用世界坐标，并考虑 Y 偏移
+        // Cocos Creator Y 轴向上（从下往上）
+        // 实体顶部 = 实体中心Y + entitySize/2
+        // 血条位置 = 实体顶部 + 间隔
+        const worldPos = this.node.getWorldPosition();
+        // 所有武器使用统一的尺寸比例
+        const entitySize = GameConfig.CELL_SIZE * UIConfig.WEAPON_MAP_SIZE_RATIO;
+        const entityTopY = entitySize / 2;  // 实体顶部相对于实体中心的偏移
+        const gap = entitySize * 0.2;  // 血条和实体顶部之间的间隔
+        const offsetY = entityTopY + gap;  // 从实体中心到血条的总偏移
+        
+        // 设置血条位置（在实体上方，Cocos Creator Y轴向上）
+        const bgPos = new Vec3(worldPos.x, worldPos.y + offsetY, worldPos.z);
+        const fillPos = new Vec3(worldPos.x, worldPos.y + offsetY, worldPos.z);
+        
+        this.hpBarBg.setWorldPosition(bgPos);
+        this.hpBarFill.setWorldPosition(fillPos);
+        
+        // 更新血条内容
+        const normalColor = this.weaponType === WeaponType.ROCKET 
+            ? GameColors.ROCKET_BULLET 
+            : GameColors.LASER_BEAM;
+        
+        WeaponRenderer.updateHealthBar(this.hpBarFill, {
+            hp: this.hp,
+            maxHp: this.maxHp,
+            entitySize: entitySize,
+            offsetY: offsetY,  // 从实体中心到血条的总偏移（实体顶部 + 间隔）
+            barWidthRatio: 0.9,
+            normalColor: normalColor
+        });
     }
     
     /**
@@ -62,6 +136,9 @@ export class WeaponBase extends Component {
     updateWeapon(deltaTime: number, deltaMS: number, enemies: any[]) {
         // 更新闪烁效果
         this.updateFlashEffects(deltaMS);
+        
+        // 更新血条位置
+        this.updateHealthBar();
         
         // 确保 enemies 是数组
         if (!enemies || !Array.isArray(enemies)) {
@@ -134,8 +211,11 @@ export class WeaponBase extends Component {
     takeDamage(damage: number): boolean {
         this.hp -= damage;
         this.hitFlashTimer = GameConfig.HIT_FLASH_DURATION;
+        this.updateHealthBar();
         
         if (this.hp <= 0) {
+            this.destroyHealthBar();
+            this.node.destroy();
             return true;  // 武器被摧毁
         }
         return false;
@@ -196,6 +276,25 @@ export class WeaponBase extends Component {
      */
     isDestroyed(): boolean {
         return this.hp <= 0;
+    }
+    
+    /**
+     * 销毁血条
+     */
+    private destroyHealthBar() {
+        if (this.hpBarBg && this.hpBarBg.isValid) {
+            this.hpBarBg.destroy();
+            this.hpBarBg = null;
+        }
+        if (this.hpBarFill && this.hpBarFill.isValid) {
+            this.hpBarFill.destroy();
+            this.hpBarFill = null;
+        }
+    }
+    
+    onDestroy() {
+        // 清理血条
+        this.destroyHealthBar();
     }
 }
 

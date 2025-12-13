@@ -99,7 +99,10 @@
     "__prefab": {
       "__id__": 5
     },
-    "sonicWavePrefab": null,
+    "bulletPrefab": {
+      "__uuid__": "b069dbe0-a720-4ffe-be98-ff591d5970d3",
+      "__expectedType__": "cc.Prefab"
+    },
     "_id": ""
   },
   {

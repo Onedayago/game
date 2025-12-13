@@ -4,7 +4,9 @@
  */
 
 import { Node, UITransform, Graphics, Color, Vec3, EventTouch, Camera } from 'cc';
-import { GameConfig, WeaponType } from '../config/GameConfig';
+import { GameConfig } from '../config/GameConfig';
+import { UIConfig } from '../config/UIConfig';
+import { WeaponType, WeaponConfigs } from '../config/WeaponConfig';
 import { GoldManager } from '../managers/GoldManager';
 
 export class WeaponDragManager {
@@ -45,7 +47,7 @@ export class WeaponDragManager {
         this.dragGhost = new Node('DragGhost');
         this.dragGhost.layer = this.uiNode!.layer;
         
-        const ghostSize = GameConfig.DRAG_GHOST_SIZE;
+        const ghostSize = UIConfig.DRAG_GHOST_SIZE;
         const ghostTransform = this.dragGhost.addComponent(UITransform);
         ghostTransform.setContentSize(ghostSize, ghostSize);
         ghostTransform.setAnchorPoint(0.5, 0.5);
@@ -55,7 +57,7 @@ export class WeaponDragManager {
         
         // 设置初始位置和缩放
         this.dragGhost.setPosition(worldX, worldY, 0);
-        this.dragGhost.setScale(GameConfig.DRAG_GHOST_SCALE, GameConfig.DRAG_GHOST_SCALE, 1);
+        this.dragGhost.setScale(UIConfig.DRAG_GHOST_SCALE, UIConfig.DRAG_GHOST_SCALE, 1);
         
         // 添加到 UI 节点
         this.uiNode!.addChild(this.dragGhost);
@@ -72,24 +74,30 @@ export class WeaponDragManager {
         this.dragGlow.layer = this.uiNode!.layer;
         
         const glowTransform = this.dragGlow.addComponent(UITransform);
-        glowTransform.setContentSize(100, 100);
+        const glowSize = UIConfig.DRAG_GLOW_SIZE;
+        glowTransform.setContentSize(glowSize, glowSize);
         glowTransform.setAnchorPoint(0.5, 0.5);
         
         const graphics = this.dragGlow.addComponent(Graphics);
         const color = weaponType === WeaponType.ROCKET ? new Color(157, 0, 255) : new Color(0, 255, 65);
         
         // 绘制光晕圆圈
+        const radius1 = glowSize * 0.4;
+        const radius2 = glowSize * 0.5;
+        const radius3 = glowSize * 0.45;
+        const borderWidth = UIConfig.BORDER_WIDTH;
+        
         graphics.fillColor = new Color(color.r, color.g, color.b, 50);
-        graphics.circle(0, 0, 40);
+        graphics.circle(0, 0, radius1);
         graphics.fill();
         
         graphics.fillColor = new Color(color.r, color.g, color.b, 30);
-        graphics.circle(0, 0, 50);
+        graphics.circle(0, 0, radius2);
         graphics.fill();
         
-        graphics.lineWidth = 2;
+        graphics.lineWidth = borderWidth;
         graphics.strokeColor = new Color(color.r, color.g, color.b, 100);
-        graphics.circle(0, 0, 45);
+        graphics.circle(0, 0, radius3);
         graphics.stroke();
         
         this.uiNode!.addChild(this.dragGlow);
@@ -169,17 +177,27 @@ export class WeaponDragManager {
         const worldTransform = this.worldNode.getComponent(UITransform);
         if (!worldTransform) return { inGrid: false };
         
-        // 将世界坐标转换为 worldNode 的本地坐标
-        const localX = worldX - this.worldNode.worldPosition.x;
-        const localY = worldY - this.worldNode.worldPosition.y;
+        // worldX, worldY 是 Canvas 中心原点坐标系（0, 0 在 Canvas 中心）
+        // worldNode 的位置是 (-DESIGN_WIDTH/2, -DESIGN_HEIGHT/2)，锚点在左下角
+        const worldNodePos = this.worldNode.position;
         
-        // 检查是否在战斗区域内（第2-5行，索引1-4）
+        // 将 Canvas 中心原点坐标转换为 worldNode 本地坐标（左下角原点）
+        // localX = worldX - worldNodePos.x = worldX - (-DESIGN_WIDTH/2) = worldX + DESIGN_WIDTH/2
+        const localX = worldX - worldNodePos.x;
+        const localY = worldY - worldNodePos.y;
+        
+        // 检查是否在战斗区域内
+        // worldNode 的范围：X: 0 到 BATTLE_WIDTH, Y: 0 到 DESIGN_HEIGHT
+        // 战斗区域：X: 0 到 BATTLE_WIDTH (整个战场宽度), Y: battleStartY 到 battleEndY
         const battleStartY = GameConfig.BATTLE_START_ROW * GameConfig.CELL_SIZE;
         const battleEndY = (GameConfig.BATTLE_START_ROW + GameConfig.BATTLE_ROWS) * GameConfig.CELL_SIZE;
-        const inGrid = localX >= 0 && localX <= GameConfig.DESIGN_WIDTH && 
+        
+        const inGrid = localX >= 0 && localX <= GameConfig.BATTLE_WIDTH && 
                       localY >= battleStartY && localY < battleEndY;
         
-        if (!inGrid) return { inGrid: false };
+        if (!inGrid) {
+            return { inGrid: false };
+        }
         
         // 计算格子坐标
         const col = Math.floor(localX / GameConfig.CELL_SIZE);
@@ -189,9 +207,9 @@ export class WeaponDragManager {
         const cellCenterLocalX = col * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
         const cellCenterLocalY = row * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
         
-        // 转换回世界坐标
-        const snapX = this.worldNode.worldPosition.x + cellCenterLocalX;
-        const snapY = this.worldNode.worldPosition.y + cellCenterLocalY;
+        // 转换回 Canvas 中心原点坐标
+        const snapX = worldNodePos.x + cellCenterLocalX;
+        const snapY = worldNodePos.y + cellCenterLocalY;
         
         return {
             inGrid: true,
@@ -226,8 +244,9 @@ export class WeaponDragManager {
      * 获取武器成本
      */
     private getWeaponCost(weaponType: WeaponType): number {
-        // 这里应该从配置中获取，暂时硬编码
-        return weaponType === WeaponType.ROCKET ? 100 : 80;
+        // 从配置中获取武器成本
+        const config = WeaponConfigs.getConfig(weaponType);
+        return config ? config.baseCost : GameConfig.WEAPON_BASE_COST;
     }
     
     /**

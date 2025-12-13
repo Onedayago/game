@@ -1,10 +1,17 @@
 /**
  * 武器容器UI
- * 负责显示和管理武器选择界面
+ * 
+ * 负责显示和管理武器选择界面，协调各个子模块：
+ * - 武器卡片创建和管理（WeaponCardBuilder）
+ * - 操作按钮管理（WeaponActionButtons）
+ * - 拖拽交互（WeaponDragManager）
+ * - 武器创建和放置
  */
 
-import { _decorator, Component, Node, Label, Button, UITransform, Graphics, Color, EventTouch, Vec3, input, Input } from 'cc';
-import { GameConfig, WeaponType, WeaponConfigs } from '../config/GameConfig';
+import { _decorator, Component, Node, Label, UITransform, Graphics, Color, EventTouch, input, Input } from 'cc';
+import { GameConfig } from '../config/GameConfig';
+import { UIConfig } from '../config/UIConfig';
+import { WeaponType, WeaponConfigs } from '../config/WeaponConfig';
 import { GoldManager } from '../managers/GoldManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { WeaponDragManager } from './WeaponDragManager';
@@ -12,20 +19,85 @@ import { GameContext } from '../core/GameContext';
 import { WeaponGridData } from '../components/WeaponGridData';
 import { RocketTower } from '../entities/weapons/RocketTower';
 import { LaserTower } from '../entities/weapons/LaserTower';
+import { WeaponRenderer } from '../rendering/WeaponRenderer';
+import { WeaponCardBuilder } from './WeaponCardBuilder';
+import { WeaponActionButtons } from './WeaponActionButtons';
 
 const { ccclass, property } = _decorator;
 
 @ccclass('WeaponContainerUI')
 export class WeaponContainerUI extends Component {
+    declare node: Node;  // 显式声明 node 属性，用于 TypeScript 识别
+    
+    // === 管理器引用 ===
     private goldManager: GoldManager | null = null;
     private weaponManager: WeaponManager | null = null;
+    private dragManager: WeaponDragManager | null = null;
+    private actionButtons: WeaponActionButtons | null = null;
+    
+    // === 状态 ===
     private selectedWeaponType: WeaponType | null = null;
     private weaponCards: Map<WeaponType, Node> = new Map();
-    private dragManager: WeaponDragManager | null = null;
     
     start() {
-        // 在 start 中创建卡片，确保所有初始化完成
+        // 在 start 中创建UI，确保所有初始化完成
+        this.setupContainer();
         this.createWeaponCards();
+        this.setupKeyboardEvents();
+    }
+    
+    /**
+     * 设置容器位置和背景
+     */
+    private setupContainer() {
+        // 获取或添加 UITransform
+        let uiTransform = this.node.getComponent(UITransform);
+        if (!uiTransform) {
+            uiTransform = this.node.addComponent(UITransform);
+        }
+        
+        // 设置容器属性（锚点必须先设置）
+        uiTransform.setAnchorPoint(0.5, 0);
+        
+        // 设置尺寸（使用配置常量）
+        const containerWidth = UIConfig.WEAPON_CONTAINER_WIDTH;
+        const containerHeight = UIConfig.WEAPON_CONTAINER_HEIGHT;
+        uiTransform.setContentSize(containerWidth, containerHeight);
+        
+        // 设置位置：底部居中
+        const marginBottom = GameConfig.CELL_SIZE * 0.2;
+        const posY = -GameConfig.DESIGN_HEIGHT / 2;
+        this.node.setPosition(0, posY, 0);
+        
+        // 绘制背景
+        this.drawBackground(containerWidth, containerHeight);
+    }
+    
+    /**
+     * 绘制武器容器背景
+     */
+    private drawBackground(width: number, height: number) {
+        let graphics = this.node.getComponent(Graphics);
+        if (!graphics) {
+            graphics = this.node.addComponent(Graphics);
+        }
+        
+        graphics.clear();
+        
+        // 锚点在 (0.5, 0) - 底部中心
+        const x = -width * 0.5;  // 从左边界开始
+        const y = 0;              // 从底部开始
+        
+        // 深色背景
+        graphics.fillColor = new Color(30, 30, 50, 240);
+        graphics.roundRect(x, y, width, height, 10);
+        graphics.fill();
+        
+        // 青色边框
+        graphics.lineWidth = 2;
+        graphics.strokeColor = new Color(0, 255, 255, 200);
+        graphics.roundRect(x, y, width, height, 10);
+        graphics.stroke();
     }
     
     /**
@@ -35,28 +107,75 @@ export class WeaponContainerUI extends Component {
         this.goldManager = goldManager;
         this.weaponManager = weaponManager;
         
-        // 创建拖拽管理器
         const gameContext = GameContext.getInstance();
-        if (gameContext.worldNode && gameContext.uiNode) {
+        
+        // 创建操作按钮管理器
+        if (this.node && this.node.parent) {
+            this.actionButtons = new WeaponActionButtons(
+                this.node.layer,
+                goldManager,
+                weaponManager
+            );
+            this.actionButtons.createButtons(this.node.parent);
+        }
+        
+        // 创建拖拽管理器
+        if (gameContext.worldNode && this.node && this.node.parent) {
             this.dragManager = new WeaponDragManager(
                 goldManager,
                 gameContext.worldNode,
-                gameContext.uiNode,
+                this.node.parent,
                 (col, row) => this.isCellOccupied(col, row)
             );
         }
     }
     
     onDestroy() {
-        // 清理事件监听（如果需要的话）
+        // 清理键盘事件监听
+        input.off(Input.EventType.KEY_DOWN, this.onKeyDown, this);
     }
     
     /**
      * 检查格子是否被占用
      */
     private isCellOccupied(col: number, row: number): boolean {
-        // TODO: 从 weaponManager 检查
-        return false;
+        if (!this.weaponManager) return false;
+        return this.weaponManager.isGridOccupied(col, row);
+    }
+    
+    
+    /**
+     * 设置键盘事件
+     */
+    private setupKeyboardEvents() {
+        input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
+    }
+    
+    /**
+     * 键盘按下事件
+     */
+    private onKeyDown(event: any) {
+        if (!this.weaponManager || !this.weaponManager.getSelectedWeapon()) {
+            return;
+        }
+        
+        const keyCode = event.keyCode;
+        
+        // U键 - 升级
+        if (keyCode === 85) {
+            this.actionButtons?.updateButtons();
+        }
+        // S键 - 出售
+        else if (keyCode === 83) {
+            // 出售逻辑在 WeaponActionButtons 中处理
+        }
+    }
+    
+    /**
+     * 更新操作按钮（供外部调用）
+     */
+    updateActionButtons() {
+        this.actionButtons?.updateButtons();
     }
     
     /**
@@ -81,20 +200,21 @@ export class WeaponContainerUI extends Component {
         weaponNode.active = true;
         
         // 设置 UITransform
-        const size = GameConfig.CELL_SIZE * GameConfig.WEAPON_MAP_SIZE_RATIO;
+        const size = GameConfig.CELL_SIZE * UIConfig.WEAPON_MAP_SIZE_RATIO;
         const weaponTransform = weaponNode.addComponent(UITransform);
         weaponTransform.setContentSize(size, size);
         weaponTransform.setAnchorPoint(0.5, 0.5);
         
+        // 添加到 worldNode（必须先添加到场景，组件才能正确初始化）
+        gameContext.worldNode.addChild(weaponNode);
+        
         // 设置位置（worldNode 的本地坐标）
+        // placementInfo.worldX 和 worldY 已经是 worldNode 的本地坐标
         weaponNode.setPosition(placementInfo.worldX, placementInfo.worldY, 0);
         
         // 添加网格数据组件
         const gridData = weaponNode.addComponent(WeaponGridData);
         gridData.setGridPosition(placementInfo.col, placementInfo.row);
-        
-        // 添加到 worldNode（必须先添加到场景，组件才能正确初始化）
-        gameContext.worldNode.addChild(weaponNode);
         
         // 添加实际的武器组件（会自动创建视觉）
         let weaponComp = null;
@@ -103,7 +223,7 @@ export class WeaponContainerUI extends Component {
         } else if (placementInfo.type === WeaponType.LASER) {
             weaponComp = weaponNode.addComponent(LaserTower);
         }
-        
+    
         // 设置网格位置
         if (weaponComp) {
             weaponComp.setGridPosition(placementInfo.col, placementInfo.row);
@@ -125,9 +245,10 @@ export class WeaponContainerUI extends Component {
         const containerHeight = uiTransform.height;
         
         // 卡片布局参数（常量）
-        const CARD_WIDTH = 150;
-        const CARD_HEIGHT = 160;
-        const CARD_SPACING = 30;
+        // 由于删除了描述，金币移到顶部，适当减小高度使布局更紧凑
+        const CARD_WIDTH = GameConfig.CELL_SIZE;
+        const CARD_HEIGHT = GameConfig.CELL_SIZE;
+        const CARD_SPACING = UIConfig.WEAPON_CARD_SPACING;
         
         // 计算卡片位置（容器锚点在底部中心 0.5, 0）
         const totalWidth = CARD_WIDTH * 2 + CARD_SPACING;
@@ -155,7 +276,7 @@ export class WeaponContainerUI extends Component {
     }
     
     /**
-     * 创建单个武器卡片
+     * 创建单个武器卡片（使用 WeaponCardBuilder）
      */
     private createWeaponCard(
         weaponType: WeaponType,
@@ -164,93 +285,31 @@ export class WeaponContainerUI extends Component {
         width: number,
         height: number
     ): Node | null {
-        const config = WeaponConfigs.getConfig(weaponType);
-        if (!config) return null;
-        
-        // 创建卡片节点
-        const card = new Node(`WeaponCard_${weaponType}`);
-        card.active = true;
-        
-        // ⚠️ 关键：设置为父节点相同的 Layer，否则 UI 相机看不到！
-        card.layer = this.node.layer;
-        
-        // 添加 UITransform 组件
-        const cardTransform = card.addComponent(UITransform);
-        cardTransform.setContentSize(width, height);
-        cardTransform.setAnchorPoint(0.5, 0.5);
-        
-        // 设置位置
-        card.setPosition(x, y, 0);
-        
-        // 绘制背景
-        this.drawCardBackground(card, width, height, config.colorHex);
-        
-        // 添加卡片内容
-        this.addCardIcon(card, weaponType);
-        this.addCardName(card, config.name);
-        this.addCardCost(card, config.baseCost);
-        
-        // 添加按钮交互
-        const button = card.addComponent(Button);
-        button.node.on(Button.EventType.CLICK, () => {
-            this.onWeaponCardClick(weaponType);
-        }, this);
-        
-        return card;
-    }
-    
-    /**
-     * 添加卡片图标（绘制武器图形）
-     */
-    private addCardIcon(card: Node, weaponType: WeaponType) {
-        const iconNode = new Node('Icon');
-        iconNode.layer = this.node.layer;
-        
-        const iconSize = 60;
-        const iconTransform = iconNode.addComponent(UITransform);
-        iconTransform.setContentSize(iconSize, iconSize);
-        iconTransform.setAnchorPoint(0.5, 0.5);
-        iconNode.setPosition(0, 30, 0); // 上方位置
-        
-        // 绘制武器图标
-        this.drawWeaponIcon(iconNode, weaponType);
-        
-        // 不使用 Button 组件，直接使用触摸事件
-        // const button = iconNode.addComponent(Button);
-        
-        // 监听完整的触摸事件流
-        iconNode.on(Node.EventType.TOUCH_START, (event: EventTouch) => {
-            this.onIconTouchStart(event, weaponType);
-        }, this);
-        
-        iconNode.on(Node.EventType.TOUCH_MOVE, (event: EventTouch) => {
-            this.onIconTouchMove(event);
-        }, this);
-        
-        iconNode.on(Node.EventType.TOUCH_END, (event: EventTouch) => {
-            this.onIconTouchEnd(event);
-        }, this);
-        
-        iconNode.on(Node.EventType.TOUCH_CANCEL, (event: EventTouch) => {
-            this.onIconTouchCancel(event);
-        }, this);
-        
-        card.addChild(iconNode);
+        return WeaponCardBuilder.createWeaponCard(
+            weaponType,
+            x,
+            y,
+            width,
+            height,
+            this.node.layer,
+            (type) => this.onWeaponCardClick(type),
+            (event, type) => this.onIconTouchStart(event, type),
+            (event) => this.onIconTouchMove(event),
+            (event) => this.onIconTouchEnd(event),
+            (event) => this.onIconTouchCancel(event)
+        );
     }
     
     /**
      * 绘制武器图标（可被 WeaponDragManager 调用）
+     * 使用统一的 WeaponRenderer 来绘制
      */
     private drawWeaponIcon(node: Node, weaponType: WeaponType) {
-        const graphics = node.addComponent(Graphics);
-        const iconSize = GameConfig.DRAG_GHOST_SIZE;
-        
-        // 根据武器类型绘制不同图标
-        if (weaponType === WeaponType.ROCKET) {
-            this.drawRocketIcon(graphics, iconSize);
-        } else if (weaponType === WeaponType.LASER) {
-            this.drawLaserIcon(graphics, iconSize);
-        }
+        const iconSize = UIConfig.DRAG_GHOST_SIZE;
+        WeaponRenderer.renderWeaponIcon(node, weaponType, {
+            size: iconSize,
+            isGhost: false
+        });
     }
     
     /**
@@ -328,166 +387,7 @@ export class WeaponContainerUI extends Component {
         };
     }
     
-    /**
-     * 绘制火箭塔图标
-     */
-    private drawRocketIcon(graphics: Graphics, size: number) {
-        const scale = size / 64; // 原始设计基于 64 大小
-        
-        // 底座
-        graphics.fillColor = new Color(31, 41, 55, 255);
-        graphics.roundRect(-size * 0.35, size * 0.1, size * 0.7, size * 0.24, size * 0.12);
-        graphics.fill();
-        
-        // 塔身
-        graphics.fillColor = new Color(51, 65, 85, 255);
-        graphics.roundRect(-size * 0.16, -size * 0.39, size * 0.32, size * 0.78, size * 0.12);
-        graphics.fill();
-        
-        graphics.lineWidth = 2;
-        graphics.strokeColor = new Color(14, 165, 233, 255);
-        graphics.roundRect(-size * 0.16, -size * 0.39, size * 0.32, size * 0.78, size * 0.12);
-        graphics.stroke();
-        
-        // 窗口
-        graphics.fillColor = new Color(16, 185, 129, 200);
-        for (let i = 0; i < 3; i++) {
-            const wy = -size * 0.3 + i * size * 0.16 * 1.2;
-            graphics.roundRect(-size * 0.045, wy, size * 0.09, size * 0.128, size * 0.04);
-            graphics.fill();
-        }
-        
-        // 火箭头
-        graphics.fillColor = new Color(157, 0, 255, 255);
-        graphics.circle(size * 0.16, -size * 0.02, size * 0.18);
-        graphics.fill();
-    }
     
-    /**
-     * 绘制激光塔图标
-     */
-    private drawLaserIcon(graphics: Graphics, size: number) {
-        // 基座（六边形）
-        const points: number[] = [];
-        const baseSize = size * 0.4;
-        for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI / 3) * i;
-            points.push(Math.cos(angle) * baseSize, Math.sin(angle) * baseSize);
-        }
-        
-        graphics.fillColor = new Color(10, 26, 15, 230);
-        graphics.moveTo(points[0], points[1]);
-        for (let i = 2; i < points.length; i += 2) {
-            graphics.lineTo(points[i], points[i + 1]);
-        }
-        graphics.close();
-        graphics.fill();
-        
-        graphics.lineWidth = 2;
-        graphics.strokeColor = new Color(0, 255, 65, 180);
-        graphics.moveTo(points[0], points[1]);
-        for (let i = 2; i < points.length; i += 2) {
-            graphics.lineTo(points[i], points[i + 1]);
-        }
-        graphics.close();
-        graphics.stroke();
-        
-        // 中央能量核心
-        graphics.fillColor = new Color(0, 255, 65, 80);
-        graphics.circle(0, 0, size * 0.12 * 1.6);
-        graphics.fill();
-        
-        graphics.fillColor = new Color(0, 255, 65, 130);
-        graphics.circle(0, 0, size * 0.12 * 1.2);
-        graphics.fill();
-        
-        graphics.fillColor = new Color(50, 255, 150, 240);
-        graphics.circle(0, 0, size * 0.12);
-        graphics.fill();
-        
-        // 霓虹细节点
-        graphics.fillColor = new Color(0, 255, 65, 200);
-        for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI / 3) * i;
-            const dotX = Math.cos(angle) * baseSize * 0.75;
-            const dotY = Math.sin(angle) * baseSize * 0.75;
-            graphics.circle(dotX, dotY, 3);
-            graphics.fill();
-        }
-    }
-    
-    /**
-     * 添加卡片名称
-     */
-    private addCardName(card: Node, name: string) {
-        const nameNode = new Node('Name');
-        const nameTransform = nameNode.addComponent(UITransform);
-        nameTransform.setAnchorPoint(0.5, 0.5);
-        nameNode.setPosition(0, 0, 0);
-        
-        const nameLabel = nameNode.addComponent(Label);
-        nameLabel.string = name;
-        nameLabel.fontSize = 20;
-        nameLabel.color = new Color(255, 255, 255, 255);
-        nameLabel.horizontalAlign = Label.HorizontalAlign.CENTER;
-        
-        card.addChild(nameNode);
-    }
-    
-    /**
-     * 添加卡片成本
-     */
-    private addCardCost(card: Node, cost: number) {
-        const costNode = new Node('Cost');
-        const costTransform = costNode.addComponent(UITransform);
-        costTransform.setAnchorPoint(0.5, 0.5);
-        costNode.setPosition(0, -40, 0);
-        
-        const costLabel = costNode.addComponent(Label);
-        costLabel.string = `💰 ${cost}`;
-        costLabel.fontSize = 18;
-        costLabel.color = new Color(255, 215, 0, 255);
-        costLabel.horizontalAlign = Label.HorizontalAlign.CENTER;
-        
-        card.addChild(costNode);
-    }
-    
-    /**
-     * 绘制卡片背景
-     */
-    private drawCardBackground(card: Node, width: number, height: number, color: number) {
-        const graphics = card.addComponent(Graphics);
-        graphics.clear();
-        
-        // 卡片锚点在中心 (0.5, 0.5)
-        const x = -width / 2;
-        const y = -height / 2;
-        const r = (color >> 16) & 0xFF;
-        const g = (color >> 8) & 0xFF;
-        const b = color & 0xFF;
-        
-        // 外发光效果
-        graphics.fillColor = new Color(r, g, b, 30);
-        graphics.roundRect(x - 2, y - 2, width + 4, height + 4, 12);
-        graphics.fill();
-        
-        // 主背景
-        graphics.fillColor = new Color(20, 20, 40, 230);
-        graphics.roundRect(x, y, width, height, 10);
-        graphics.fill();
-        
-        // 主边框
-        graphics.lineWidth = 2;
-        graphics.strokeColor = new Color(r, g, b, 180);
-        graphics.roundRect(x, y, width, height, 10);
-        graphics.stroke();
-        
-        // 内边框高光
-        graphics.lineWidth = 1;
-        graphics.strokeColor = new Color(r, g, b, 100);
-        graphics.roundRect(x + 4, y + 4, width - 8, height - 8, 8);
-        graphics.stroke();
-    }
     
     /**
      * 武器卡片点击处理
@@ -511,38 +411,18 @@ export class WeaponContainerUI extends Component {
      */
     private updateCardSelection() {
         this.weaponCards.forEach((card, type) => {
-            const graphics = card.getComponent(Graphics);
-            if (graphics) {
-                const config = WeaponConfigs.getConfig(type);
-                if (!config) return;
-                
-                const isSelected = type === this.selectedWeaponType;
-                const alpha = isSelected ? 255 : 180;
-                
-                // 重新绘制边框以显示选中状态
-                const uiTransform = card.getComponent(UITransform);
-                if (uiTransform) {
-                    const width = uiTransform.width;
-                    const height = uiTransform.height;
-                    
-                    // 清除并重绘
-                    graphics.clear();
-                    
-                    // 如果选中，绘制更亮的外发光
-                    if (isSelected) {
-                        graphics.fillColor = new Color(
-                            (config.colorHex >> 16) & 0xFF,
-                            (config.colorHex >> 8) & 0xFF,
-                            config.colorHex & 0xFF,
-                            80
-                        );
-                        graphics.roundRect(-4, -4, width + 8, height + 8, 14);
-                        graphics.fill();
-                    }
-                    
-                    // 重绘背景
-                    this.drawCardBackground(card, width, height, config.colorHex);
-                }
+            const config = WeaponConfigs.getConfig(type);
+            if (!config) return;
+            
+            const isSelected = type === this.selectedWeaponType;
+            const uiTransform = card.getComponent(UITransform);
+            if (uiTransform) {
+                WeaponCardBuilder.updateCardSelection(
+                    card,
+                    type,
+                    isSelected,
+                    config.colorHex
+                );
             }
         });
     }

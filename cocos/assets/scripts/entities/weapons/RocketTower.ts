@@ -4,10 +4,12 @@
  */
 
 import { _decorator, Vec3, instantiate, Prefab, Node } from 'cc';
-import { WeaponBase } from '../WeaponBase';
-import { GameConfig, WeaponType } from '../../config/GameConfig';
-import { HomingRocket } from './HomingRocket';
+import { WeaponBase } from '../base/WeaponBase';
+import { GameConfig } from '../../config/GameConfig';
+import { WeaponType } from '../../config/WeaponConfig';
+import { HomingRocket } from '../projectiles/HomingRocket';
 import { ColorCache, GameColors } from '../../config/Colors';
+import { WeaponRenderer } from '../../rendering/WeaponRenderer';
 
 const { ccclass, property } = _decorator;
 
@@ -32,62 +34,10 @@ export class RocketTower extends WeaponBase {
     }
     
     /**
-     * 创建火箭塔视觉
+     * 创建火箭塔视觉（使用统一渲染器）
      */
     private createVisual() {
-        const graphics = this.node.addComponent(cc.Graphics);
-        if (!graphics) return;
-        
-        const size = GameConfig.CELL_SIZE;
-        const baseWidth = size * 0.7;
-        const baseHeight = size * 0.3;
-        const towerWidth = size * 0.34;
-        const towerHeight = size * 0.9;
-        
-        graphics.clear();
-        
-        // 阴影
-        graphics.fillColor = cc.color(0, 0, 0, 89);
-        graphics.roundRect(-baseWidth/2, -size/2 + 8, baseWidth, size - 10, size * 0.18);
-        graphics.fill();
-        
-        // 底座
-        graphics.fillColor = cc.color(31, 41, 55, 255);
-        graphics.roundRect(-baseWidth/2, size/2 - baseHeight, baseWidth, baseHeight, baseHeight * 0.6);
-        graphics.fill();
-        graphics.lineWidth = 2.5;
-        graphics.strokeColor = cc.color(15, 23, 42, 255);
-        graphics.stroke();
-        
-        // 主塔身
-        const rocketColor = ColorCache.get(GameColors.ROCKET_BODY);
-        graphics.fillColor = cc.color(rocketColor.r, rocketColor.g, rocketColor.b, 255);
-        graphics.roundRect(-towerWidth/2, -towerHeight/2, towerWidth, towerHeight, towerWidth * 0.5);
-        graphics.fill();
-        
-        const allyColor = ColorCache.get(GameColors.ALLY_BODY);
-        graphics.lineWidth = 2.5;
-        graphics.strokeColor = cc.color(allyColor.r, allyColor.g, allyColor.b, 255);
-        graphics.stroke();
-        
-        // 观察窗
-        const detailColor = ColorCache.get(GameColors.ALLY_DETAIL);
-        const windowWidth = towerWidth * 0.28;
-        const windowHeight = towerHeight * 0.16;
-        for (let i = 0; i < 3; i++) {
-            const wy = -towerHeight * 0.3 + i * windowHeight * 1.25;
-            graphics.fillColor = cc.color(detailColor.r, detailColor.g, detailColor.b, 242);
-            graphics.roundRect(-windowWidth/2, wy, windowWidth, windowHeight, windowHeight * 0.4);
-            graphics.fill();
-        }
-        
-        // 顶部雷达
-        graphics.fillColor = cc.color(254, 243, 199, 242);
-        graphics.circle(0, -towerHeight * 0.52, towerWidth * 0.22);
-        graphics.fill();
-        graphics.fillColor = cc.color(254, 240, 138, 242);
-        graphics.circle(0, -towerHeight * 0.6, towerWidth * 0.12);
-        graphics.fill();
+        WeaponRenderer.renderRocketTower(this.node, { level: this.level });
     }
     
     /**
@@ -138,15 +88,16 @@ export class RocketTower extends WeaponBase {
             return;
         }
         
-        // 计算发射位置
-        const angle = Math.atan2(
-            target.position.y - this.node.position.y,
-            target.position.x - this.node.position.x
-        );
+        // 计算发射位置（从武器中心发射）
+        // 注意：Cocos Creator Y 轴向上，需要适配角度计算
+        const dx = target.position.x - this.node.position.x;
+        const dy = target.position.y - this.node.position.y;
+        // 对 dy 取反，适配 Y 轴向上的坐标系
+        const angle = Math.atan2(-dy, dx);
         
-        const barrelLength = GameConfig.CELL_SIZE * 0.7;
-        const muzzleX = this.node.position.x + Math.cos(angle) * barrelLength;
-        const muzzleY = this.node.position.y + Math.sin(angle) * barrelLength;
+        // 从武器中心发射
+        const muzzleX = this.node.position.x;
+        const muzzleY = this.node.position.y;
         
         // 直接创建火箭节点和组件
         const rocketNode = new Node('Rocket');
