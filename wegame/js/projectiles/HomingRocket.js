@@ -9,6 +9,7 @@ import { EnemyTankConfig } from '../config/enemies/EnemyTankConfig';
 import { ParticleConfig } from '../config/ParticleConfig';
 import { ColorUtils, GameColors } from '../config/Colors';
 import { GameContext } from '../core/GameContext';
+import { HomingRocketRenderer } from '../rendering/projectiles/HomingRocketRenderer';
 
 export class HomingRocket {
   // 离屏Canvas缓存（静态，只缓存火箭主体，不包含尾迹）
@@ -255,54 +256,20 @@ export class HomingRocket {
       return;
     }
     
-    // 初始化缓存（如果未初始化或半径不同）
-    if (!HomingRocket._initialized || HomingRocket._cacheRadius !== this.radius) {
-      HomingRocket.initCache(this.radius);
-    }
-    
     // 计算Canvas坐标（应用战场偏移）
     const renderX = this.x + offsetX;
     const renderY = this.y + offsetY;
     
-    this.ctx.save();
-    
-    // 绘制短尾迹（动态绘制，不缓存）
+    // 计算尾迹位置
+    let lastX, lastY;
     if (this.trailPositions.length > 1) {
       const lastPos = this.trailPositions[this.trailPositions.length - 2];
-      const lastRenderX = lastPos.x + offsetX;
-      const lastRenderY = lastPos.y + offsetY;
-      const dx = renderX - lastRenderX;
-      const dy = renderY - lastRenderY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      if (dist > 0.1) {
-        const trailAngle = Math.atan2(dy, dx);
-        
-        this.ctx.save();
-        this.ctx.translate(lastRenderX, lastRenderY);
-        this.ctx.rotate(trailAngle);
-        
-        // 简洁尾迹
-        const trailGradient = this.ctx.createLinearGradient(0, 0, Math.min(dist, this.radius * 1.5), 0);
-        trailGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ROCKET_BULLET, 0.4));
-        trailGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ROCKET_BULLET, 0));
-        
-        this.ctx.strokeStyle = trailGradient;
-        this.ctx.lineWidth = this.radius * 0.8;
-        this.ctx.lineCap = 'round';
-        this.ctx.beginPath();
-        this.ctx.moveTo(0, 0);
-        this.ctx.lineTo(Math.min(dist, this.radius * 1.5), 0);
-        this.ctx.stroke();
-        
-        this.ctx.restore();
-      }
+      lastX = lastPos.x + offsetX;
+      lastY = lastPos.y + offsetY;
     }
     
-    // 使用缓存渲染火箭主体（应用战场偏移）
-    HomingRocket.renderBodyFromCache(this.ctx, renderX, renderY, this.radius, this.angle);
-    
-    this.ctx.restore();
+    // 使用渲染器渲染（主体+尾迹）
+    HomingRocketRenderer.render(this.ctx, renderX, renderY, this.radius, this.angle, lastX, lastY);
   }
 }
 

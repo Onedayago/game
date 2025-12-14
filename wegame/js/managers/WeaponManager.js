@@ -218,11 +218,7 @@ export class WeaponManager {
   /**
    * 渲染武器（带视锥剔除，优化：移除 save/restore）
    */
-  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
-    
-    // 获取战场偏移（如果传入）
-    const offsetX = arguments[4] || 0;
-    const offsetY = arguments[5] || 0;
+  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
     
     // 渲染所有武器（只渲染屏幕内的）
     for (const weapon of this.weapons) {

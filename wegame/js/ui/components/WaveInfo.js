@@ -125,9 +125,6 @@ export class WaveInfo {
         0, 0, canvasWidth, canvasHeight,
         panelX - 20, panelY - 20, canvasWidth, canvasHeight
       );
-    } else {
-      // 回退方案：直接绘制背景
-      this.renderBackgroundDirect(ctx, panelX, panelY);
     }
     
     // 绘制动态文字（波次和进度）
@@ -152,7 +149,7 @@ export class WaveInfo {
   }
   
   /**
-   * 直接绘制背景（回退方案）
+   * 直接绘制背景（已废弃，仅用于缓存初始化）
    */
   static renderBackgroundDirect(ctx, panelX, panelY) {
     polyfillRoundRect(ctx);

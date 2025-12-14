@@ -1,13 +1,12 @@
 /**
- * 敌人渲染器
- * 负责所有敌人的视觉绘制
+ * 敌人坦克渲染器
+ * 负责敌人坦克的视觉绘制（带离屏缓存优化）
  */
 
-import { GameConfig } from '../config/GameConfig';
-import { ColorUtils, GameColors } from '../config/Colors';
-import { polyfillRoundRect } from '../utils/CanvasUtils';
+import { ColorUtils, GameColors } from '../../config/Colors';
+import { polyfillRoundRect } from '../../utils/CanvasUtils';
 
-export class EnemyRenderer {
+export class EnemyTankRenderer {
   // 离屏Canvas缓存
   static _cachedCanvas = null;
   static _cachedCtx = null;
@@ -15,7 +14,7 @@ export class EnemyRenderer {
   static _initialized = false;
   
   /**
-   * 初始化敌人渲染缓存
+   * 初始化敌人坦克渲染缓存
    */
   static initCache(size) {
     if (this._initialized && this._cacheSize === size) {
@@ -48,7 +47,7 @@ export class EnemyRenderer {
       
       this._initialized = true;
     } catch (e) {
-      console.warn('敌人渲染缓存初始化失败:', e);
+      console.warn('敌人坦克渲染缓存初始化失败:', e);
       this._initialized = false;
     }
   }
@@ -115,159 +114,14 @@ export class EnemyRenderer {
   
   /**
    * 渲染敌人坦克
-   * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
-   * @param {number} x - Canvas 坐标系 X
-   * @param {number} y - Canvas 坐标系 Y（从上往下）
-   * @param {number} size - 尺寸
-   * @param {number} angle - 角度（弧度）
    */
-  static renderEnemyTank(ctx, x, y, size, angle = 0) {
+  static render(ctx, x, y, size, angle = 0) {
     // 初始化缓存（如果未初始化或尺寸不同）
     if (!this._initialized || this._cacheSize !== size) {
       this.initCache(size);
     }
     // 使用缓存渲染
     this.renderFromCache(ctx, x, y, size, angle);
-  }
-  
-  /**
-   * 渲染快速敌人（使用不同颜色）
-   */
-  static renderFastEnemy(ctx, x, y, size, angle = 0) {
-    polyfillRoundRect(ctx);
-    ctx.save();
-    ctx.translate(x, y);
-    if (Math.abs(angle) > 0.01) {
-      ctx.rotate(angle);
-    }
-    
-    // 快速敌人：较小的蓝色坦克
-    const color = ColorUtils.hexToCanvas(0x4488ff);
-    const darkColor = ColorUtils.hexToCanvas(0x2266cc);
-    
-    // 主体
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.roundRect(-size / 2, -size / 2, size, size, size * 0.2);
-    ctx.fill();
-    
-    // 高光
-    ctx.fillStyle = ColorUtils.hexToCanvas(0x66aaff);
-    ctx.beginPath();
-    ctx.roundRect(-size / 2 + 2, -size / 2 + 2, size - 4, size * 0.3, size * 0.15);
-    ctx.fill();
-    
-    ctx.restore();
-  }
-  
-  /**
-   * 渲染重型敌人（使用不同颜色）
-   */
-  static renderHeavyEnemy(ctx, x, y, size, angle = 0) {
-    polyfillRoundRect(ctx);
-    ctx.save();
-    ctx.translate(x, y);
-    if (Math.abs(angle) > 0.01) {
-      ctx.rotate(angle);
-    }
-    
-    // 重型敌人：较大的深红色坦克
-    const color = ColorUtils.hexToCanvas(0xcc4444);
-    const darkColor = ColorUtils.hexToCanvas(0x992222);
-    
-    // 主体
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.roundRect(-size / 2, -size / 2, size, size, size * 0.15);
-    ctx.fill();
-    
-    // 装甲板
-    ctx.fillStyle = darkColor;
-    ctx.beginPath();
-    ctx.roundRect(-size / 2 + 3, -size / 2 + 3, size - 6, size - 6, size * 0.1);
-    ctx.fill();
-    
-    // 高光
-    ctx.fillStyle = ColorUtils.hexToCanvas(0xff6666);
-    ctx.beginPath();
-    ctx.roundRect(-size / 2 + 4, -size / 2 + 4, size - 8, size * 0.4, size * 0.1);
-    ctx.fill();
-    
-    ctx.restore();
-  }
-  
-  /**
-   * 渲染飞行敌人（使用不同颜色和样式）
-   */
-  static renderFlyingEnemy(ctx, x, y, size, angle = 0) {
-    ctx.save();
-    ctx.translate(x, y);
-    if (Math.abs(angle) > 0.01) {
-      ctx.rotate(angle);
-    }
-    
-    // 飞行敌人：紫色圆形
-    const color = ColorUtils.hexToCanvas(0xaa44ff);
-    const darkColor = ColorUtils.hexToCanvas(0x8822cc);
-    
-    // 主体（圆形）
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // 内圈
-    ctx.fillStyle = darkColor;
-    ctx.beginPath();
-    ctx.arc(0, 0, size / 2 - 2, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // 高光
-    ctx.fillStyle = ColorUtils.hexToCanvas(0xcc66ff);
-    ctx.beginPath();
-    ctx.arc(-size / 6, -size / 6, size / 4, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.restore();
-  }
-  
-  /**
-   * 渲染自爆敌人（使用不同颜色和样式）
-   */
-  static renderBomberEnemy(ctx, x, y, size, angle = 0) {
-    polyfillRoundRect(ctx);
-    ctx.save();
-    ctx.translate(x, y);
-    if (Math.abs(angle) > 0.01) {
-      ctx.rotate(angle);
-    }
-    
-    // 自爆敌人：橙色方形，带警告标识
-    const color = ColorUtils.hexToCanvas(0xff8844);
-    const darkColor = ColorUtils.hexToCanvas(0xcc6622);
-    
-    // 主体（方形）
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.roundRect(-size / 2, -size / 2, size, size, size * 0.1);
-    ctx.fill();
-    
-    // 边框
-    ctx.strokeStyle = darkColor;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    // 警告标识（X标记）
-    ctx.strokeStyle = ColorUtils.hexToCanvas(0xff0000);
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-size / 3, -size / 3);
-    ctx.lineTo(size / 3, size / 3);
-    ctx.moveTo(size / 3, -size / 3);
-    ctx.lineTo(-size / 3, size / 3);
-    ctx.stroke();
-    
-    ctx.restore();
   }
   
   /**
@@ -574,80 +428,6 @@ export class EnemyRenderer {
     ctx.beginPath();
     ctx.arc(muzzleX, 0, muzzleRadius * 0.5, 0, Math.PI * 2);
     ctx.fill();
-  }
-  
-  /**
-   * 渲染声波坦克
-   * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
-   * @param {number} x - Canvas 坐标系 X
-   * @param {number} y - Canvas 坐标系 Y（从上往下）
-   * @param {number} size - 尺寸
-   * @param {number} angle - 角度（弧度）
-   */
-  static renderSonicTank(ctx, x, y, size, angle = 0) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    
-    // 声波坦克与普通坦克类似，但颜色不同
-    const hullRadius = size * 0.25;
-    const trackHeight = size * 0.22;
-    const turretRadius = size * 0.22;
-    const barrelLength = size * 0.78;
-    const barrelHalfHeight = size * 0.08;
-    
-    // 使用不同的颜色（偏蓝色）
-    const enemyColor = ColorUtils.hexToCanvas(0x4488ff);
-    const enemyDarkColor = ColorUtils.hexToCanvas(0x2266cc);
-    
-    // 绘制阴影
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.beginPath();
-    ctx.ellipse(0, size / 2, size * 0.4, size * 0.1, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // 绘制履带
-    ctx.fillStyle = enemyDarkColor;
-    ctx.fillRect(-size / 2, -size / 2, size, trackHeight);
-    ctx.fillRect(-size / 2, size / 2 - trackHeight, size, trackHeight);
-    
-    // 绘制主车体
-    ctx.fillStyle = enemyColor;
-    ctx.roundRect(-size / 2 + 6, -size / 2 + trackHeight * 0.65, size - 12, size - trackHeight * 1.3, hullRadius);
-    ctx.fill();
-    
-    // 绘制车体边框
-    ctx.strokeStyle = enemyDarkColor;
-    ctx.lineWidth = 2.5;
-    ctx.roundRect(-size / 2 + 6, -size / 2 + trackHeight * 0.65, size - 12, size - trackHeight * 1.3, hullRadius);
-    ctx.stroke();
-    
-    // 绘制炮塔
-    ctx.fillStyle = enemyColor;
-    ctx.beginPath();
-    ctx.arc(0, 0, turretRadius, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // 绘制炮管
-    ctx.fillStyle = enemyDarkColor;
-    ctx.roundRect(-barrelHalfHeight, -barrelHalfHeight, barrelLength, barrelHalfHeight * 2, barrelHalfHeight / 2);
-    ctx.fill();
-    
-    // 绘制炮管高光
-    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.3);
-    ctx.roundRect(-barrelHalfHeight, -barrelHalfHeight, barrelLength * 0.3, barrelHalfHeight, barrelHalfHeight / 4);
-    ctx.fill();
-    
-    // 绘制整体发光效果（蓝色调）
-    const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.6);
-    glowGradient.addColorStop(0, ColorUtils.hexToCanvas(0x4488ff, 0.15));
-    glowGradient.addColorStop(1, ColorUtils.hexToCanvas(0x4488ff, 0));
-    ctx.fillStyle = glowGradient;
-    ctx.beginPath();
-    ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.restore();
   }
 }
 

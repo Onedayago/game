@@ -6,6 +6,7 @@ import { GameConfig } from '../config/GameConfig';
 import { EnemyBulletConfig } from '../config/enemies/EnemyBulletConfig';
 import { ColorUtils, GameColors } from '../config/Colors';
 import { GameContext } from '../core/GameContext';
+import { EnemyBulletRenderer } from '../rendering/projectiles/EnemyBulletRenderer';
 
 export class EnemyBullet {
   // 离屏Canvas缓存（静态）
@@ -209,13 +210,8 @@ export class EnemyBullet {
       return;
     }
     
-    // 初始化缓存（如果未初始化或半径不同）
-    if (!EnemyBullet._initialized || EnemyBullet._cacheRadius !== this.radius) {
-      EnemyBullet.initCache(this.radius);
-    }
-    
-    // 使用缓存渲染 - 应用战场偏移
-    EnemyBullet.renderFromCache(this.ctx, this.x + offsetX, this.y + offsetY, this.radius);
+    // 使用渲染器渲染 - 应用战场偏移
+    EnemyBulletRenderer.render(this.ctx, this.x + offsetX, this.y + offsetY, this.radius);
   }
 }
 

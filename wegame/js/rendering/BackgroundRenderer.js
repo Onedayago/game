@@ -103,17 +103,12 @@ export class BackgroundRenderer {
       BackgroundRenderer.initCache();
     }
     
-    // 如果缓存可用，使用缓存渲染
-    if (BackgroundRenderer._cachedCanvas && BackgroundRenderer._initialized) {
-      BackgroundRenderer.renderFromCache(this.ctx, offsetX, offsetY);
-    } else {
-      // 回退到直接渲染（需要手动应用偏移）
-      this.drawGrid(offsetX, offsetY);
-    }
+    // 使用缓存渲染
+    BackgroundRenderer.renderFromCache(this.ctx, offsetX, offsetY);
   }
   
   /**
-   * 绘制网格（直接渲染，回退方案，应用战场偏移）
+   * 绘制网格（已废弃，仅用于缓存初始化）
    * 直接使用 Canvas 坐标系（Y 轴从上往下）
    */
   drawGrid(offsetX = 0, offsetY = 0) {

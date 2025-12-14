@@ -229,11 +229,7 @@ export class GoldManager {
     const panelY = windowHeight - panelHeight - 20;
     
     // 使用缓存渲染静态部分（背景、图标）
-    if (!GoldManager.renderStaticFromCache(ctx, panelX, panelY)) {
-      // 如果缓存不可用，回退到直接渲染（简化版）
-      console.warn('金币管理器缓存不可用，使用回退渲染');
-      return;
-    }
+    GoldManager.renderStaticFromCache(ctx, panelX, panelY);
     
     // 动态渲染金币文字（带阴影）
     const coinRadius = 12;

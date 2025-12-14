@@ -367,51 +367,10 @@ class WeaponRenderer {
   static renderHealthBar(ctx, x, y, hp, maxHp, entitySize) {
     const ratio = Math.max(hp / maxHp, 0);
     
-    // 尝试使用缓存渲染
-    const bgRendered = this.renderHealthBarBackgroundFromCache(ctx, x, y, entitySize);
-    if (bgRendered && ratio > 0) {
-      this.renderHealthBarForegroundFromCache(ctx, x, y, entitySize, ratio);
-      return;
-    }
-    
-    // 回退到直接渲染
-    this.renderHealthBarDirect(ctx, x, y, hp, maxHp, entitySize);
-  }
-  
-  /**
-   * 直接渲染血条（回退方案）
-   */
-  static renderHealthBarDirect(ctx, x, y, hp, maxHp, entitySize) {
-    polyfillRoundRect(ctx);
-    const barWidth = entitySize * UIConfig.HP_BAR_WIDTH_RATIO;
-    const barHeight = UIConfig.HP_BAR_HEIGHT;
-    const offsetY = entitySize / 2 + entitySize * 0.2; // 实体顶部 + 间隔（Canvas 坐标系中向上，Y 值更小）
-    
-    const barX = x;
-    // 在 Canvas 坐标系中，血条应该在实体上方（Y 值更小，所以减去 offsetY）
-    const barY = y - offsetY;
-    
-    // 绘制背景
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.beginPath();
-    ctx.roundRect(barX - barWidth / 2, barY - barHeight / 2, barWidth, barHeight, 3);
-    ctx.fill();
-    
-    // 绘制血条
-    const ratio = Math.max(hp / maxHp, 0);
+    // 使用缓存渲染
+    this.renderHealthBarBackgroundFromCache(ctx, x, y, entitySize);
     if (ratio > 0) {
-      let hpColor;
-      if (ratio <= UIConfig.HP_BAR_CRITICAL_THRESHOLD) {
-        hpColor = GameColors.DANGER || 0xff0000;
-      } else if (ratio <= UIConfig.HP_BAR_WARNING_THRESHOLD) {
-        hpColor = 0xfbbf24; // 琥珀色
-      } else {
-        hpColor = GameColors.ENEMY_DETAIL;
-      }
-      
-      ctx.fillStyle = ColorUtils.hexToCanvas(hpColor, 0.95);
-      ctx.roundRect(barX - barWidth / 2, barY - barHeight / 2, barWidth * ratio, barHeight, 3);
-      ctx.fill();
+      this.renderHealthBarForegroundFromCache(ctx, x, y, entitySize, ratio);
     }
   }
 }

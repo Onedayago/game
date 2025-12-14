@@ -196,12 +196,12 @@ export class PauseScreen {
       return;
     }
     
-    // 回退方案：直接绘制
-    this.renderDirect(ctx);
+    // 缓存不可用时，不渲染
+    console.warn('PauseScreen: 缓存不可用');
   }
   
   /**
-   * 直接绘制（回退方案）
+   * 直接绘制（已废弃，仅用于缓存初始化）
    */
   static renderDirect(ctx) {
     polyfillRoundRect(ctx);

@@ -252,21 +252,13 @@ export class ParticleManager {
         const colorIndex = particle.colorIndex !== undefined ? particle.colorIndex : 0;
         
         // 使用缓存渲染（固定透明度）
-        if (!ParticleManager.renderFromCache(
+        ParticleManager.renderFromCache(
           this.ctx,
           particle.x + offsetX,
           particle.y + offsetY,
           particle.size,
           colorIndex
-        )) {
-          // 回退到直接渲染
-          const color = ParticleManager.PARTICLE_COLORS[colorIndex] || ParticleManager.PARTICLE_COLORS[0];
-          const { r, g, b } = this.hexToRgb(color);
-          this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.9)`;
-          this.ctx.beginPath();
-          this.ctx.arc(particle.x + offsetX, particle.y + offsetY, particle.size, 0, Math.PI * 2);
-          this.ctx.fill();
-        }
+        );
       }
     } else {
       // 粒子数量多时，按颜色索引和大小分组，减少状态切换
@@ -293,21 +285,13 @@ export class ParticleManager {
       for (const [groupKey, particles] of groups.entries()) {
         for (const p of particles) {
           // 使用缓存渲染（固定透明度）
-          if (!ParticleManager.renderFromCache(
+          ParticleManager.renderFromCache(
             this.ctx,
             p.x,
             p.y,
             p.size,
             p.colorIndex
-          )) {
-            // 回退到直接渲染
-            const color = ParticleManager.PARTICLE_COLORS[p.colorIndex] || ParticleManager.PARTICLE_COLORS[0];
-            const { r, g, b } = this.hexToRgb(color);
-            this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.9)`;
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            this.ctx.fill();
-          }
+          );
         }
       }
     }

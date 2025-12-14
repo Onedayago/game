@@ -456,18 +456,7 @@ class HelpScreen {
     
     // 绘制关闭按钮（使用缓存）
     const closeBtnY = panelY + panelHeight * 0.88;
-    if (!HelpScreen.renderButtonFromCache(this.ctx, windowWidth / 2, closeBtnY)) {
-      // 如果缓存不可用，回退到直接渲染
-      this.drawButton(
-        windowWidth / 2,
-        closeBtnY,
-        UIConfig.HELP_BTN_WIDTH * 0.8,
-        UIConfig.HELP_BTN_HEIGHT * 0.9,
-        UIConfig.HELP_BTN_RADIUS,
-        '关闭',
-        GameColors.ROCKET_TOWER
-      );
-    }
+    HelpScreen.renderButtonFromCache(this.ctx, windowWidth / 2, closeBtnY);
   }
   
   /**

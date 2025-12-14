@@ -143,7 +143,9 @@ export class Enemy {
       const allEnemies = gameContext.enemies || [];
       // 获取障碍物管理器（从 GameContext 或通过其他方式）
       const obstacleManager = gameContext.obstacleManager || null;
-      EnemyMovement.moveInGrid(this, deltaTime, allEnemies, obstacleManager);
+      // 飞行敌人可以飞过障碍物
+      const canFlyOverObstacles = this.canFlyOverObstacles || false;
+      EnemyMovement.moveInGrid(this, deltaTime, allEnemies, obstacleManager, canFlyOverObstacles);
     }
     
     // 检查是否到达终点

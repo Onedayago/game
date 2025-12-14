@@ -55,8 +55,9 @@ export class EnemyMovement {
   
   /**
    * 简单的格子移动（带碰撞检测和障碍物检测）
+   * @param {boolean} canFlyOverObstacles - 是否可以飞过障碍物（飞行敌人）
    */
-  static moveInGrid(enemy, deltaTime, allEnemies = [], obstacleManager = null) {
+  static moveInGrid(enemy, deltaTime, allEnemies = [], obstacleManager = null, canFlyOverObstacles = false) {
     const targetWorldX = enemy.gridX * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
     const targetWorldY = enemy.gridY * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
     
@@ -75,8 +76,8 @@ export class EnemyMovement {
         return;
       }
       
-      // 检查下一个格子是否有障碍物
-      if (obstacleManager && obstacleManager.hasObstacle(nextGridX, enemy.gridY)) {
+      // 检查下一个格子是否有障碍物（飞行敌人可以飞过）
+      if (obstacleManager && !canFlyOverObstacles && obstacleManager.hasObstacle(nextGridX, enemy.gridY)) {
         // 有障碍物，尝试寻找出路（向上或向下绕过）
         const currentRow = enemy.gridY;
         const battleStartRow = GameConfig.BATTLE_START_ROW;
@@ -86,9 +87,9 @@ export class EnemyMovement {
         let foundPath = false;
         if (currentRow > battleStartRow) {
           const upRow = currentRow - 1;
-          // 检查上方格子是否有障碍物，以及下一个格子（向右）是否有障碍物
-          if (!obstacleManager.hasObstacle(enemy.gridX, upRow) && 
-              !obstacleManager.hasObstacle(nextGridX, upRow)) {
+          // 检查上方格子是否有障碍物，以及下一个格子（向右）是否有障碍物（飞行敌人可以飞过）
+          if ((canFlyOverObstacles || !obstacleManager.hasObstacle(enemy.gridX, upRow)) && 
+              (canFlyOverObstacles || !obstacleManager.hasObstacle(nextGridX, upRow))) {
             // 可以向上绕过
             enemy.gridY = upRow;
             enemy.gridX = nextGridX;
@@ -99,9 +100,9 @@ export class EnemyMovement {
         // 如果向上不行，尝试向下移动
         if (!foundPath && currentRow < battleEndRow) {
           const downRow = currentRow + 1;
-          // 检查下方格子是否有障碍物，以及下一个格子（向右）是否有障碍物
-          if (!obstacleManager.hasObstacle(enemy.gridX, downRow) && 
-              !obstacleManager.hasObstacle(nextGridX, downRow)) {
+          // 检查下方格子是否有障碍物，以及下一个格子（向右）是否有障碍物（飞行敌人可以飞过）
+          if ((canFlyOverObstacles || !obstacleManager.hasObstacle(enemy.gridX, downRow)) && 
+              (canFlyOverObstacles || !obstacleManager.hasObstacle(nextGridX, downRow))) {
             // 可以向下绕过
             enemy.gridY = downRow;
             enemy.gridX = nextGridX;
@@ -114,7 +115,7 @@ export class EnemyMovement {
           // 优先尝试向上
           if (currentRow > battleStartRow) {
             const upRow = currentRow - 1;
-            if (!obstacleManager.hasObstacle(enemy.gridX, upRow)) {
+            if (canFlyOverObstacles || !obstacleManager.hasObstacle(enemy.gridX, upRow)) {
               enemy.gridY = upRow;
               return; // 先移动到上方，下一帧再继续
             }
@@ -122,7 +123,7 @@ export class EnemyMovement {
           // 如果向上不行，尝试向下
           if (currentRow < battleEndRow) {
             const downRow = currentRow + 1;
-            if (!obstacleManager.hasObstacle(enemy.gridX, downRow)) {
+            if (canFlyOverObstacles || !obstacleManager.hasObstacle(enemy.gridX, downRow)) {
               enemy.gridY = downRow;
               return; // 先移动到下方，下一帧再继续
             }
@@ -152,7 +153,7 @@ export class EnemyMovement {
       // 检查新位置是否在障碍物格子上
       const newCol = Math.floor(newX / GameConfig.CELL_SIZE);
       const newRow = Math.floor(newY / GameConfig.CELL_SIZE);
-      if (obstacleManager && obstacleManager.hasObstacle(newCol, newRow)) {
+      if (obstacleManager && !canFlyOverObstacles && obstacleManager.hasObstacle(newCol, newRow)) {
         // 新位置在障碍物格子上，不能移动
         // 如果是在向右移动时遇到障碍物，允许Y方向移动（绕过障碍物）
         const currentCol = Math.floor(enemy.x / GameConfig.CELL_SIZE);
@@ -186,7 +187,7 @@ export class EnemyMovement {
         // 再次检查小移动是否在障碍物格子上
         const smallNewCol = Math.floor(smallNewX / GameConfig.CELL_SIZE);
         const smallNewRow = Math.floor(smallNewY / GameConfig.CELL_SIZE);
-        if (obstacleManager && obstacleManager.hasObstacle(smallNewCol, smallNewRow)) {
+        if (obstacleManager && !canFlyOverObstacles && obstacleManager.hasObstacle(smallNewCol, smallNewRow)) {
           // 小移动也会进入障碍物格子，不允许移动
           return;
         }

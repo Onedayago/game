@@ -8,8 +8,20 @@ import { EnemyConfig } from '../config/EnemyConfig';
 import { EnemyTankConfig } from '../config/enemies/EnemyTankConfig';
 import { WaveConfig } from '../config/WaveConfig';
 import { EnemyTank } from '../entities/EnemyTank';
+import { FastEnemy } from '../entities/FastEnemy';
+import { HeavyEnemy } from '../entities/HeavyEnemy';
+import { FlyingEnemy } from '../entities/FlyingEnemy';
+import { BomberEnemy } from '../entities/BomberEnemy';
+import { FastEnemyConfig } from '../config/enemies/FastEnemyConfig';
+import { HeavyEnemyConfig } from '../config/enemies/HeavyEnemyConfig';
+import { FlyingEnemyConfig } from '../config/enemies/FlyingEnemyConfig';
+import { BomberEnemyConfig } from '../config/enemies/BomberEnemyConfig';
 import { WeaponRenderer } from '../rendering/WeaponRenderer';
-import { EnemyRenderer } from '../rendering/EnemyRenderer';
+import { EnemyTankRenderer } from '../rendering/enemies/EnemyTankRenderer';
+import { FastEnemyRenderer } from '../rendering/enemies/FastEnemyRenderer';
+import { HeavyEnemyRenderer } from '../rendering/enemies/HeavyEnemyRenderer';
+import { FlyingEnemyRenderer } from '../rendering/enemies/FlyingEnemyRenderer';
+import { BomberEnemyRenderer } from '../rendering/enemies/BomberEnemyRenderer';
 
 export class EnemyManager {
   constructor(ctx, weaponManager, goldManager) {
@@ -28,6 +40,7 @@ export class EnemyManager {
     this.waveStartTime = 0; // 波次开始时间（用于显示提示）
     this.showWaveNotification = false; // 是否显示波次提示
     this.obstacleManager = null; // 障碍物管理器引用
+    this.currentWaveEnemyTypes = []; // 当前波次可用的敌人类型池
   }
   
   /**
@@ -41,8 +54,12 @@ export class EnemyManager {
    * 初始化敌人管理器（初始化缓存）
    */
   init() {
-    // 初始化敌人渲染缓存
-    EnemyRenderer.initCache(EnemyTankConfig.SIZE);
+    // 初始化敌人渲染缓存（初始化所有敌人类型的缓存）
+    EnemyTankRenderer.initCache(EnemyTankConfig.SIZE);
+    FastEnemyRenderer.initCache(FastEnemyConfig.SIZE);
+    HeavyEnemyRenderer.initCache(HeavyEnemyConfig.SIZE);
+    FlyingEnemyRenderer.initCache(FlyingEnemyConfig.SIZE);
+    BomberEnemyRenderer.initCache(BomberEnemyConfig.SIZE);
   }
   
   /**
@@ -56,6 +73,7 @@ export class EnemyManager {
     this.waveLevel = 0; // 初始化为0，startNewWave会将其设为1
     this.hpBonus = 0;
     this.waveEnemyCount = 0;
+    this.currentWaveEnemyTypes = []; // 当前波次可用的敌人类型池
     this.isWaveComplete = false;
     this.waveStartTime = 0;
     this.showWaveNotification = false;
@@ -80,6 +98,63 @@ export class EnemyManager {
     this.spawnTimer = 0; // 重置生成计时器
     this.waveStartTime = Date.now(); // 记录波次开始时间
     this.showWaveNotification = true; // 显示波次提示
+    
+    // 为当前波次生成随机的敌人种类组合
+    this.generateWaveEnemyTypes();
+  }
+  
+  /**
+   * 为当前波次生成随机的敌人种类组合
+   */
+  generateWaveEnemyTypes() {
+    // 所有可用的敌人类型
+    const allEnemyTypes = [
+      { type: 'tank', weight: 30 },      // 普通坦克：30% 权重
+      { type: 'fast', weight: 25 },      // 快速敌人：25% 权重
+      { type: 'heavy', weight: 20 },     // 重型敌人：20% 权重
+      { type: 'flying', weight: 15 },    // 飞行敌人：15% 权重
+      { type: 'bomber', weight: 10 }     // 自爆敌人：10% 权重
+    ];
+    
+    // 根据波次调整权重（后期波次增加难度）
+    const waveMultiplier = Math.min(1 + (this.waveLevel - 1) * 0.1, 2); // 最多2倍权重
+    
+    // 计算总权重
+    let totalWeight = 0;
+    for (const enemyType of allEnemyTypes) {
+      totalWeight += enemyType.weight * waveMultiplier;
+    }
+    
+    // 生成当前波次的敌人类型池（每个敌人类型至少出现一次，然后根据权重随机）
+    this.currentWaveEnemyTypes = [];
+    
+    // 确保每种类型至少出现一次（前5个）
+    for (let i = 0; i < Math.min(5, this.maxEnemiesPerWave); i++) {
+      if (i < allEnemyTypes.length) {
+        this.currentWaveEnemyTypes.push(allEnemyTypes[i].type);
+      }
+    }
+    
+    // 剩余敌人根据权重随机生成
+    for (let i = this.currentWaveEnemyTypes.length; i < this.maxEnemiesPerWave; i++) {
+      const random = Math.random() * totalWeight;
+      let currentWeight = 0;
+      
+      for (const enemyType of allEnemyTypes) {
+        currentWeight += enemyType.weight * waveMultiplier;
+        if (random <= currentWeight) {
+          this.currentWaveEnemyTypes.push(enemyType.type);
+          break;
+        }
+      }
+    }
+    
+    // 打乱顺序，使敌人种类更随机
+    for (let i = this.currentWaveEnemyTypes.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.currentWaveEnemyTypes[i], this.currentWaveEnemyTypes[j]] = 
+        [this.currentWaveEnemyTypes[j], this.currentWaveEnemyTypes[i]];
+    }
   }
   
   /**
@@ -129,8 +204,52 @@ export class EnemyManager {
     // 如果尝试多次都找不到，仍然生成（避免无限循环）
     // 但这种情况应该很少见，因为第一列不应该有障碍物
     
-    // 创建敌人
-    const enemy = new EnemyTank(this.ctx, 0, 0);
+    // 从当前波次的敌人类型池中随机选择（如果池为空，则使用默认随机）
+    let enemyType;
+    if (this.currentWaveEnemyTypes && this.currentWaveEnemyTypes.length > 0) {
+      // 从当前波次的类型池中选择
+      const randomIndex = Math.floor(Math.random() * this.currentWaveEnemyTypes.length);
+      enemyType = this.currentWaveEnemyTypes[randomIndex];
+      // 移除已使用的类型（避免重复）
+      this.currentWaveEnemyTypes.splice(randomIndex, 1);
+    } else {
+      // 回退到随机选择（如果类型池为空）
+      const random = Math.random();
+      if (random < 0.4) {
+        enemyType = 'tank';
+      } else if (random < 0.6) {
+        enemyType = 'fast';
+      } else if (random < 0.75) {
+        enemyType = 'heavy';
+      } else if (random < 0.9) {
+        enemyType = 'flying';
+      } else {
+        enemyType = 'bomber';
+      }
+    }
+    
+    // 根据类型创建敌人
+    let enemy;
+    switch (enemyType) {
+      case 'tank':
+        enemy = new EnemyTank(this.ctx, 0, 0);
+        break;
+      case 'fast':
+        enemy = new FastEnemy(this.ctx, 0, 0);
+        break;
+      case 'heavy':
+        enemy = new HeavyEnemy(this.ctx, 0, 0);
+        break;
+      case 'flying':
+        enemy = new FlyingEnemy(this.ctx, 0, 0);
+        break;
+      case 'bomber':
+        enemy = new BomberEnemy(this.ctx, 0, 0);
+        break;
+      default:
+        enemy = new EnemyTank(this.ctx, 0, 0);
+    }
+    
     enemy.initPosition(row);
     enemy.setHpBonus(this.hpBonus);
     
@@ -194,9 +313,22 @@ export class EnemyManager {
       
       // 处理已销毁或已完成的敌人
       if (enemy.destroyed) {
-        // 奖励金币
+        // 奖励金币（根据敌人类型给予不同奖励）
         if (this.goldManager) {
-          this.goldManager.addGold(EnemyTankConfig.KILL_REWARD);
+          let reward = EnemyTankConfig.KILL_REWARD; // 默认奖励
+          
+          // 根据敌人类型确定奖励
+          if (enemy instanceof FastEnemy) {
+            reward = FastEnemyConfig.KILL_REWARD;
+          } else if (enemy instanceof HeavyEnemy) {
+            reward = HeavyEnemyConfig.KILL_REWARD;
+          } else if (enemy instanceof FlyingEnemy) {
+            reward = FlyingEnemyConfig.KILL_REWARD;
+          } else if (enemy instanceof BomberEnemy) {
+            reward = BomberEnemyConfig.KILL_REWARD;
+          }
+          
+          this.goldManager.addGold(reward);
         }
         // 从 GameContext 移除
         const gameContext = GameContext.getInstance();
@@ -265,7 +397,7 @@ export class EnemyManager {
   /**
    * 渲染敌人（带视锥剔除，优化：减少 save/restore 调用）
    */
-  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
+  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
     
     // 优化：只在需要时保存上下文，而不是每个敌人都保存
     let hasRendered = false;
@@ -289,10 +421,6 @@ export class EnemyManager {
     
     // 如果没有需要渲染的敌人，直接返回
     if (enemiesToRender.length === 0) return;
-    
-    // 获取战场偏移（如果传入）
-    const offsetX = arguments[4] || 0;
-    const offsetY = arguments[5] || 0;
     
     // 批量渲染敌人（优化：移除 save/restore）
     // 先批量渲染所有血条（相同状态）

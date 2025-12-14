@@ -194,17 +194,12 @@ export class WeaponCardRenderer {
       this.initCache(weaponType, size);
     }
     
-    // 如果缓存可用，使用缓存渲染
-    if (this._cachedCanvases[this.getCacheKey(weaponType, size)]) {
-      this.renderFromCache(ctx, x, y, weaponType, size);
-    } else {
-      // 回退到直接渲染
-      this.renderCardDirect(ctx, x, y, size, weaponType, isSelected);
-    }
+    // 使用缓存渲染
+    this.renderFromCache(ctx, x, y, weaponType, size);
   }
   
   /**
-   * 直接渲染武器卡片（回退方案）
+   * 直接渲染武器卡片（已废弃，仅用于缓存初始化）
    */
   static renderCardDirect(ctx, x, y, size, weaponType, isSelected) {
     polyfillRoundRect(ctx);
