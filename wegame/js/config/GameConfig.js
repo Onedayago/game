@@ -5,28 +5,60 @@
 
 export class GameConfig {
   // ==================== 基础设计尺寸 ====================
+  /** 缓存的系统信息 */
+  static _cachedSystemInfo = null;
+  /** 缓存的设计宽度 */
+  static _cachedDesignWidth = null;
+  /** 缓存的设计高度 */
+  static _cachedDesignHeight = null;
+  
+  /**
+   * 初始化配置（在游戏加载时调用一次）
+   */
+  static init() {
+    if (this._cachedDesignWidth !== null && this._cachedDesignHeight !== null) {
+      return; // 已经初始化过
+    }
+    
+    try {
+      if (typeof wx !== 'undefined' && wx.getSystemInfoSync) {
+        this._cachedSystemInfo = wx.getSystemInfoSync();
+        this._cachedDesignWidth = this._cachedSystemInfo.windowWidth || 1000;
+        this._cachedDesignHeight = this._cachedSystemInfo.windowHeight || 480;
+      } else {
+        // 非微信环境，使用默认值
+        this._cachedDesignWidth = 1000;
+        this._cachedDesignHeight = 480;
+      }
+    } catch (e) {
+      console.warn('GameConfig.init 失败，使用默认值:', e);
+      this._cachedDesignWidth = 1000;
+      this._cachedDesignHeight = 480;
+    }
+  }
+  
   /**
    * 获取设计分辨率宽度（像素）
-   * 从当前屏幕宽度获取
+   * 从缓存的屏幕宽度获取
    */
   static get DESIGN_WIDTH() {
-    if (typeof wx !== 'undefined' && wx.getSystemInfoSync) {
-      const systemInfo = wx.getSystemInfoSync();
-      return systemInfo.windowWidth || 1000;
+    if (this._cachedDesignWidth === null) {
+      // 如果未初始化，尝试初始化（向后兼容）
+      this.init();
     }
-    return 1000; // 默认值（用于非微信环境）
+    return this._cachedDesignWidth || 1000;
   }
   
   /**
    * 获取设计分辨率高度（像素）
-   * 从当前屏幕高度获取
+   * 从缓存的屏幕高度获取
    */
   static get DESIGN_HEIGHT() {
-    if (typeof wx !== 'undefined' && wx.getSystemInfoSync) {
-      const systemInfo = wx.getSystemInfoSync();
-      return systemInfo.windowHeight || 480;
+    if (this._cachedDesignHeight === null) {
+      // 如果未初始化，尝试初始化（向后兼容）
+      this.init();
     }
-    return 480; // 默认值（用于非微信环境）
+    return this._cachedDesignHeight || 480;
   }
   
   // ==================== 网格系统 ====================

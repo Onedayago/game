@@ -8,19 +8,63 @@ import { ColorUtils, GameColors } from '../config/Colors';
 import { polyfillRoundRect } from '../utils/CanvasUtils';
 
 export class RocketTowerRenderer {
+  // 离屏Canvas缓存（按尺寸和等级缓存）
+  static _cachedCanvases = {}; // { 'size_level': canvas }
+  static _cachedCtxs = {}; // { 'size_level': ctx }
+  
   /**
-   * 渲染火箭塔
-   * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
-   * @param {number} x - Canvas 坐标系 X
-   * @param {number} y - Canvas 坐标系 Y（从上往下）
-   * @param {number} size - 尺寸
-   * @param {number} level - 等级
+   * 获取缓存键
    */
-  static render(ctx, x, y, size, level = 1) {
-    polyfillRoundRect(ctx);
-    ctx.save();
-    ctx.translate(x, y);
+  static getCacheKey(size, level) {
+    return `${size}_${level}`;
+  }
+  
+  /**
+   * 初始化火箭塔渲染缓存
+   */
+  static initCache(size, level = 1) {
+    const cacheKey = this.getCacheKey(size, level);
     
+    if (this._cachedCanvases[cacheKey]) {
+      return; // 已经初始化
+    }
+    
+    try {
+      const canvasSize = Math.ceil(size * 1.2);
+      
+      let canvas;
+      if (typeof wx !== 'undefined') {
+        canvas = wx.createCanvas();
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+      } else {
+        canvas = document.createElement('canvas');
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+      }
+      
+      const ctx = canvas.getContext('2d');
+      this._cachedCanvases[cacheKey] = canvas;
+      this._cachedCtxs[cacheKey] = ctx;
+      
+      // 清空缓存Canvas
+      ctx.clearRect(0, 0, canvasSize, canvasSize);
+      
+      // 绘制火箭塔到缓存（居中）
+      polyfillRoundRect(ctx);
+      ctx.save();
+      ctx.translate(canvasSize / 2, canvasSize / 2);
+      this.drawRocketTowerToCache(ctx, size, level);
+      ctx.restore();
+    } catch (e) {
+      console.warn('火箭塔渲染缓存初始化失败:', e);
+    }
+  }
+  
+  /**
+   * 绘制火箭塔到缓存Canvas
+   */
+  static drawRocketTowerToCache(ctx, size, level) {
     const baseWidth = size * 0.7;
     const baseHeight = size * 0.3;
     const towerWidth = size * 0.34;
@@ -47,8 +91,45 @@ export class RocketTowerRenderer {
     
     // 5. 绘制火箭弹头
     this.drawRocketWarhead(ctx, towerColor, detailColor, size, towerWidth, towerHeight);
+  }
+  
+  /**
+   * 从缓存渲染火箭塔
+   */
+  static renderFromCache(ctx, x, y, size, level) {
+    const cacheKey = this.getCacheKey(size, level);
+    const cachedCanvas = this._cachedCanvases[cacheKey];
     
-    ctx.restore();
+    if (!cachedCanvas) return;
+    
+    const canvasSize = cachedCanvas.width;
+    const halfSize = canvasSize * 0.5;
+    
+    ctx.drawImage(
+      cachedCanvas,
+      x - halfSize,
+      y - halfSize,
+      canvasSize,
+      canvasSize
+    );
+  }
+  
+  /**
+   * 渲染火箭塔
+   * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
+   * @param {number} x - Canvas 坐标系 X
+   * @param {number} y - Canvas 坐标系 Y（从上往下）
+   * @param {number} size - 尺寸
+   * @param {number} level - 等级
+   */
+  static render(ctx, x, y, size, level = 1) {
+    // 初始化缓存（如果未初始化）
+    if (!this._cachedCanvases[this.getCacheKey(size, level)]) {
+      this.initCache(size, level);
+    }
+    
+    // 使用缓存渲染
+    this.renderFromCache(ctx, x, y, size, level);
   }
   
   /**

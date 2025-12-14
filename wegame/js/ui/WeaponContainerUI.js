@@ -28,7 +28,13 @@ export class WeaponContainerUI {
    * 初始化
    */
   init() {
-    // TODO: 初始化武器容器 UI
+    // 初始化武器卡片渲染缓存
+    const cardSize = GameConfig.CELL_SIZE;
+    const weaponTypes = [WeaponType.ROCKET, WeaponType.LASER];
+    
+    for (const weaponType of weaponTypes) {
+      WeaponCardRenderer.initCache(weaponType, cardSize);
+    }
   }
   
   /**
@@ -42,6 +48,7 @@ export class WeaponContainerUI {
    * 渲染
    */
   render() {
+  
     this.ctx.save();
     
     // 计算容器位置（用于定位武器卡片）

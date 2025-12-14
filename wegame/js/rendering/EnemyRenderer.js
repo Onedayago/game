@@ -8,23 +8,58 @@ import { ColorUtils, GameColors } from '../config/Colors';
 import { polyfillRoundRect } from '../utils/CanvasUtils';
 
 export class EnemyRenderer {
+  // 离屏Canvas缓存
+  static _cachedCanvas = null;
+  static _cachedCtx = null;
+  static _cacheSize = 0;
+  static _initialized = false;
+  
   /**
-   * 渲染敌人坦克
-   * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
-   * @param {number} x - Canvas 坐标系 X
-   * @param {number} y - Canvas 坐标系 Y（从上往下）
-   * @param {number} size - 尺寸
-   * @param {number} angle - 角度（弧度）
+   * 初始化敌人渲染缓存
    */
-  static renderEnemyTank(ctx, x, y, size, angle = 0) {
-    const needsRotation = Math.abs(angle) > 0.01;
-    
-    polyfillRoundRect(ctx);
-    ctx.save();
-    ctx.translate(x, y);
-    if (needsRotation) {
-      ctx.rotate(angle);
+  static initCache(size) {
+    if (this._initialized && this._cacheSize === size) {
+      return; // 已经初始化且尺寸相同
     }
+    
+    try {
+      // 创建离屏Canvas（尺寸稍大，包含阴影）
+      const canvasSize = Math.ceil(size * 1.2);
+      
+      if (typeof wx !== 'undefined') {
+        this._cachedCanvas = wx.createCanvas();
+        this._cachedCanvas.width = canvasSize;
+        this._cachedCanvas.height = canvasSize;
+      } else {
+        this._cachedCanvas = document.createElement('canvas');
+        this._cachedCanvas.width = canvasSize;
+        this._cachedCanvas.height = canvasSize;
+      }
+      
+      this._cachedCtx = this._cachedCanvas.getContext('2d');
+      this._cacheSize = size;
+      
+      // 清空缓存Canvas
+      this._cachedCtx.clearRect(0, 0, canvasSize, canvasSize);
+      
+      // 绘制敌人基础外观到缓存（angle=0，居中绘制）
+      polyfillRoundRect(this._cachedCtx);
+      this.drawEnemyToCache(this._cachedCtx, size, canvasSize / 2, canvasSize / 2);
+      
+      this._initialized = true;
+    } catch (e) {
+      console.warn('敌人渲染缓存初始化失败:', e);
+      this._initialized = false;
+    }
+  }
+  
+  /**
+   * 绘制敌人到缓存Canvas（不包含旋转）
+   */
+  static drawEnemyToCache(ctx, size, centerX, centerY) {
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    // 不旋转，缓存基础外观
     
     const hullRadius = size * 0.25;
     const trackHeight = size * 0.22;
@@ -72,8 +107,56 @@ export class EnemyRenderer {
     // === 炮塔警示灯 ===
     this.drawTurretLight(ctx, size, detailColor);
     
-    // === 炮管 ===
+    // === 炮管（基础方向，向右）===
     this.drawBarrel(ctx, barrelLength, barrelHalfHeight, detailColor, enemyDarkColor, enemyColor);
+    
+    ctx.restore();
+  }
+  
+  /**
+   * 渲染敌人坦克
+   * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
+   * @param {number} x - Canvas 坐标系 X
+   * @param {number} y - Canvas 坐标系 Y（从上往下）
+   * @param {number} size - 尺寸
+   * @param {number} angle - 角度（弧度）
+   */
+  static renderEnemyTank(ctx, x, y, size, angle = 0) {
+  
+    // 初始化缓存（如果未初始化或尺寸不同）
+    if (!this._initialized || this._cacheSize !== size) {
+      this.initCache(size);
+    }
+    
+    // 使用缓存渲染
+    this.renderFromCache(ctx, x, y, size, angle);
+  }
+  
+  /**
+   * 从缓存渲染敌人
+   */
+  static renderFromCache(ctx, x, y, size, angle) {
+    if (!this._cachedCanvas) return;
+    
+    const canvasSize = this._cachedCanvas.width;
+    const halfSize = canvasSize * 0.5;
+    
+    ctx.save();
+    ctx.translate(x, y);
+    
+    // 优化：大多数敌人角度为0，快速路径
+    if (Math.abs(angle) > 0.01) {
+      ctx.rotate(angle);
+    }
+    
+    // 从缓存Canvas绘制（居中绘制）
+    ctx.drawImage(
+      this._cachedCanvas,
+      -halfSize,  // 目标X（居中）
+      -halfSize,  // 目标Y（居中）
+      canvasSize, // 目标宽度
+      canvasSize  // 目标高度
+    );
     
     ctx.restore();
   }

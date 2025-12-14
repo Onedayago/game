@@ -197,16 +197,16 @@ export class Enemy {
   }
   
   /**
-   * 渲染敌人（带视锥剔除）
+   * 渲染敌人（带视锥剔除，优化：应用战场偏移）
    */
-  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
+  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
     if (this.destroyed || this.finished) return;
     
     // 渲染敌人本体（子类实现具体渲染）
     // 这里先使用默认渲染
     
-    // 渲染血条（始终显示，但满血时显示为满）
-    WeaponRenderer.renderHealthBar(this.ctx, this.x, this.y, this.hp, this.maxHp, this.size);
+    // 渲染血条（始终显示，但满血时显示为满）- 应用战场偏移
+    WeaponRenderer.renderHealthBar(this.ctx, this.x + offsetX, this.y + offsetY, this.hp, this.maxHp, this.size);
   }
 }
 

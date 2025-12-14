@@ -149,23 +149,23 @@ export class Weapon {
   }
   
   /**
-   * 渲染武器（带视锥剔除）
+   * 渲染武器（带视锥剔除，优化：应用战场偏移）
    */
-  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
+  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
     if (this.destroyed) return;
     
     // 视锥剔除：只渲染屏幕内的武器（在 WeaponManager 中已经处理，这里保留参数以保持接口一致）
     
-    // 渲染武器本体
+    // 渲染武器本体 - 应用战场偏移
     if (this.weaponType === WeaponType.ROCKET) {
-      WeaponRenderer.renderRocketTower(this.ctx, this.x, this.y, this.size, this.level);
+      WeaponRenderer.renderRocketTower(this.ctx, this.x + offsetX, this.y + offsetY, this.size, this.level);
     } else if (this.weaponType === WeaponType.LASER) {
-      WeaponRenderer.renderLaserTower(this.ctx, this.x, this.y, this.size, this.level);
+      WeaponRenderer.renderLaserTower(this.ctx, this.x + offsetX, this.y + offsetY, this.size, this.level);
     }
     
-    // 渲染血条
+    // 渲染血条 - 应用战场偏移
     if (this.hp < this.maxHp) {
-      WeaponRenderer.renderHealthBar(this.ctx, this.x, this.y, this.hp, this.maxHp, this.size);
+      WeaponRenderer.renderHealthBar(this.ctx, this.x + offsetX, this.y + offsetY, this.hp, this.maxHp, this.size);
     }
   }
 }

@@ -6,10 +6,12 @@
 import { GameConfig } from './config/GameConfig';
 import { GameContext } from './core/GameContext';
 import { BackgroundRenderer } from './rendering/BackgroundRenderer';
+import { WeaponRenderer } from './rendering/WeaponRenderer';
 import { WeaponManager } from './managers/WeaponManager';
 import { EnemyManager } from './managers/EnemyManager';
 import { GoldManager } from './managers/GoldManager';
 import { ParticleManager } from './core/ParticleManager';
+import { LaserBeam } from './projectiles/LaserBeam';
 import { SoundManager } from './core/SoundManager';
 import { StartScreen } from './ui/StartScreen';
 import { HelpScreen } from './ui/HelpScreen';
@@ -58,6 +60,9 @@ export default class GameMain {
    */
   init() {
     console.log('初始化游戏');
+    
+    // 初始化游戏配置（获取屏幕尺寸并缓存）
+    GameConfig.init();
     
     // 初始化 Canvas
     this.setupCanvas();
@@ -123,6 +128,12 @@ export default class GameMain {
   createManagers() {
     // 背景渲染器
     this.backgroundRenderer = new BackgroundRenderer(this.ctx);
+    // 初始化背景渲染缓存
+    BackgroundRenderer.initCache();
+    
+    // 初始化血条缓存（使用最大可能的实体尺寸）
+    const maxEntitySize = Math.max(GameConfig.ENEMY_SIZE, GameConfig.CELL_SIZE * 0.8);
+    WeaponRenderer.initHealthBarCache(maxEntitySize);
     
     // 金币管理器
     this.goldManager = new GoldManager();
@@ -135,10 +146,17 @@ export default class GameMain {
     
     // 敌人管理器
     this.enemyManager = new EnemyManager(this.ctx, this.weaponManager, this.goldManager);
+    // 初始化敌人渲染缓存
+    this.enemyManager.init();
     
     // 粒子管理器
     this.particleManager = new ParticleManager(this.ctx);
+    // 初始化粒子缓存
+    ParticleManager.initCache();
     this.gameContext.particleManager = this.particleManager;
+    
+    // 初始化激光束缓存
+    LaserBeam.initCache();
     
     // 音效管理器
     this.soundManager = new SoundManager();
@@ -158,6 +176,7 @@ export default class GameMain {
       this.goldManager,
       this.weaponManager
     );
+    this.weaponContainerUI.init(); // 初始化武器卡片缓存
     this.gameContext.weaponContainerUI = this.weaponContainerUI;
     
     // 开始界面
@@ -165,6 +184,9 @@ export default class GameMain {
     
     // 帮助界面
     this.helpScreen = new HelpScreen(this.ctx);
+    // 初始化帮助界面缓存
+    HelpScreen.initStaticCache();
+    HelpScreen.initButtonCache();
     
     // 战场小视图
     this.battlefieldMinimap = new BattlefieldMinimap(
@@ -317,6 +339,7 @@ export default class GameMain {
    * 更新游戏逻辑
    */
   update(deltaTime, deltaMS) {
+
     // 更新管理器（武器和敌人的更新在渲染时进行，因为需要相互引用）
     
     if (this.goldManager) {
@@ -342,10 +365,10 @@ export default class GameMain {
   /**
    * 渲染游戏
    */
-  render(deltaTime, deltaMS) {
+  render(deltaTime, deltaMS) { 
     
+    // 游戏已开始，正常渲染游戏场景
     if (this.gameRenderer) {
-    
       this.gameRenderer.render(deltaTime, deltaMS, {
         backgroundRenderer: this.backgroundRenderer,
         weaponManager: this.weaponManager,

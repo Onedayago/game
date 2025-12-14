@@ -8,6 +8,13 @@ import { ColorUtils, GameColors } from '../config/Colors';
 import { polyfillRoundRect } from '../utils/CanvasUtils';
 
 export class StartScreen {
+  // 离屏Canvas缓存（静态部分）
+  static _cachedCanvas = null;
+  static _cachedCtx = null;
+  static _cacheWidth = 0;
+  static _cacheHeight = 0;
+  static _initialized = false;
+  
   constructor(ctx) {
     this.ctx = ctx;
     this.visible = true;
@@ -24,6 +31,229 @@ export class StartScreen {
     this.onStartCallback = onStartCallback;
     this.onHelpCallback = onHelpCallback;
     this.pulseTime = 0;
+    
+    // 初始化静态缓存（如果未初始化）
+    this.initStaticCache();
+  }
+  
+  /**
+   * 初始化静态部分缓存
+   */
+  initStaticCache() {
+    const windowWidth = GameConfig.DESIGN_WIDTH;
+    const windowHeight = GameConfig.DESIGN_HEIGHT;
+    
+    // 如果已经初始化且尺寸相同，直接返回
+    if (StartScreen._initialized && 
+        StartScreen._cacheWidth === windowWidth && 
+        StartScreen._cacheHeight === windowHeight) {
+      return;
+    }
+    
+    try {
+      if (typeof wx !== 'undefined') {
+        StartScreen._cachedCanvas = wx.createCanvas();
+        StartScreen._cachedCanvas.width = windowWidth;
+        StartScreen._cachedCanvas.height = windowHeight;
+      } else {
+        StartScreen._cachedCanvas = document.createElement('canvas');
+        StartScreen._cachedCanvas.width = windowWidth;
+        StartScreen._cachedCanvas.height = windowHeight;
+      }
+      
+      StartScreen._cachedCtx = StartScreen._cachedCanvas.getContext('2d');
+      StartScreen._cacheWidth = windowWidth;
+      StartScreen._cacheHeight = windowHeight;
+      
+      // 清空缓存Canvas
+      StartScreen._cachedCtx.clearRect(0, 0, windowWidth, windowHeight);
+      
+      // 绘制静态部分到缓存
+      this.drawStaticToCache(StartScreen._cachedCtx, windowWidth, windowHeight);
+      
+      StartScreen._initialized = true;
+    } catch (e) {
+      console.warn('开始界面静态缓存初始化失败:', e);
+      StartScreen._initialized = false;
+    }
+  }
+  
+  /**
+   * 绘制静态部分到缓存Canvas（背景、标题、按钮基础）
+   */
+  drawStaticToCache(ctx, windowWidth, windowHeight) {
+    polyfillRoundRect(ctx);
+    ctx.save();
+    
+    // 绘制渐变遮罩
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, windowHeight);
+    bgGradient.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
+    bgGradient.addColorStop(1, 'rgba(26, 26, 46, 0.9)');
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, windowWidth, windowHeight);
+    
+    // 绘制标题（带发光效果，静态）
+    const titleY = windowHeight * 0.25;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.ROCKET_TOWER, 0.6);
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // 标题渐变
+    const titleGradient = ctx.createLinearGradient(
+      windowWidth / 2 - 100, titleY - 30,
+      windowWidth / 2 + 100, titleY + 30
+    );
+    titleGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ROCKET_TOWER, 1));
+    titleGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.TEXT_MAIN, 1));
+    titleGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 1));
+    
+    ctx.fillStyle = titleGradient;
+    ctx.font = `bold ${UIConfig.TITLE_FONT_SIZE * 1.2}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('塔防游戏', windowWidth / 2, titleY);
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    
+    // 绘制副标题（静态，不包含脉冲效果）
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_LIGHT, 0.9);
+    ctx.font = `${UIConfig.SUBTITLE_FONT_SIZE}px Arial`;
+    ctx.fillText('点击开始游戏', windowWidth / 2, windowHeight * 0.35);
+    
+    // 绘制开始按钮（静态，不包含脉冲效果）
+    const startBtnY = windowHeight * 0.55;
+    this.drawButtonToCache(
+      ctx,
+      windowWidth / 2,
+      startBtnY,
+      UIConfig.START_BTN_WIDTH,
+      UIConfig.START_BTN_HEIGHT,
+      UIConfig.START_BTN_RADIUS,
+      '开始游戏',
+      GameColors.ROCKET_TOWER
+    );
+    
+    // 绘制帮助按钮
+    const helpBtnY = windowHeight * 0.7;
+    this.drawButtonToCache(
+      ctx,
+      windowWidth / 2,
+      helpBtnY,
+      UIConfig.HELP_BTN_WIDTH,
+      UIConfig.HELP_BTN_HEIGHT,
+      UIConfig.HELP_BTN_RADIUS,
+      '游戏帮助',
+      GameColors.LASER_TOWER
+    );
+    
+    ctx.restore();
+  }
+  
+  /**
+   * 绘制按钮到缓存Canvas
+   */
+  drawButtonToCache(ctx, x, y, width, height, radius, text, color) {
+    polyfillRoundRect(ctx);
+    ctx.save();
+    
+    // 绘制按钮阴影
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 5;
+    
+    // 绘制按钮背景（渐变）
+    const btnGradient = ctx.createLinearGradient(
+      x - width / 2, y - height / 2,
+      x - width / 2, y + height / 2
+    );
+    btnGradient.addColorStop(0, ColorUtils.hexToCanvas(color, 0.95));
+    btnGradient.addColorStop(0.5, ColorUtils.hexToCanvas(color, 0.85));
+    btnGradient.addColorStop(1, ColorUtils.hexToCanvas(color, 0.75));
+    ctx.fillStyle = btnGradient;
+    this.roundRectForCache(ctx, x - width / 2, y - height / 2, width, height, radius);
+    ctx.fill();
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // 绘制按钮高光
+    const highlightGradient = ctx.createLinearGradient(
+      x - width / 2, y - height / 2,
+      x - width / 2, y - height / 2 + height * 0.4
+    );
+    highlightGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 0.4));
+    highlightGradient.addColorStop(1, ColorUtils.hexToCanvas(0xffffff, 0));
+    ctx.fillStyle = highlightGradient;
+    this.roundRectForCache(ctx, x - width / 2, y - height / 2, width, height * 0.4, radius);
+    ctx.fill();
+    
+    // 绘制按钮边框（发光效果）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.9);
+    ctx.lineWidth = UIConfig.BORDER_WIDTH * 1.5;
+    this.roundRectForCache(ctx, x - width / 2, y - height / 2, width, height, radius);
+    ctx.stroke();
+    
+    // 绘制按钮文字（带阴影）
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 5;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN);
+    ctx.font = `bold ${UIConfig.BUTTON_FONT_SIZE}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    ctx.restore();
+  }
+  
+  /**
+   * 绘制圆角矩形（用于缓存）
+   */
+  roundRectForCache(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  }
+  
+  /**
+   * 从缓存渲染静态部分
+   */
+  renderStaticFromCache() {
+    if (!StartScreen._cachedCanvas || !StartScreen._initialized) {
+      return false;
+    }
+    
+    this.ctx.drawImage(
+      StartScreen._cachedCanvas,
+      0,
+      0,
+      StartScreen._cacheWidth,
+      StartScreen._cacheHeight
+    );
+    
+    return true;
   }
   
   /**
@@ -43,84 +273,13 @@ export class StartScreen {
   }
   
   /**
-   * 渲染开始界面
+   * 渲染开始界面（优化：使用离屏Canvas缓存）
    */
   render() {
     if (!this.visible) return;
     
-    const windowWidth = GameConfig.DESIGN_WIDTH;
-    const windowHeight = GameConfig.DESIGN_HEIGHT;
-    
-    this.ctx.save();
-    
-    // 绘制渐变遮罩
-    const bgGradient = this.ctx.createLinearGradient(0, 0, 0, windowHeight);
-    bgGradient.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
-    bgGradient.addColorStop(1, 'rgba(26, 26, 46, 0.9)');
-    this.ctx.fillStyle = bgGradient;
-    this.ctx.fillRect(0, 0, windowWidth, windowHeight);
-    
-    // 绘制标题（带发光效果）
-    const titleY = windowHeight * 0.25;
-    this.ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.ROCKET_TOWER, 0.6);
-    this.ctx.shadowBlur = 30;
-    this.ctx.shadowOffsetX = 0;
-    this.ctx.shadowOffsetY = 0;
-    
-    // 标题渐变
-    const titleGradient = this.ctx.createLinearGradient(
-      windowWidth / 2 - 100, titleY - 30,
-      windowWidth / 2 + 100, titleY + 30
-    );
-    titleGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ROCKET_TOWER, 1));
-    titleGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.TEXT_MAIN, 1));
-    titleGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 1));
-    
-    this.ctx.fillStyle = titleGradient;
-    this.ctx.font = `bold ${UIConfig.TITLE_FONT_SIZE * 1.2}px Arial`;
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('塔防游戏', windowWidth / 2, titleY);
-    
-    // 重置阴影
-    this.ctx.shadowColor = 'transparent';
-    this.ctx.shadowBlur = 0;
-    
-    // 绘制副标题（带脉冲效果）
-    const pulse = Math.sin(this.pulseTime * 0.003) * 0.1 + 1;
-    this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_LIGHT, 0.9 * pulse);
-    this.ctx.font = `${UIConfig.SUBTITLE_FONT_SIZE}px Arial`;
-    this.ctx.fillText('点击开始游戏', windowWidth / 2, windowHeight * 0.35);
-    
-    // 绘制开始按钮（带脉冲效果）
-    const startBtnY = windowHeight * 0.55;
-    const startBtnScale = 1 + Math.sin(this.pulseTime * 0.004) * 0.02;
-    this.ctx.save();
-    this.ctx.translate(windowWidth / 2, startBtnY);
-    this.ctx.scale(startBtnScale, startBtnScale);
-    this.drawButton(
-      0, 0,
-      UIConfig.START_BTN_WIDTH,
-      UIConfig.START_BTN_HEIGHT,
-      UIConfig.START_BTN_RADIUS,
-      '开始游戏',
-      GameColors.ROCKET_TOWER
-    );
-    this.ctx.restore();
-    
-    // 绘制帮助按钮
-    const helpBtnY = windowHeight * 0.7;
-    this.drawButton(
-      windowWidth / 2,
-      helpBtnY,
-      UIConfig.HELP_BTN_WIDTH,
-      UIConfig.HELP_BTN_HEIGHT,
-      UIConfig.HELP_BTN_RADIUS,
-      '游戏帮助',
-      GameColors.LASER_TOWER
-    );
-    
-    this.ctx.restore();
+    // 使用缓存渲染静态部分
+    this.renderStaticFromCache();
   }
   
   /**

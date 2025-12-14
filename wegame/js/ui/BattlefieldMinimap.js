@@ -11,6 +11,13 @@ import { polyfillRoundRect } from '../utils/CanvasUtils';
 import { WeaponType } from '../config/WeaponConfig';
 
 export class BattlefieldMinimap {
+  // 离屏Canvas缓存（静态部分：背景、边框、网格）
+  static _cachedCanvas = null;
+  static _cachedCtx = null;
+  static _cacheWidth = 0;
+  static _cacheHeight = 0;
+  static _initialized = false;
+  
   constructor(ctx, weaponManager, enemyManager) {
     this.ctx = ctx;
     this.weaponManager = weaponManager;
@@ -48,6 +55,137 @@ export class BattlefieldMinimap {
     const margin = 10;
     this.x = windowWidth - this.width - margin;
     this.y = windowHeight - this.height - margin;
+    
+    // 初始化静态部分缓存
+    this.initStaticCache();
+  }
+  
+  /**
+   * 初始化静态部分缓存（背景、边框、网格）
+   */
+  initStaticCache() {
+    // 如果已经初始化且尺寸相同，直接返回
+    if (BattlefieldMinimap._initialized && 
+        BattlefieldMinimap._cacheWidth === this.width && 
+        BattlefieldMinimap._cacheHeight === this.height) {
+      return;
+    }
+    
+    try {
+      if (typeof wx !== 'undefined') {
+        BattlefieldMinimap._cachedCanvas = wx.createCanvas();
+        BattlefieldMinimap._cachedCanvas.width = this.width;
+        BattlefieldMinimap._cachedCanvas.height = this.height;
+      } else {
+        BattlefieldMinimap._cachedCanvas = document.createElement('canvas');
+        BattlefieldMinimap._cachedCanvas.width = this.width;
+        BattlefieldMinimap._cachedCanvas.height = this.height;
+      }
+      
+      BattlefieldMinimap._cachedCtx = BattlefieldMinimap._cachedCanvas.getContext('2d');
+      BattlefieldMinimap._cacheWidth = this.width;
+      BattlefieldMinimap._cacheHeight = this.height;
+      
+      // 清空缓存Canvas
+      BattlefieldMinimap._cachedCtx.clearRect(0, 0, this.width, this.height);
+      
+      // 绘制静态部分到缓存
+      this.drawStaticToCache(BattlefieldMinimap._cachedCtx, this.width, this.height);
+      
+      BattlefieldMinimap._initialized = true;
+    } catch (e) {
+      console.warn('小地图静态缓存初始化失败:', e);
+      BattlefieldMinimap._initialized = false;
+    }
+  }
+  
+  /**
+   * 绘制静态部分到缓存Canvas（背景、边框、网格）
+   */
+  drawStaticToCache(ctx, width, height) {
+    polyfillRoundRect(ctx);
+    
+    const radius = 8; // 圆角半径
+    
+    // 绘制阴影
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 5;
+    
+    // 绘制背景（渐变）
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+    bgGradient.addColorStop(0, ColorUtils.hexToCanvas(0x1a1a2e, 0.85));
+    bgGradient.addColorStop(1, ColorUtils.hexToCanvas(0x0f0f1e, 0.9));
+    ctx.fillStyle = bgGradient;
+    ctx.roundRect(0, 0, width, height, radius);
+    ctx.fill();
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // 绘制边框（发光效果）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.9);
+    ctx.lineWidth = 2.5;
+    ctx.roundRect(0, 0, width, height, radius);
+    ctx.stroke();
+    
+    // 绘制内边框（高光）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.2);
+    ctx.lineWidth = 1;
+    ctx.roundRect(1, 1, width - 2, height - 2, radius - 1);
+    ctx.stroke();
+    
+    // 计算缩放比例
+    const scaleX = width / GameConfig.BATTLE_WIDTH;
+    const scaleY = height / (GameConfig.BATTLE_ROWS * GameConfig.CELL_SIZE);
+    
+    // 绘制网格（优化：减少绘制操作，使用更粗的线条）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.GRID_LINE, 0.2);
+    ctx.lineWidth = 0.5;
+    
+    // 优化：减少网格线数量，只绘制主要网格
+    const cols = Math.min(GameConfig.BATTLE_COLS, 20); // 最多20条垂直线
+    const stepCol = Math.max(1, Math.floor(GameConfig.BATTLE_COLS / cols));
+    for (let col = 0; col <= cols; col += stepCol) {
+      const x = col * GameConfig.CELL_SIZE * scaleX;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+    
+    // 水平线数量较少，全部绘制
+    const rows = GameConfig.BATTLE_ROWS;
+    for (let row = 0; row <= rows; row++) {
+      const y = row * GameConfig.CELL_SIZE * scaleY;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+  }
+  
+  /**
+   * 从缓存渲染静态部分
+   */
+  renderStaticFromCache() {
+    if (!BattlefieldMinimap._cachedCanvas || !BattlefieldMinimap._initialized) {
+      return false;
+    }
+    
+    this.ctx.drawImage(
+      BattlefieldMinimap._cachedCanvas,
+      this.x,
+      this.y,
+      this.width,
+      this.height
+    );
+    
+    return true;
   }
   
   /**
@@ -149,85 +287,25 @@ export class BattlefieldMinimap {
   }
   
   /**
-   * 渲染小视图（美化版，优化：减少不必要的重绘）
+   * 渲染小视图（美化版，优化：使用离屏Canvas缓存静态部分）
    */
   render() {
+    
     const gameContext = GameContext.getInstance();
     if (!gameContext || !gameContext.gameStarted) {
       return;
     }
     
-    // 优化：缓存一些计算结果，避免重复计算
     this.ctx.save();
-    polyfillRoundRect(this.ctx);
     
-    const radius = 8; // 圆角半径
+    // 使用缓存渲染静态部分（背景、边框、网格）
+    this.renderStaticFromCache();
     
-    // 绘制阴影
-    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    this.ctx.shadowBlur = 15;
-    this.ctx.shadowOffsetX = 0;
-    this.ctx.shadowOffsetY = 5;
-    
-    // 绘制背景（渐变）
-    const bgGradient = this.ctx.createLinearGradient(
-      this.x, this.y,
-      this.x, this.y + this.height
-    );
-    bgGradient.addColorStop(0, ColorUtils.hexToCanvas(0x1a1a2e, 0.85));
-    bgGradient.addColorStop(1, ColorUtils.hexToCanvas(0x0f0f1e, 0.9));
-    this.ctx.fillStyle = bgGradient;
-    this.ctx.roundRect(this.x, this.y, this.width, this.height, radius);
-    this.ctx.fill();
-    
-    // 重置阴影
-    this.ctx.shadowColor = 'transparent';
-    this.ctx.shadowBlur = 0;
-    this.ctx.shadowOffsetX = 0;
-    this.ctx.shadowOffsetY = 0;
-    
-    // 绘制边框（发光效果）
-    this.ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.9);
-    this.ctx.lineWidth = 2.5;
-    this.ctx.roundRect(this.x, this.y, this.width, this.height, radius);
-    this.ctx.stroke();
-    
-    // 绘制内边框（高光）
-    this.ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.2);
-    this.ctx.lineWidth = 1;
-    this.ctx.roundRect(this.x + 1, this.y + 1, this.width - 2, this.height - 2, radius - 1);
-    this.ctx.stroke();
-    
-    // 计算缩放比例
+    // 计算缩放比例（用于动态部分）
     const scaleX = this.width / GameConfig.BATTLE_WIDTH;
     const scaleY = this.height / (GameConfig.BATTLE_ROWS * GameConfig.CELL_SIZE);
     
-    // 绘制网格（优化：减少绘制操作，使用更粗的线条）
-    this.ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.GRID_LINE, 0.2);
-    this.ctx.lineWidth = 0.5;
-    
-    // 优化：减少网格线数量，只绘制主要网格
-    const cols = Math.min(GameConfig.BATTLE_COLS, 20); // 最多20条垂直线
-    const stepCol = Math.max(1, Math.floor(GameConfig.BATTLE_COLS / cols));
-    for (let col = 0; col <= cols; col += stepCol) {
-      const x = this.x + col * GameConfig.CELL_SIZE * scaleX;
-      this.ctx.beginPath();
-      this.ctx.moveTo(x, this.y);
-      this.ctx.lineTo(x, this.y + this.height);
-      this.ctx.stroke();
-    }
-    
-    // 水平线数量较少，全部绘制
-    const rows = GameConfig.BATTLE_ROWS;
-    for (let row = 0; row <= rows; row++) {
-      const y = this.y + row * GameConfig.CELL_SIZE * scaleY;
-      this.ctx.beginPath();
-      this.ctx.moveTo(this.x, y);
-      this.ctx.lineTo(this.x + this.width, y);
-      this.ctx.stroke();
-    }
-    
-    // 绘制武器（美化显示）
+    // 绘制武器（动态部分）
     if (this.weaponManager) {
       const weapons = this.weaponManager.getWeapons();
       for (const weapon of weapons) {
@@ -236,7 +314,6 @@ export class BattlefieldMinimap {
           const minimapY = this.y + weapon.y * scaleY;
           const size = 3;
           
-          // 优化：移除阴影效果，减少渲染开销
           // 根据武器类型选择颜色
           const weaponColor = weapon.weaponType === WeaponType.ROCKET 
             ? GameColors.ROCKET_TOWER 
@@ -254,7 +331,7 @@ export class BattlefieldMinimap {
       }
     }
     
-    // 绘制敌人（美化显示）
+    // 绘制敌人（动态部分）
     if (this.enemyManager) {
       const enemies = this.enemyManager.getEnemies();
       for (const enemy of enemies) {
@@ -263,7 +340,6 @@ export class BattlefieldMinimap {
           const minimapY = this.y + enemy.y * scaleY;
           const size = 2.5;
           
-          // 优化：移除阴影效果，减少渲染开销
           // 绘制敌人图标（小圆点）
           this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_TANK, 0.95);
           this.ctx.beginPath();
@@ -323,22 +399,6 @@ export class BattlefieldMinimap {
     this.ctx.restore();
   }
   
-  /**
-   * 绘制圆角矩形
-   */
-  roundRect(x, y, width, height, radius) {
-    this.ctx.beginPath();
-    this.ctx.moveTo(x + radius, y);
-    this.ctx.lineTo(x + width - radius, y);
-    this.ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    this.ctx.lineTo(x + width, y + height - radius);
-    this.ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    this.ctx.lineTo(x + radius, y + height);
-    this.ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    this.ctx.lineTo(x, y + radius);
-    this.ctx.quadraticCurveTo(x, y, x + radius, y);
-    this.ctx.closePath();
-  }
 }
 
 

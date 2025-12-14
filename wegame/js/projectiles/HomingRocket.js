@@ -7,6 +7,12 @@ import { ColorUtils, GameColors } from '../config/Colors';
 import { GameContext } from '../core/GameContext';
 
 export class HomingRocket {
+  // 离屏Canvas缓存（静态，只缓存火箭主体，不包含尾迹）
+  static _cachedCanvas = null;
+  static _cachedCtx = null;
+  static _cacheRadius = 0;
+  static _initialized = false;
+  
   constructor(ctx, x, y, target, damage) {
     this.ctx = ctx;
     this.x = x;
@@ -28,6 +34,88 @@ export class HomingRocket {
     // 视觉效果属性（简化）
     this.trailLength = 3; // 尾迹长度（历史位置数量）
     this.trailPositions = []; // 尾迹位置历史
+  }
+  
+  /**
+   * 初始化火箭渲染缓存（只缓存主体，尾迹动态绘制）
+   */
+  static initCache(radius) {
+    if (this._initialized && this._cacheRadius === radius) {
+      return;
+    }
+    
+    try {
+      const canvasSize = Math.ceil(radius * 3);
+      
+      if (typeof wx !== 'undefined') {
+        this._cachedCanvas = wx.createCanvas();
+        this._cachedCanvas.width = canvasSize;
+        this._cachedCanvas.height = canvasSize;
+      } else {
+        this._cachedCanvas = document.createElement('canvas');
+        this._cachedCanvas.width = canvasSize;
+        this._cachedCanvas.height = canvasSize;
+      }
+      
+      this._cachedCtx = this._cachedCanvas.getContext('2d');
+      this._cacheRadius = radius;
+      
+      // 清空缓存Canvas
+      this._cachedCtx.clearRect(0, 0, canvasSize, canvasSize);
+      
+      // 绘制火箭主体到缓存（居中，角度=0）
+      this.drawRocketBodyToCache(this._cachedCtx, radius, canvasSize / 2, canvasSize / 2);
+      
+      this._initialized = true;
+    } catch (e) {
+      console.warn('火箭渲染缓存初始化失败:', e);
+      this._initialized = false;
+    }
+  }
+  
+  /**
+   * 绘制火箭主体到缓存Canvas（角度=0，向右）
+   */
+  static drawRocketBodyToCache(ctx, radius, centerX, centerY) {
+    // 绘制火箭主体（椭圆形，无发光效果）
+    const bodyGradient = ctx.createLinearGradient(centerX - radius * 0.6, centerY, centerX + radius * 0.6, centerY);
+    bodyGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 1));
+    bodyGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.ROCKET_BULLET, 1));
+    bodyGradient.addColorStop(1, ColorUtils.hexToCanvas(0xffffff, 1));
+    ctx.fillStyle = bodyGradient;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, radius * 0.7, radius * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 绘制头部高光
+    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.8);
+    ctx.beginPath();
+    ctx.ellipse(centerX + radius * 0.3, centerY, radius * 0.2, radius * 0.15, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  /**
+   * 从缓存渲染火箭主体
+   */
+  static renderBodyFromCache(ctx, x, y, radius, angle) {
+    if (!this._cachedCanvas) return;
+    
+    const canvasSize = this._cachedCanvas.width;
+    const halfSize = canvasSize * 0.5;
+    
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    
+    ctx.drawImage(
+      this._cachedCanvas,
+      -halfSize,
+      -halfSize,
+      canvasSize,
+      canvasSize
+    );
+    
+    ctx.restore();
   }
   
   /**
@@ -153,7 +241,7 @@ export class HomingRocket {
   }
   
   /**
-   * 渲染火箭（带视锥剔除，参考原 Cocos 游戏简洁风格）
+   * 渲染火箭（带视锥剔除，使用离屏Canvas缓存）
    */
   render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
     if (this.destroyed) return;
@@ -163,13 +251,14 @@ export class HomingRocket {
       return;
     }
     
+    // 初始化缓存（如果未初始化或半径不同）
+    if (!HomingRocket._initialized || HomingRocket._cacheRadius !== this.radius) {
+      HomingRocket.initCache(this.radius);
+    }
+    
     this.ctx.save();
     
-    // 移动到火箭位置并旋转
-    this.ctx.translate(this.x, this.y);
-    this.ctx.rotate(this.angle);
-    
-    // 绘制短尾迹（简洁版）
+    // 绘制短尾迹（动态绘制，不缓存）
     if (this.trailPositions.length > 1) {
       const lastPos = this.trailPositions[this.trailPositions.length - 2];
       const dx = this.x - lastPos.x;
@@ -177,11 +266,11 @@ export class HomingRocket {
       const dist = Math.sqrt(dx * dx + dy * dy);
       
       if (dist > 0.1) {
-        const angle = Math.atan2(dy, dx);
+        const trailAngle = Math.atan2(dy, dx);
         
         this.ctx.save();
-        this.ctx.translate(lastPos.x - this.x, lastPos.y - this.y);
-        this.ctx.rotate(angle);
+        this.ctx.translate(lastPos.x, lastPos.y);
+        this.ctx.rotate(trailAngle);
         
         // 简洁尾迹
         const trailGradient = this.ctx.createLinearGradient(0, 0, Math.min(dist, this.radius * 1.5), 0);
@@ -200,21 +289,8 @@ export class HomingRocket {
       }
     }
     
-    // 绘制火箭主体（椭圆形，无发光效果）
-    const bodyGradient = this.ctx.createLinearGradient(-this.radius * 0.6, 0, this.radius * 0.6, 0);
-    bodyGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 1));
-    bodyGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.ROCKET_BULLET, 1));
-    bodyGradient.addColorStop(1, ColorUtils.hexToCanvas(0xffffff, 1));
-    this.ctx.fillStyle = bodyGradient;
-    this.ctx.beginPath();
-    this.ctx.ellipse(0, 0, this.radius * 0.7, this.radius * 0.5, 0, 0, Math.PI * 2);
-    this.ctx.fill();
-    
-    // 绘制头部高光
-    this.ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.8);
-    this.ctx.beginPath();
-    this.ctx.ellipse(this.radius * 0.3, 0, this.radius * 0.2, this.radius * 0.15, 0, 0, Math.PI * 2);
-    this.ctx.fill();
+    // 使用缓存渲染火箭主体
+    HomingRocket.renderBodyFromCache(this.ctx, this.x, this.y, this.radius, this.angle);
     
     this.ctx.restore();
   }

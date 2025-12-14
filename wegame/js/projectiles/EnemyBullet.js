@@ -7,6 +7,12 @@ import { ColorUtils, GameColors } from '../config/Colors';
 import { GameContext } from '../core/GameContext';
 
 export class EnemyBullet {
+  // 离屏Canvas缓存（静态）
+  static _cachedCanvas = null;
+  static _cachedCtx = null;
+  static _cacheRadius = 0;
+  static _initialized = false;
+  
   constructor(ctx, x, y, angle, damage) {
     this.ctx = ctx;
     this.x = x;
@@ -22,6 +28,104 @@ export class EnemyBullet {
     // 计算速度分量
     this.vx = Math.cos(angle) * this.speed;
     this.vy = Math.sin(angle) * this.speed;
+  }
+  
+  /**
+   * 初始化子弹渲染缓存
+   */
+  static initCache(radius) {
+    if (this._initialized && this._cacheRadius === radius) {
+      return;
+    }
+    
+    try {
+      const canvasSize = Math.ceil(radius * 6); // 包含尾迹和发光效果
+      
+      if (typeof wx !== 'undefined') {
+        this._cachedCanvas = wx.createCanvas();
+        this._cachedCanvas.width = canvasSize;
+        this._cachedCanvas.height = canvasSize;
+      } else {
+        this._cachedCanvas = document.createElement('canvas');
+        this._cachedCanvas.width = canvasSize;
+        this._cachedCanvas.height = canvasSize;
+      }
+      
+      this._cachedCtx = this._cachedCanvas.getContext('2d');
+      this._cacheRadius = radius;
+      
+      // 清空缓存Canvas
+      this._cachedCtx.clearRect(0, 0, canvasSize, canvasSize);
+      
+      // 绘制子弹到缓存（居中）
+      this.drawBulletToCache(this._cachedCtx, radius, canvasSize / 2, canvasSize / 2);
+      
+      this._initialized = true;
+    } catch (e) {
+      console.warn('子弹渲染缓存初始化失败:', e);
+      this._initialized = false;
+    }
+  }
+  
+  /**
+   * 绘制子弹到缓存Canvas
+   */
+  static drawBulletToCache(ctx, radius, centerX, centerY) {
+    // 绘制尾迹（多层发光效果）
+    const trailGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius * 2.5);
+    trailGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 0.4));
+    trailGradient.addColorStop(0.6, ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 0.2));
+    trailGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 0));
+    ctx.fillStyle = trailGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 绘制外层发光
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 0.5);
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 绘制中层发光
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 0.7);
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius * 1.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 绘制子弹主体（渐变）
+    const bodyGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+    bodyGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 0.8));
+    bodyGradient.addColorStop(0.4, ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 1));
+    bodyGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.9));
+    ctx.fillStyle = bodyGradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 绘制高光
+    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.7);
+    ctx.beginPath();
+    ctx.arc(centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  /**
+   * 从缓存渲染子弹
+   */
+  static renderFromCache(ctx, x, y, radius) {
+    if (!this._cachedCanvas) return;
+    
+    const canvasSize = this._cachedCanvas.width;
+    const halfSize = canvasSize * 0.5;
+    
+    ctx.drawImage(
+      this._cachedCanvas,
+      x - halfSize,
+      y - halfSize,
+      canvasSize,
+      canvasSize
+    );
   }
   
   /**
@@ -90,55 +194,27 @@ export class EnemyBullet {
   }
   
   /**
-   * 渲染子弹（带视锥剔除，优化：由调用者统一管理save/restore）
+   * 渲染子弹（带视锥剔除，优化：使用离屏Canvas缓存，应用战场偏移）
    */
-  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
+  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
     if (this.destroyed) return;
     
-    // 视锥剔除：只渲染屏幕内的子弹
-    if (!this.isInView(viewLeft, viewRight, viewTop, viewBottom)) {
+    // 视锥剔除：只渲染屏幕内的子弹（考虑战场偏移）
+    const adjustedViewLeft = viewLeft - offsetX;
+    const adjustedViewRight = viewRight - offsetX;
+    const adjustedViewTop = viewTop - offsetY;
+    const adjustedViewBottom = viewBottom - offsetY;
+    if (!this.isInView(adjustedViewLeft, adjustedViewRight, adjustedViewTop, adjustedViewBottom)) {
       return;
     }
     
-    // 优化：不在这里save/restore，由EnemyTank统一管理，减少上下文切换
+    // 初始化缓存（如果未初始化或半径不同）
+    if (!EnemyBullet._initialized || EnemyBullet._cacheRadius !== this.radius) {
+      EnemyBullet.initCache(this.radius);
+    }
     
-    // 绘制尾迹（多层发光效果）
-    const trailGradient = this.ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius * 2.5);
-    trailGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 0.4));
-    trailGradient.addColorStop(0.6, ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 0.2));
-    trailGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 0));
-    this.ctx.fillStyle = trailGradient;
-    this.ctx.beginPath();
-    this.ctx.arc(this.x, this.y, this.radius * 2.5, 0, Math.PI * 2);
-    this.ctx.fill();
-    
-    // 绘制外层发光
-    this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 0.5);
-    this.ctx.beginPath();
-    this.ctx.arc(this.x, this.y, this.radius * 1.8, 0, Math.PI * 2);
-    this.ctx.fill();
-    
-    // 绘制中层发光
-    this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 0.7);
-    this.ctx.beginPath();
-    this.ctx.arc(this.x, this.y, this.radius * 1.3, 0, Math.PI * 2);
-    this.ctx.fill();
-    
-    // 绘制子弹主体（渐变）
-    const bodyGradient = this.ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
-    bodyGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 0.8));
-    bodyGradient.addColorStop(0.4, ColorUtils.hexToCanvas(GameColors.ENEMY_BULLET, 1));
-    bodyGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.9));
-    this.ctx.fillStyle = bodyGradient;
-    this.ctx.beginPath();
-    this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    this.ctx.fill();
-    
-    // 绘制高光
-    this.ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.7);
-    this.ctx.beginPath();
-    this.ctx.arc(this.x - this.radius * 0.3, this.y - this.radius * 0.3, this.radius * 0.5, 0, Math.PI * 2);
-    this.ctx.fill();
+    // 使用缓存渲染 - 应用战场偏移
+    EnemyBullet.renderFromCache(this.ctx, this.x + offsetX, this.y + offsetY, this.radius);
   }
 }
 

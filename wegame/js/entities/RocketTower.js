@@ -19,6 +19,11 @@ export class RocketTower extends Weapon {
     
     // 应用等级属性
     this.applyLevelStats();
+    
+    // 初始化火箭渲染缓存
+    if (!HomingRocket._initialized) {
+      HomingRocket.initCache(GameConfig.BULLET_RADIUS);
+    }
   }
   
   /**

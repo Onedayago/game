@@ -8,6 +8,18 @@ import { ColorUtils, GameColors } from '../config/Colors';
 import { polyfillRoundRect } from '../utils/CanvasUtils';
 
 class HelpScreen {
+  // 离屏Canvas缓存（静态部分）
+  static _cachedCanvas = null;
+  static _cachedCtx = null;
+  static _cacheWidth = 0;
+  static _cacheHeight = 0;
+  static _initialized = false;
+  
+  // 按钮缓存
+  static _buttonCache = null;
+  static _buttonCtx = null;
+  static _buttonInitialized = false;
+  
   constructor(ctx) {
     this.ctx = ctx;
     this.visible = false;
@@ -20,6 +32,226 @@ class HelpScreen {
     this.scrollStartY = 0; // 滚动开始时的Y坐标
     this.scrollStartScrollY = 0; // 滚动开始时的scrollY值
     this.contentHeight = 0; // 内容总高度（每次渲染时计算）
+  }
+  
+  /**
+   * 初始化静态部分缓存
+   */
+  static initStaticCache() {
+    const windowWidth = GameConfig.DESIGN_WIDTH;
+    const windowHeight = GameConfig.DESIGN_HEIGHT;
+    
+    // 如果已经初始化且尺寸相同，直接返回
+    if (this._initialized && 
+        this._cacheWidth === windowWidth && 
+        this._cacheHeight === windowHeight) {
+      return;
+    }
+    
+    try {
+      if (typeof wx !== 'undefined') {
+        this._cachedCanvas = wx.createCanvas();
+        this._cachedCanvas.width = windowWidth;
+        this._cachedCanvas.height = windowHeight;
+      } else {
+        this._cachedCanvas = document.createElement('canvas');
+        this._cachedCanvas.width = windowWidth;
+        this._cachedCanvas.height = windowHeight;
+      }
+      
+      this._cachedCtx = this._cachedCanvas.getContext('2d');
+      this._cacheWidth = windowWidth;
+      this._cacheHeight = windowHeight;
+      
+      // 清空缓存Canvas
+      this._cachedCtx.clearRect(0, 0, windowWidth, windowHeight);
+      
+      // 绘制静态部分到缓存
+      this.drawStaticToCache(this._cachedCtx, windowWidth, windowHeight);
+      
+      this._initialized = true;
+    } catch (e) {
+      console.warn('帮助界面静态缓存初始化失败:', e);
+      this._initialized = false;
+    }
+  }
+  
+  /**
+   * 绘制静态部分到缓存Canvas（遮罩、面板背景、标题）
+   */
+  static drawStaticToCache(ctx, windowWidth, windowHeight) {
+    polyfillRoundRect(ctx);
+    
+    // 绘制半透明遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    ctx.fillRect(0, 0, windowWidth, windowHeight);
+    
+    // 绘制帮助面板背景（缩小宽度）
+    const panelWidth = windowWidth * 0.65;
+    const panelHeight = windowHeight * 0.75;
+    const panelX = (windowWidth - panelWidth) / 2;
+    const panelY = (windowHeight - panelHeight) / 2;
+    const panelRadius = UIConfig.CONTAINER_RADIUS * 2;
+    
+    // 绘制面板阴影
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 10;
+    
+    // 绘制面板背景（渐变）
+    const bgGradient = ctx.createLinearGradient(panelX, panelY, panelX, panelY + panelHeight);
+    bgGradient.addColorStop(0, ColorUtils.hexToCanvas(0x1a1a2e, 0.95));
+    bgGradient.addColorStop(1, ColorUtils.hexToCanvas(0x0f0f1e, 0.95));
+    ctx.fillStyle = bgGradient;
+    this.roundRectForCache(ctx, panelX, panelY, panelWidth, panelHeight, panelRadius);
+    ctx.fill();
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // 绘制面板边框（发光效果）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.8);
+    ctx.lineWidth = UIConfig.BORDER_WIDTH * 2;
+    this.roundRectForCache(ctx, panelX, panelY, panelWidth, panelHeight, panelRadius);
+    ctx.stroke();
+    
+    // 绘制标题
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN);
+    ctx.font = `bold ${UIConfig.TITLE_FONT_SIZE * 0.8}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const titleY = panelY + panelHeight * 0.12;
+    ctx.fillText('游戏帮助', windowWidth / 2, titleY);
+  }
+  
+  /**
+   * 绘制圆角矩形（用于缓存）
+   */
+  static roundRectForCache(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  }
+  
+  /**
+   * 初始化按钮缓存
+   */
+  static initButtonCache() {
+    if (this._buttonInitialized) {
+      return;
+    }
+    
+    try {
+      const btnWidth = UIConfig.HELP_BTN_WIDTH * 0.8;
+      const btnHeight = UIConfig.HELP_BTN_HEIGHT * 0.9;
+      const btnRadius = UIConfig.HELP_BTN_RADIUS;
+      
+      if (typeof wx !== 'undefined') {
+        this._buttonCache = wx.createCanvas();
+      } else {
+        this._buttonCache = document.createElement('canvas');
+      }
+      this._buttonCache.width = Math.ceil(btnWidth);
+      this._buttonCache.height = Math.ceil(btnHeight);
+      this._buttonCtx = this._buttonCache.getContext('2d');
+      
+      // 清空缓存Canvas
+      this._buttonCtx.clearRect(0, 0, btnWidth, btnHeight);
+      
+      // 绘制按钮到缓存
+      this.drawButtonToCache(this._buttonCtx, btnWidth / 2, btnHeight / 2, btnWidth, btnHeight, btnRadius, '关闭', GameColors.ROCKET_TOWER);
+      
+      this._buttonInitialized = true;
+    } catch (e) {
+      console.warn('帮助界面按钮缓存初始化失败:', e);
+      this._buttonInitialized = false;
+    }
+  }
+  
+  /**
+   * 绘制按钮到缓存Canvas
+   */
+  static drawButtonToCache(ctx, x, y, width, height, radius, text, color) {
+    polyfillRoundRect(ctx);
+    
+    // 绘制按钮背景（渐变）
+    const btnGradient = ctx.createLinearGradient(x - width / 2, y - height / 2, x - width / 2, y + height / 2);
+    btnGradient.addColorStop(0, ColorUtils.hexToCanvas(color, 0.9));
+    btnGradient.addColorStop(1, ColorUtils.hexToCanvas(color, 0.7));
+    ctx.fillStyle = btnGradient;
+    this.roundRectForCache(ctx, x - width / 2, y - height / 2, width, height, radius);
+    ctx.fill();
+    
+    // 绘制按钮高光
+    const highlightGradient = ctx.createLinearGradient(x - width / 2, y - height / 2, x - width / 2, y);
+    highlightGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 0.3));
+    highlightGradient.addColorStop(1, ColorUtils.hexToCanvas(0xffffff, 0));
+    ctx.fillStyle = highlightGradient;
+    this.roundRectForCache(ctx, x - width / 2, y - height / 2, width, height * 0.3, radius);
+    ctx.fill();
+    
+    // 绘制按钮边框
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.8);
+    ctx.lineWidth = UIConfig.BORDER_WIDTH;
+    this.roundRectForCache(ctx, x - width / 2, y - height / 2, width, height, radius);
+    ctx.stroke();
+    
+    // 绘制按钮文字
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN);
+    ctx.font = `${UIConfig.BUTTON_FONT_SIZE}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+  }
+  
+  /**
+   * 从缓存渲染静态部分
+   */
+  static renderStaticFromCache(ctx) {
+    if (!this._cachedCanvas || !this._initialized) {
+      return false;
+    }
+    
+    ctx.drawImage(
+      this._cachedCanvas,
+      0,
+      0,
+      this._cacheWidth,
+      this._cacheHeight
+    );
+    
+    return true;
+  }
+  
+  /**
+   * 从缓存渲染按钮
+   */
+  static renderButtonFromCache(ctx, x, y) {
+    if (!this._buttonCache || !this._buttonInitialized) {
+      return false;
+    }
+    
+    ctx.drawImage(
+      this._buttonCache,
+      x - this._buttonCache.width / 2,
+      y - this._buttonCache.height / 2,
+      this._buttonCache.width,
+      this._buttonCache.height
+    );
+    
+    return true;
   }
   
   /**
@@ -99,7 +331,7 @@ class HelpScreen {
   }
   
   /**
-   * 渲染帮助界面
+   * 渲染帮助界面（优化：使用离屏Canvas缓存静态部分）
    */
   render() {
     if (!this.visible) return;
@@ -107,54 +339,21 @@ class HelpScreen {
     const windowWidth = GameConfig.DESIGN_WIDTH;
     const windowHeight = GameConfig.DESIGN_HEIGHT;
     
-    this.ctx.save();
+    // 初始化缓存（如果未初始化）
+    if (!HelpScreen._initialized) {
+      HelpScreen.initStaticCache();
+    }
+    if (!HelpScreen._buttonInitialized) {
+      HelpScreen.initButtonCache();
+    }
     
-    // 绘制半透明遮罩
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    this.ctx.fillRect(0, 0, windowWidth, windowHeight);
+    // 使用缓存渲染静态部分（遮罩、面板背景、标题）
+    HelpScreen.renderStaticFromCache(this.ctx);
     
-    // 绘制帮助面板背景（缩小宽度）
+    // 计算面板尺寸（用于内容区域计算）
     const panelWidth = windowWidth * 0.65;
     const panelHeight = windowHeight * 0.75;
-    const panelX = (windowWidth - panelWidth) / 2;
     const panelY = (windowHeight - panelHeight) / 2;
-    const panelRadius = UIConfig.CONTAINER_RADIUS * 2;
-    
-    polyfillRoundRect(this.ctx);
-    
-    // 绘制面板阴影
-    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    this.ctx.shadowBlur = 20;
-    this.ctx.shadowOffsetX = 0;
-    this.ctx.shadowOffsetY = 10;
-    
-    // 绘制面板背景（渐变）
-    const bgGradient = this.ctx.createLinearGradient(panelX, panelY, panelX, panelY + panelHeight);
-    bgGradient.addColorStop(0, ColorUtils.hexToCanvas(0x1a1a2e, 0.95));
-    bgGradient.addColorStop(1, ColorUtils.hexToCanvas(0x0f0f1e, 0.95));
-    this.ctx.fillStyle = bgGradient;
-    this.roundRect(panelX, panelY, panelWidth, panelHeight, panelRadius);
-    this.ctx.fill();
-    
-    // 重置阴影
-    this.ctx.shadowColor = 'transparent';
-    this.ctx.shadowBlur = 0;
-    this.ctx.shadowOffsetX = 0;
-    this.ctx.shadowOffsetY = 0;
-    
-    // 绘制面板边框（发光效果）
-    this.ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.8);
-    this.ctx.lineWidth = UIConfig.BORDER_WIDTH * 2;
-    this.roundRect(panelX, panelY, panelWidth, panelHeight, panelRadius);
-    this.ctx.stroke();
-    
-    // 绘制标题
-    this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN);
-    this.ctx.font = `bold ${UIConfig.TITLE_FONT_SIZE * 0.8}px Arial`;
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    const titleY = panelY + panelHeight * 0.12;
-    this.ctx.fillText('游戏帮助', windowWidth / 2, titleY);
     
     // 计算内容区域（确保标题下方有足够空间）
     // 标题在 panelY + panelHeight * 0.12，标题高度约为 TITLE_FONT_SIZE * 0.8
@@ -181,6 +380,7 @@ class HelpScreen {
     
     // 设置裁剪区域（只显示内容区域）
     // 注意：裁剪区域的上边界是 contentStartY，所以内容应该从 contentStartY 开始绘制
+    // 优化：使用 save/restore 来管理 clip（clip 需要 restore 来恢复）
     this.ctx.save();
     this.ctx.beginPath();
     this.ctx.rect(contentX, contentStartY, contentWidth, contentAreaHeight);
@@ -252,19 +452,20 @@ class HelpScreen {
     // 恢复裁剪区域
     this.ctx.restore();
     
-    // 绘制关闭按钮
+    // 绘制关闭按钮（使用缓存）
     const closeBtnY = panelY + panelHeight * 0.88;
-    this.drawButton(
-      windowWidth / 2,
-      closeBtnY,
-      UIConfig.HELP_BTN_WIDTH * 0.8,
-      UIConfig.HELP_BTN_HEIGHT * 0.9,
-      UIConfig.HELP_BTN_RADIUS,
-      '关闭',
-      GameColors.ROCKET_TOWER
-    );
-    
-    this.ctx.restore();
+    if (!HelpScreen.renderButtonFromCache(this.ctx, windowWidth / 2, closeBtnY)) {
+      // 如果缓存不可用，回退到直接渲染
+      this.drawButton(
+        windowWidth / 2,
+        closeBtnY,
+        UIConfig.HELP_BTN_WIDTH * 0.8,
+        UIConfig.HELP_BTN_HEIGHT * 0.9,
+        UIConfig.HELP_BTN_RADIUS,
+        '关闭',
+        GameColors.ROCKET_TOWER
+      );
+    }
   }
   
   /**

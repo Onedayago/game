@@ -6,6 +6,7 @@ import { GameContext } from '../core/GameContext';
 import { GameConfig } from '../config/GameConfig';
 import { EnemyTank } from '../entities/EnemyTank';
 import { WeaponRenderer } from '../rendering/WeaponRenderer';
+import { EnemyRenderer } from '../rendering/EnemyRenderer';
 
 export class EnemyManager {
   constructor(ctx, weaponManager, goldManager) {
@@ -18,6 +19,14 @@ export class EnemyManager {
     this.waveTimer = 0;
     this.waveLevel = 1;
     this.hpBonus = 0;
+  }
+  
+  /**
+   * 初始化敌人管理器（初始化缓存）
+   */
+  init() {
+    // 初始化敌人渲染缓存
+    EnemyRenderer.initCache(GameConfig.ENEMY_SIZE);
   }
   
   /**
@@ -53,6 +62,7 @@ export class EnemyManager {
    * 更新敌人
    */
   update(deltaTime, deltaMS, weapons) {
+  
     // 检查游戏是否已开始
     const gameContext = GameContext.getInstance();
     if (!gameContext.gameStarted) {
@@ -96,6 +106,7 @@ export class EnemyManager {
         continue;
       }
       
+      
       // 更新敌人
       if (enemy.update) {
         enemy.update(deltaTime, deltaMS, weapons || []);
@@ -126,6 +137,7 @@ export class EnemyManager {
    * 渲染敌人（带视锥剔除，优化：减少 save/restore 调用）
    */
   render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
+    
     // 优化：只在需要时保存上下文，而不是每个敌人都保存
     let hasRendered = false;
     
@@ -149,35 +161,34 @@ export class EnemyManager {
     // 如果没有需要渲染的敌人，直接返回
     if (enemiesToRender.length === 0) return;
     
-    // 只保存一次上下文
-    this.ctx.save();
+    // 获取战场偏移（如果传入）
+    const offsetX = arguments[4] || 0;
+    const offsetY = arguments[5] || 0;
     
-    // 批量渲染敌人（优化：减少状态切换）
+    // 批量渲染敌人（优化：移除 save/restore）
     // 先批量渲染所有血条（相同状态）
-    this.renderAllHealthBars(enemiesToRender);
+    this.renderAllHealthBars(enemiesToRender, offsetX, offsetY);
     
     // 再渲染所有敌人本体
     for (const enemy of enemiesToRender) {
       if (enemy.render) {
-        enemy.render(viewLeft, viewRight, viewTop, viewBottom);
+        enemy.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
         hasRendered = true;
       }
     }
-    
-    this.ctx.restore();
   }
   
   /**
-   * 批量渲染所有敌人的血条（优化：减少状态切换）
+   * 批量渲染所有敌人的血条（优化：减少状态切换，应用战场偏移）
    */
-  renderAllHealthBars(enemies) {
+  renderAllHealthBars(enemies, offsetX = 0, offsetY = 0) {
     // 收集所有需要渲染的血条
     const healthBars = [];
     for (const enemy of enemies) {
       if (enemy && !enemy.destroyed && !enemy.finished) {
         healthBars.push({
-          x: enemy.x,
-          y: enemy.y,
+          x: enemy.x + offsetX,
+          y: enemy.y + offsetY,
           hp: enemy.hp,
           maxHp: enemy.maxHp,
           size: enemy.size || GameConfig.ENEMY_SIZE

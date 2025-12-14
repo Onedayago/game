@@ -64,14 +64,14 @@ export class LaserTower extends Weapon {
   }
   
   /**
-   * 渲染激光塔（带视锥剔除）
+   * 渲染激光塔（带视锥剔除，优化：应用战场偏移）
    */
-  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
-    super.render();
+  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
+    super.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
     
-    // 渲染激光束（带视锥剔除）
+    // 渲染激光束（带视锥剔除，应用战场偏移）
     if (this.currentBeam) {
-      this.currentBeam.render(viewLeft, viewRight, viewTop, viewBottom);
+      this.currentBeam.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
     }
   }
 }

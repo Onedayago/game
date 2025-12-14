@@ -20,6 +20,11 @@ export class EnemyTank extends Enemy {
     this.damage = GameConfig.ENEMY_BULLET_DAMAGE;
     
     this.bullets = [];
+    
+    // 初始化子弹渲染缓存
+    if (!EnemyBullet._initialized) {
+      EnemyBullet.initCache(GameConfig.ENEMY_BULLET_RADIUS);
+    }
   }
   
   /**
@@ -92,24 +97,23 @@ export class EnemyTank extends Enemy {
   }
   
   /**
-   * 渲染敌人坦克（带视锥剔除，不包含血条）
+   * 渲染敌人坦克（带视锥剔除，不包含血条，优化：应用战场偏移，移除 save/restore）
    * 血条由 EnemyManager 批量渲染
    */
-  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
+  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
     if (this.destroyed || this.finished) return;
     
-    // 只渲染坦克本体（血条由 EnemyManager 批量渲染）
-    EnemyRenderer.renderEnemyTank(this.ctx, this.x, this.y, this.size, this.angle);
+   
+    // 只渲染坦克本体（血条由 EnemyManager 批量渲染）- 应用战场偏移
+    EnemyRenderer.renderEnemyTank(this.ctx, this.x + offsetX, this.y + offsetY, this.size, this.angle);
     
-    // 批量渲染子弹（优化：统一save/restore）
+    // 批量渲染子弹（优化：移除 save/restore，应用战场偏移）
     if (this.bullets.length > 0) {
-      this.ctx.save();
       for (const bullet of this.bullets) {
         if (bullet && !bullet.destroyed) {
-          bullet.render(viewLeft, viewRight, viewTop, viewBottom);
+          bullet.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
         }
       }
-      this.ctx.restore();
     }
   }
 }

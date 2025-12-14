@@ -27,6 +27,7 @@ export class GameRenderer {
       goldManager
     } = managers;
     
+    
     // 清空画布
     const windowWidth = GameConfig.DESIGN_WIDTH;
     const windowHeight = GameConfig.DESIGN_HEIGHT;
@@ -38,18 +39,14 @@ export class GameRenderer {
       this.ctx.fillRect(0, 0, windowWidth, windowHeight);
     }
     
-    // 保存上下文状态
-    this.ctx.save();
-    
-    // 应用战场偏移（拖拽）
+    // 应用战场偏移（拖拽）- 不使用 translate，手动计算坐标
     const gameContext = this.gameContext;
     const offsetX = -gameContext.worldOffsetX;
     const offsetY = 0;
-    this.ctx.translate(offsetX, offsetY);
     
-    // 渲染背景
+    // 渲染背景（应用战场偏移，不使用 translate）
     if (backgroundRenderer) {
-      backgroundRenderer.render();
+      backgroundRenderer.render(offsetX, offsetY);
     }
     
     // 计算视锥范围（考虑战场偏移）
@@ -59,22 +56,23 @@ export class GameRenderer {
     const viewBottom = windowHeight;
     
     // 更新和渲染武器（需要传入敌人列表用于寻找目标）
+    // 注意：武器和敌人的坐标需要加上 offsetX 来应用战场偏移
     if (weaponManager) {
       const enemies = enemyManager ? enemyManager.getEnemies() : [];
       weaponManager.update(deltaTime, deltaMS, enemies);
-      weaponManager.render(viewLeft, viewRight, viewTop, viewBottom);
+      weaponManager.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
     }
     
     // 更新和渲染敌人（需要传入武器列表用于寻找目标）
     if (enemyManager) {
       const weapons = weaponManager ? weaponManager.getWeapons() : [];
       enemyManager.update(deltaTime, deltaMS, weapons);
-      enemyManager.render(viewLeft, viewRight, viewTop, viewBottom);
+      enemyManager.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
     }
     
-    // 渲染粒子
+    // 渲染粒子（需要应用战场偏移）
     if (particleManager) {
-      particleManager.render();
+      particleManager.render(offsetX, offsetY);
     }
     
     // 渲染拖拽预览（在战场区域内）
@@ -86,21 +84,16 @@ export class GameRenderer {
       
       if (dragY >= battleStartY && dragY <= battleEndY) {
         // 在战斗区域内，显示预览（需要转换坐标）
-        // 在 GameRenderer 中，使用 offsetX = -worldOffsetX 来平移画布
-        // 所以当 worldOffsetX > 0 时，画布向左移动，世界坐标需要加上这个偏移
         const worldX = dragX + gameContext.worldOffsetX;
         const worldY = dragY;
         const col = Math.floor(worldX / GameConfig.CELL_SIZE);
         const row = Math.floor(worldY / GameConfig.CELL_SIZE);
-        const previewX = col * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
-        const previewY = row * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
+        const previewX = col * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2 + offsetX;
+        const previewY = row * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2 + offsetY;
         
         WeaponDragPreview.renderPreviewAt(this.ctx, previewX, previewY, weaponContainerUI.dragType, weaponManager);
       }
     }
-    
-    // 恢复上下文状态
-    this.ctx.restore();
     
     // 渲染 UI（不受战场偏移影响）
     if (weaponContainerUI) {
