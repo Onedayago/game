@@ -18,13 +18,32 @@ export class LaserTower extends Weapon {
     
     this.currentBeam = null;
     this.beamDuration = 0;
+    
+    // 应用等级属性
+    this.applyLevelStats();
+  }
+  
+  /**
+   * 应用等级属性
+   */
+  applyLevelStats() {
+    if (this.level === 1) {
+      this.fireInterval = GameConfig.LASER_FIRE_INTERVAL * 1.2;
+      this.damage = GameConfig.LASER_DAMAGE * 1;
+    } else if (this.level === 2) {
+      this.fireInterval = GameConfig.LASER_FIRE_INTERVAL * 1.0;
+      this.damage = GameConfig.LASER_DAMAGE * 1.5;
+    } else if (this.level === 3) {
+      this.fireInterval = GameConfig.LASER_FIRE_INTERVAL * 0.8;
+      this.damage = GameConfig.LASER_DAMAGE * 2;
+    }
   }
   
   /**
    * 更新激光塔
    */
-  update(deltaTime, deltaMS, enemies) {
-    super.update(deltaTime, deltaMS, enemies);
+  update(deltaTime, deltaMS, enemies, selectedWeapon = null) {
+    super.update(deltaTime, deltaMS, enemies, selectedWeapon);
     
     // 更新激光束
     if (this.currentBeam) {

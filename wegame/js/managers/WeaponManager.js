@@ -8,6 +8,7 @@ import { UIConfig } from '../config/UIConfig';
 import { WeaponType } from '../config/WeaponConfig';
 import { RocketTower } from '../entities/RocketTower';
 import { LaserTower } from '../entities/LaserTower';
+import { LogUtils } from '../utils/LogUtils';
 
 export class WeaponManager {
   constructor(ctx) {
@@ -99,10 +100,94 @@ export class WeaponManager {
   }
   
   /**
+   * 升级武器
+   */
+  upgradeWeapon(weapon) {
+    if (!weapon || weapon.destroyed) {
+      return false;
+    }
+    
+    if (weapon.level >= weapon.maxLevel) {
+      return false; // 已满级
+    }
+    
+    const upgradeCost = weapon.getUpgradeCost();
+    const gameContext = GameContext.getInstance();
+    
+    // 检查金币是否足够
+    if (gameContext.gold < upgradeCost) {
+      return false; // 金币不足
+    }
+    
+    // 扣除金币
+    gameContext.gold -= upgradeCost;
+    
+    // 升级武器
+    weapon.upgrade();
+    
+    return true;
+  }
+  
+  /**
+   * 出售武器
+   */
+  sellWeapon(weapon) {
+    if (!weapon || weapon.destroyed) {
+      return false;
+    }
+    
+    const sellGain = weapon.getSellGain();
+    const gameContext = GameContext.getInstance();
+    
+    // 增加金币
+    gameContext.gold += sellGain;
+    
+    // 标记为销毁
+    weapon.destroyed = true;
+    
+    // 从管理器中移除
+    this.removeWeapon(weapon);
+    
+    // 如果选中的是这个武器，清除选中
+    if (this.selectedWeapon === weapon) {
+      this.selectedWeapon = null;
+    }
+    
+    return true;
+  }
+  
+  /**
+   * 根据坐标查找武器
+   */
+  findWeaponAt(x, y) {
+    for (const weapon of this.weapons) {
+      if (!weapon || weapon.destroyed) continue;
+      
+      // 使用武器的实际尺寸
+      const weaponSize = weapon.size || GameConfig.CELL_SIZE;
+      const halfSize = weaponSize / 2;
+      
+      // 检查点击是否在武器范围内（圆形检测）
+      const dx = weapon.x - x;
+      const dy = weapon.y - y;
+      const distSq = dx * dx + dy * dy;
+      const radiusSq = halfSize * halfSize;
+      
+      if (distSq <= radiusSq) {
+        return weapon;
+      }
+    }
+    
+    return null;
+  }
+  
+  /**
    * 更新武器
    */
   update(deltaTime, deltaMS, enemies) {
-    // 更新所有武器
+   
+    
+    // 更新所有武器（传递选中的武器，让武器自己判断是否被选中）
     for (let i = this.weapons.length - 1; i >= 0; i--) {
       const weapon = this.weapons[i];
       
@@ -111,9 +196,9 @@ export class WeaponManager {
         continue;
       }
       
-      if (weapon.update) {
-        weapon.update(deltaTime, deltaMS, enemies || []);
-      }
+      LogUtils.log('WeaponManager.update: weapon', 10000,this.selectedWeapon);
+      
+      weapon.update(deltaTime, deltaMS, enemies || [], this.selectedWeapon);
     }
   }
   
@@ -121,6 +206,7 @@ export class WeaponManager {
    * 渲染武器（带视锥剔除，优化：移除 save/restore）
    */
   render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
+    
     // 获取战场偏移（如果传入）
     const offsetX = arguments[4] || 0;
     const offsetY = arguments[5] || 0;
@@ -138,8 +224,20 @@ export class WeaponManager {
         continue; // 跳过屏幕外的武器
       }
       
+      // 渲染武器（选中状态已在update中处理，存储在weapon.isSelected中）
       if (weapon.render) {
         weapon.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
+      }
+      
+      // 调试：如果选中了武器，输出日志（使用延时打印，每2000ms输出一次）
+      if (weapon.isSelected) {
+        LogUtils.log('WeaponManager.render.selectedWeapon', 2000, 'WeaponManager.render: 渲染选中的武器', {
+          x: weapon.x,
+          y: weapon.y,
+          weaponType: weapon.weaponType,
+          level: weapon.level,
+          maxLevel: weapon.maxLevel
+        });
       }
     }
   }

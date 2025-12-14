@@ -5,21 +5,8 @@
 
 import { GameConfig } from './config/GameConfig';
 import { GameContext } from './core/GameContext';
-import { BackgroundRenderer } from './rendering/BackgroundRenderer';
-import { WeaponRenderer } from './rendering/WeaponRenderer';
-import { WeaponManager } from './managers/WeaponManager';
-import { EnemyManager } from './managers/EnemyManager';
-import { GoldManager } from './managers/GoldManager';
-import { ParticleManager } from './core/ParticleManager';
-import { LaserBeam } from './projectiles/LaserBeam';
-import { SoundManager } from './core/SoundManager';
-import { StartScreen } from './ui/StartScreen';
-import { HelpScreen } from './ui/HelpScreen';
-import { WeaponContainerUI } from './ui/WeaponContainerUI';
-import { BattlefieldMinimap } from './ui/BattlefieldMinimap';
-import { initCanvasUtils } from './utils/CanvasUtils';
+import { GameInitializer } from './core/GameInitializer';
 import { GameInputHandler } from './core/GameInputHandler';
-import { GameRenderer } from './core/GameRenderer';
 import { GameLoop } from './core/GameLoop';
 
 export default class GameMain {
@@ -65,140 +52,43 @@ export default class GameMain {
     GameConfig.init();
     
     // 初始化 Canvas
-    this.setupCanvas();
+    GameInitializer.setupCanvas(this.canvas, this.ctx);
     
     // 创建管理器
-    this.createManagers();
+    const managers = GameInitializer.createManagers(this.ctx, this.gameContext);
+    this.backgroundRenderer = managers.backgroundRenderer;
+    this.weaponManager = managers.weaponManager;
+    this.enemyManager = managers.enemyManager;
+    this.goldManager = managers.goldManager;
+    this.particleManager = managers.particleManager;
+    this.soundManager = managers.soundManager;
     
     // 初始化 UI
-    this.initUI();
+    const uiComponents = GameInitializer.initUI(
+      this.ctx,
+      this.gameContext,
+      this.goldManager,
+      this.weaponManager,
+      this.enemyManager
+    );
+    this.weaponContainerUI = uiComponents.weaponContainerUI;
+    this.startScreen = uiComponents.startScreen;
+    this.helpScreen = uiComponents.helpScreen;
+    this.battlefieldMinimap = uiComponents.battlefieldMinimap;
+    
+    // 设置战场小视图点击回调
+    this.battlefieldMinimap.setOnClick((targetWorldOffsetX) => {
+      this.gameContext.worldOffsetX = targetWorldOffsetX;
+    });
+    
+    // 创建游戏渲染器
+    this.gameRenderer = GameInitializer.createRenderer(this.ctx, this.gameContext);
     
     // 显示开始界面
     this.showStartScreen();
     
     // 开始游戏循环
     this.start();
-  }
-  
-  /**
-   * 设置 Canvas
-   */
-  setupCanvas() {
-    // 微信小游戏的 Canvas 已经由 wx.createCanvas() 创建
-    // 获取系统信息
-    const systemInfo = wx.getSystemInfoSync();
-    const dpr = systemInfo.pixelRatio || 1;
-    
-    // 设置 Canvas 尺寸（微信小游戏 Canvas 尺寸由系统决定）
-    // 注意：GameConfig.DESIGN_WIDTH 和 DESIGN_HEIGHT 现在会自动从系统信息获取
-    const windowWidth = GameConfig.DESIGN_WIDTH;
-    const windowHeight = GameConfig.DESIGN_HEIGHT;
-    
-    // 设置 Canvas 实际尺寸（考虑设备像素比）
-    this.canvas.width = windowWidth * dpr;
-    this.canvas.height = windowHeight * dpr;
-    
-    
-    this.ctx.scale(dpr, dpr);
-    
-    // 设置 Canvas 显示尺寸
-    if (this.canvas.style) {
-      this.canvas.style.width = `${windowWidth}px`;
-      this.canvas.style.height = `${windowHeight}px`;
-    }
-    
-    console.log('Canvas 设置完成', {
-      width: this.canvas.width,
-      height: this.canvas.height,
-      dpr,
-      windowWidth,
-      windowHeight
-    });
-    
-    // 初始化 Canvas 工具（添加 roundRect 等方法）
-    initCanvasUtils(this.ctx);
-    
-    // 创建游戏渲染器
-    this.gameRenderer = new GameRenderer(this.ctx, this.gameContext);
-  }
-  
-  /**
-   * 创建管理器
-   */
-  createManagers() {
-    // 背景渲染器
-    this.backgroundRenderer = new BackgroundRenderer(this.ctx);
-    // 初始化背景渲染缓存
-    BackgroundRenderer.initCache();
-    
-    // 初始化血条缓存（使用最大可能的实体尺寸）
-    const maxEntitySize = Math.max(GameConfig.ENEMY_SIZE, GameConfig.CELL_SIZE * 0.8);
-    WeaponRenderer.initHealthBarCache(maxEntitySize);
-    
-    // 金币管理器
-    this.goldManager = new GoldManager();
-    this.goldManager.init(GameConfig.INITIAL_GOLD);
-    // 同步到游戏上下文
-    this.gameContext.gold = GameConfig.INITIAL_GOLD;
-    
-    // 武器管理器
-    this.weaponManager = new WeaponManager(this.ctx);
-    
-    // 敌人管理器
-    this.enemyManager = new EnemyManager(this.ctx, this.weaponManager, this.goldManager);
-    // 初始化敌人渲染缓存
-    this.enemyManager.init();
-    
-    // 粒子管理器
-    this.particleManager = new ParticleManager(this.ctx);
-    // 初始化粒子缓存
-    ParticleManager.initCache();
-    this.gameContext.particleManager = this.particleManager;
-    
-    // 初始化激光束缓存
-    LaserBeam.initCache();
-    
-    // 音效管理器
-    this.soundManager = new SoundManager();
-    this.gameContext.soundManager = this.soundManager;
-    
-    // 更新游戏上下文
-    this.gameContext.weaponManager = this.weaponManager;
-  }
-  
-  /**
-   * 初始化 UI
-   */
-  initUI() {
-    // 武器容器 UI
-    this.weaponContainerUI = new WeaponContainerUI(
-      this.ctx,
-      this.goldManager,
-      this.weaponManager
-    );
-    this.weaponContainerUI.init(); // 初始化武器卡片缓存
-    this.gameContext.weaponContainerUI = this.weaponContainerUI;
-    
-    // 开始界面
-    this.startScreen = new StartScreen(this.ctx);
-    
-    // 帮助界面
-    this.helpScreen = new HelpScreen(this.ctx);
-    // 初始化帮助界面缓存
-    HelpScreen.initStaticCache();
-    HelpScreen.initButtonCache();
-    
-    // 战场小视图
-    this.battlefieldMinimap = new BattlefieldMinimap(
-      this.ctx,
-      this.weaponManager,
-      this.enemyManager
-    );
-    this.battlefieldMinimap.init();
-    // 设置点击回调
-    this.battlefieldMinimap.setOnClick((targetWorldOffsetX) => {
-      this.gameContext.worldOffsetX = targetWorldOffsetX;
-    });
   }
   
   /**
@@ -269,20 +159,75 @@ export default class GameMain {
   }
   
   /**
-   * 暂停游戏
+   * 暂停游戏（游戏循环）
    */
   pause() {
     this.gameLoop.pause();
   }
   
   /**
-   * 恢复游戏
+   * 恢复游戏（游戏循环）
    */
   resume() {
     this.gameLoop.resume(
       (deltaTime, deltaMS) => this.onUpdate(deltaTime, deltaMS),
       (deltaTime, deltaMS) => this.onRender(deltaTime, deltaMS)
     );
+  }
+  
+  /**
+   * 暂停游戏（游戏逻辑）
+   */
+  pauseGame() {
+    if (this.gameContext.gameStarted && !this.gameContext.gamePaused) {
+      this.gameContext.gamePaused = true;
+      console.log('游戏已暂停');
+    }
+  }
+  
+  /**
+   * 恢复游戏（游戏逻辑）
+   */
+  resumeGame() {
+    if (this.gameContext.gameStarted && this.gameContext.gamePaused && !this.gameContext.gameOver) {
+      this.gameContext.gamePaused = false;
+      console.log('游戏已恢复');
+    }
+  }
+  
+  /**
+   * 重新开始游戏
+   */
+  restartGame() {
+    console.log('重新开始游戏');
+    
+    // 重置游戏状态
+    this.gameContext.reset();
+    
+    // 重置敌人管理器
+    if (this.enemyManager) {
+      this.enemyManager.reset();
+    }
+    
+    // 清空武器
+    if (this.weaponManager) {
+      this.weaponManager.weapons = [];
+      this.weaponManager.selectedWeapon = null;
+    }
+    
+    // 重置金币管理器
+    if (this.goldManager) {
+      this.goldManager.init(GameConfig.INITIAL_GOLD);
+      this.gameContext.gold = GameConfig.INITIAL_GOLD;
+    }
+    
+    // 清空粒子
+    if (this.particleManager) {
+      this.particleManager.particles = [];
+    }
+    
+    // 显示开始界面
+    this.showStartScreen();
   }
   
   /**
@@ -339,6 +284,19 @@ export default class GameMain {
    * 更新游戏逻辑
    */
   update(deltaTime, deltaMS) {
+    // 如果游戏已暂停，只更新UI动画，不更新游戏逻辑
+    if (this.gameContext.gamePaused) {
+      // 更新 UI（允许UI动画继续）
+      if (this.weaponContainerUI) {
+        this.weaponContainerUI.update(deltaTime);
+      }
+      
+      // 更新开始界面动画
+      if (this.startScreen) {
+        this.startScreen.update(deltaMS);
+      }
+      return;
+    }
 
     // 更新管理器（武器和敌人的更新在渲染时进行，因为需要相互引用）
     
@@ -388,7 +346,21 @@ export default class GameMain {
    */
   onTouchStart(e) {
     console.log('GameMain.onTouchStart', e);
-    this.inputHandler.onTouchStart(e, this.weaponContainerUI, this.startScreen, this.helpScreen, this.battlefieldMinimap);
+    const result = this.inputHandler.onTouchStart(e, this.weaponContainerUI, this.startScreen, this.helpScreen, this.battlefieldMinimap, this.weaponManager, this.gameRenderer);
+    
+    // 处理暂停/恢复/重新开始
+    if (result === 'pause') {
+      this.pauseGame();
+      return true;
+    } else if (result === 'resume') {
+      this.resumeGame();
+      return true;
+    } else if (result === 'restart') {
+      this.restartGame();
+      return true;
+    }
+    
+    return result;
   }
   
   /**
@@ -402,7 +374,7 @@ export default class GameMain {
    * 触摸结束
    */
   onTouchEnd(e) {
-    this.inputHandler.onTouchEnd(e, this.weaponContainerUI, this.startScreen, this.helpScreen, this.battlefieldMinimap);
+    this.inputHandler.onTouchEnd(e, this.weaponContainerUI, this.startScreen, this.helpScreen, this.battlefieldMinimap, this.weaponManager);
   }
 }
 

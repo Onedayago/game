@@ -19,6 +19,11 @@ export class EnemyManager {
     this.waveTimer = 0;
     this.waveLevel = 1;
     this.hpBonus = 0;
+    this.waveEnemyCount = 0; // 当前波次已生成的敌人数量
+    this.maxEnemiesPerWave = 15; // 每波最多15个敌人
+    this.isWaveComplete = false; // 当前波次是否完成
+    this.waveStartTime = 0; // 波次开始时间（用于显示提示）
+    this.showWaveNotification = false; // 是否显示波次提示
   }
   
   /**
@@ -37,14 +42,64 @@ export class EnemyManager {
     this.spawnTimer = 0;
     this.spawnInterval = GameConfig.ENEMY_SPAWN_INTERVAL;
     this.waveTimer = 0;
-    this.waveLevel = 1;
+    this.waveLevel = 0; // 初始化为0，startNewWave会将其设为1
     this.hpBonus = 0;
+    this.waveEnemyCount = 0;
+    this.isWaveComplete = false;
+    this.waveStartTime = 0;
+    this.showWaveNotification = false;
+    // 初始化第一波
+    this.startNewWave();
+  }
+  
+  /**
+   * 开始新波次
+   */
+  startNewWave() {
+    this.waveLevel++;
+    this.waveEnemyCount = 0;
+    this.isWaveComplete = false;
+    this.hpBonus = (this.waveLevel - 1) * GameConfig.HP_BONUS_PER_WAVE;
+    // 每波生成间隔递减（但不超过最小值）
+    this.spawnInterval = Math.max(
+      GameConfig.ENEMY_MIN_SPAWN_INTERVAL,
+      GameConfig.ENEMY_SPAWN_INTERVAL * Math.pow(GameConfig.SPAWN_INTERVAL_REDUCTION, this.waveLevel - 1)
+    );
+    this.waveTimer = 0;
+    this.spawnTimer = 0; // 重置生成计时器
+    this.waveStartTime = Date.now(); // 记录波次开始时间
+    this.showWaveNotification = true; // 显示波次提示
+  }
+  
+  /**
+   * 更新波次提示显示时间
+   */
+  updateWaveNotification() {
+    if (this.showWaveNotification) {
+      const elapsed = Date.now() - this.waveStartTime;
+      // 显示3秒后隐藏
+      if (elapsed > 3000) {
+        this.showWaveNotification = false;
+      }
+    }
+  }
+  
+  /**
+   * 是否显示波次提示
+   */
+  shouldShowWaveNotification() {
+    return this.showWaveNotification;
   }
   
   /**
    * 生成敌人
    */
   spawnEnemy() {
+    // 检查是否达到每波上限
+    if (this.waveEnemyCount >= this.maxEnemiesPerWave) {
+      return; // 已达到本波上限，不再生成
+    }
+    
     // 随机选择一行
     const row = Math.floor(Math.random() * GameConfig.BATTLE_ROWS);
     
@@ -54,6 +109,8 @@ export class EnemyManager {
     enemy.setHpBonus(this.hpBonus);
     
     this.enemies.push(enemy);
+    this.waveEnemyCount++;
+    
     const gameContext = GameContext.getInstance();
     gameContext.addEnemy(enemy);
   }
@@ -70,11 +127,35 @@ export class EnemyManager {
       return;
     }
     
-    // 更新生成计时器
-    this.spawnTimer += deltaMS;
-    if (this.spawnTimer >= this.spawnInterval) {
-      this.spawnTimer = 0;
-      this.spawnEnemy();
+    // 检查游戏是否已暂停
+    if (gameContext.gamePaused) {
+      // 游戏已暂停，不更新敌人
+      return;
+    }
+    
+    // 更新波次提示
+    this.updateWaveNotification();
+    
+    // 波次管理
+    if (this.isWaveComplete) {
+      // 当前波次已完成，等待所有敌人被消灭或离开后开始新波次
+      if (this.enemies.length === 0) {
+        this.startNewWave();
+      }
+    } else {
+      // 检查当前波次是否完成（已生成足够敌人且所有敌人都已离开或被消灭）
+      if (this.waveEnemyCount >= this.maxEnemiesPerWave && this.enemies.length === 0) {
+        this.isWaveComplete = true;
+      }
+    }
+    
+    // 更新生成计时器（只在波次未完成时生成）
+    if (!this.isWaveComplete && this.waveEnemyCount < this.maxEnemiesPerWave) {
+      this.spawnTimer += deltaMS;
+      if (this.spawnTimer >= this.spawnInterval) {
+        this.spawnTimer = 0;
+        this.spawnEnemy();
+      }
     }
     
     // 更新所有敌人
@@ -99,8 +180,12 @@ export class EnemyManager {
       }
       
       if (enemy.finished) {
-        // 从 GameContext 移除
+        // 敌人到达终点，游戏结束
         const gameContext = GameContext.getInstance();
+        gameContext.gameOver = true;
+        gameContext.gamePaused = true; // 暂停游戏
+        console.log('游戏结束：敌人到达终点');
+        // 从 GameContext 移除
         gameContext.removeEnemy(enemy);
         this.enemies.splice(i, 1);
         continue;
@@ -119,6 +204,24 @@ export class EnemyManager {
    */
   getEnemies() {
     return this.enemies;
+  }
+  
+  /**
+   * 获取当前波次
+   */
+  getWaveLevel() {
+    return this.waveLevel;
+  }
+  
+  /**
+   * 获取当前波次进度
+   */
+  getWaveProgress() {
+    return {
+      current: this.waveEnemyCount,
+      max: this.maxEnemiesPerWave,
+      isComplete: this.isWaveComplete
+    };
   }
   
   /**

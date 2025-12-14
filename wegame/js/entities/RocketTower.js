@@ -45,8 +45,8 @@ export class RocketTower extends Weapon {
   /**
    * 更新火箭塔（优化：批量删除，减少 splice 调用）
    */
-  update(deltaTime, deltaMS, enemies) {
-    super.update(deltaTime, deltaMS, enemies);
+  update(deltaTime, deltaMS, enemies, selectedWeapon = null) {
+    super.update(deltaTime, deltaMS, enemies, selectedWeapon);
     
     // 优化：先更新，再批量删除已销毁的火箭
     let writeIndex = 0;
@@ -102,15 +102,16 @@ export class RocketTower extends Weapon {
   }
   
   /**
-   * 渲染火箭塔（带视锥剔除）
+   * 渲染火箭塔（带视锥剔除，应用战场偏移）
    */
-  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
-    super.render();
+  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
+    // 调用父类渲染方法，传递偏移参数
+    super.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
     
-    // 渲染所有火箭（带视锥剔除）
+    // 渲染所有火箭（带视锥剔除，应用战场偏移）
     for (const rocket of this.rockets) {
       if (rocket && !rocket.destroyed) {
-        rocket.render(viewLeft, viewRight, viewTop, viewBottom);
+        rocket.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
       }
     }
   }

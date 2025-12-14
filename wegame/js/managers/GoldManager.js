@@ -6,6 +6,7 @@ import { GameConfig } from '../config/GameConfig';
 import { UIConfig } from '../config/UIConfig';
 import { ColorUtils, GameColors } from '../config/Colors';
 import { GameContext } from '../core/GameContext';
+import { polyfillRoundRect } from '../utils/CanvasUtils';
 
 export class GoldManager {
   constructor() {
@@ -69,27 +70,112 @@ export class GoldManager {
   }
   
   /**
-   * 渲染金币显示
+   * 渲染金币显示（美化版，参考 pixi.js 风格）
    */
   render(ctx) {
+    polyfillRoundRect(ctx);
     ctx.save();
     
-    // 获取实际 Canvas 尺寸（现在从 GameConfig 获取，已经是屏幕尺寸）
+    // 获取实际 Canvas 尺寸
     const windowHeight = GameConfig.DESIGN_HEIGHT;
     
-    const x = 20;
-    const y = windowHeight - 30;
+    // 金币面板尺寸和位置
+    const panelWidth = 140;
+    const panelHeight = 40;
+    const panelX = 20;
+    const panelY = windowHeight - panelHeight - 20;
+    const radius = 8;
     
-    // 绘制背景
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(x - 10, y - 20, 150, 30);
+    // 绘制面板阴影
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 5;
     
-    // 绘制文字
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN);
-    ctx.font = `${UIConfig.BUTTON_FONT_SIZE}px Arial`;
+    // 绘制面板背景（金色渐变）
+    const bgGradient = ctx.createLinearGradient(
+      panelX, panelY,
+      panelX, panelY + panelHeight
+    );
+    bgGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffd700, 0.25));
+    bgGradient.addColorStop(0.5, ColorUtils.hexToCanvas(0xffb300, 0.2));
+    bgGradient.addColorStop(1, ColorUtils.hexToCanvas(0xff8c00, 0.25));
+    
+    // 主背景（深色半透明）
+    const mainBgGradient = ctx.createLinearGradient(
+      panelX, panelY,
+      panelX, panelY + panelHeight
+    );
+    mainBgGradient.addColorStop(0, 'rgba(30, 35, 45, 0.95)');
+    mainBgGradient.addColorStop(0.3, 'rgba(20, 25, 35, 0.93)');
+    mainBgGradient.addColorStop(0.7, 'rgba(15, 20, 30, 0.92)');
+    mainBgGradient.addColorStop(1, 'rgba(10, 15, 25, 0.9)');
+    ctx.fillStyle = mainBgGradient;
+    ctx.beginPath();
+    ctx.roundRect(panelX, panelY, panelWidth, panelHeight, radius);
+    ctx.fill();
+    
+    // 金色叠加层
+    ctx.fillStyle = bgGradient;
+    ctx.fill();
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // 绘制发光边框（金色）
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = ColorUtils.hexToCanvas(0xffd700, 0.6);
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0xffd700, 0.9);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(panelX, panelY, panelWidth, panelHeight, radius);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    // 绘制内部高光边框
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0xffd700, 0.4);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(panelX + 1, panelY + 1, panelWidth - 2, panelHeight - 2, radius - 1);
+    ctx.stroke();
+    
+    // 绘制金币图标（简单圆形）
+    const coinRadius = 12;
+    const coinX = panelX + 20;
+    const coinY = panelY + panelHeight / 2;
+    const coinGradient = ctx.createRadialGradient(coinX, coinY, 0, coinX, coinY, coinRadius);
+    coinGradient.addColorStop(0, 'rgba(255, 215, 0, 1)');
+    coinGradient.addColorStop(0.7, 'rgba(255, 193, 7, 0.9)');
+    coinGradient.addColorStop(1, 'rgba(255, 152, 0, 0.8)');
+    ctx.fillStyle = coinGradient;
+    ctx.beginPath();
+    ctx.arc(coinX, coinY, coinRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 绘制金币边框
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0xffd700, 0.8);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    
+    // 绘制金币文字（带阴影）
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 1;
+    ctx.fillStyle = ColorUtils.hexToCanvas(0xffd700, 1.0);
+    ctx.font = `bold ${UIConfig.BUTTON_FONT_SIZE}px Arial`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`金币: ${this.gold}`, x, y);
+    ctx.fillText(`${this.gold}`, coinX + coinRadius + 10, coinY);
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
     
     ctx.restore();
   }

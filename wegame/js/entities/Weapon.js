@@ -8,6 +8,7 @@ import { WeaponRenderer } from '../rendering/WeaponRenderer';
 import { WeaponType } from '../config/WeaponConfig';
 import { GameContext } from '../core/GameContext';
 import { GameColors } from '../config/Colors';
+import { LogUtils } from '../utils/LogUtils';
 
 export class Weapon {
   constructor(ctx, x, y, weaponType) {
@@ -15,6 +16,8 @@ export class Weapon {
     this.x = x;
     this.y = y;
     this.weaponType = weaponType;
+    this.isSelected = false; // 是否被选中
+    this.buttonBounds = null; // 按钮位置信息 { upgradeButton, sellButton }
     this.level = 1;
     this.maxLevel = GameConfig.WEAPON_MAX_LEVEL;
     this.hp = GameConfig.WEAPON_MAX_HP;
@@ -23,7 +26,6 @@ export class Weapon {
     this.attackRange = 4;
     this.damage = 1;
     this.timeSinceLastFire = 0;
-    this.selected = false;
     this.destroyed = false;
     this.targetSearchTimer = 0;
     this.TARGET_SEARCH_INTERVAL = 100; // 每100ms查找一次目标
@@ -35,10 +37,21 @@ export class Weapon {
   
   /**
    * 更新武器
+   * @param {number} deltaTime - 时间差（秒）
+   * @param {number} deltaMS - 时间差（毫秒）
+   * @param {Array} enemies - 敌人数组
+   * @param {Weapon} selectedWeapon - 当前选中的武器（可选）
    */
-  update(deltaTime, deltaMS, enemies) {
+  update(deltaTime, deltaMS, enemies, selectedWeapon = null) {
     if (this.destroyed) return;
     
+    
+    // 更新选中状态（在update中处理，避免在render中重复计算）
+    // 直接比较对象引用，而不是比较坐标（因为可能有多个武器在同一位置）
+    this.isSelected = selectedWeapon === this;
+                     
+    LogUtils.log('Weapon.update: selectedWeapon', 10000,this.isSelected);
+    LogUtils.log('Weapon.update', 10000, selectedWeapon);
     this.timeSinceLastFire += deltaMS;
     this.targetSearchTimer += deltaMS;
     
@@ -96,7 +109,7 @@ export class Weapon {
       
       if (distSq <= minDistSq) {
         if (!nearest || distSq < minDistSq) {
-          nearest = enemy;
+        nearest = enemy;
         }
       }
     }
@@ -149,6 +162,54 @@ export class Weapon {
   }
   
   /**
+   * 获取升级成本
+   */
+  getUpgradeCost() {
+    if (this.level >= this.maxLevel) {
+      return 0; // 已满级
+    }
+    
+    if (this.weaponType === WeaponType.ROCKET) {
+      return GameConfig.ROCKET_UPGRADE_COST;
+    } else if (this.weaponType === WeaponType.LASER) {
+      return GameConfig.LASER_UPGRADE_COST;
+    }
+    
+    return 0;
+  }
+  
+  /**
+   * 获取出售收益
+   */
+  getSellGain() {
+    if (this.weaponType === WeaponType.ROCKET) {
+      return GameConfig.ROCKET_SELL_GAIN;
+    } else if (this.weaponType === WeaponType.LASER) {
+      return GameConfig.LASER_SELL_GAIN;
+    }
+    
+    return 0;
+  }
+  
+  /**
+   * 升级武器
+   */
+  upgrade() {
+    if (this.level >= this.maxLevel) {
+      return false; // 已满级
+    }
+    
+    this.level++;
+    
+    // 应用新等级属性（子类实现）
+    if (this.applyLevelStats) {
+      this.applyLevelStats();
+    }
+    
+    return true;
+  }
+  
+  /**
    * 渲染武器（带视锥剔除，优化：应用战场偏移）
    */
   render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
@@ -156,16 +217,32 @@ export class Weapon {
     
     // 视锥剔除：只渲染屏幕内的武器（在 WeaponManager 中已经处理，这里保留参数以保持接口一致）
     
+    const renderX = this.x + offsetX;
+    const renderY = this.y + offsetY;
+    
     // 渲染武器本体 - 应用战场偏移
     if (this.weaponType === WeaponType.ROCKET) {
-      WeaponRenderer.renderRocketTower(this.ctx, this.x + offsetX, this.y + offsetY, this.size, this.level);
+      WeaponRenderer.renderRocketTower(this.ctx, renderX, renderY, this.size, this.level);
     } else if (this.weaponType === WeaponType.LASER) {
-      WeaponRenderer.renderLaserTower(this.ctx, this.x + offsetX, this.y + offsetY, this.size, this.level);
+      WeaponRenderer.renderLaserTower(this.ctx, renderX, renderY, this.size, this.level);
+    }
+    
+    // 渲染选中状态（高亮边框）
+    if (this.isSelected) {
+      WeaponRenderer.renderSelectionIndicator(this.ctx, renderX, renderY, this.size);
     }
     
     // 渲染血条 - 应用战场偏移
     if (this.hp < this.maxHp) {
-      WeaponRenderer.renderHealthBar(this.ctx, this.x + offsetX, this.y + offsetY, this.hp, this.maxHp, this.size);
+      WeaponRenderer.renderHealthBar(this.ctx, renderX, renderY, this.hp, this.maxHp, this.size);
+    }
+    
+    // 渲染升级/移除提示（如果选中）
+    if (this.isSelected) {
+      // 保存按钮位置信息（用于点击检测）
+      this.buttonBounds = WeaponRenderer.renderUpgradeHint(this.ctx, renderX, renderY, this.size, this.level, this.maxLevel, this.getUpgradeCost(), this.getSellGain());
+    } else {
+      this.buttonBounds = null;
     }
   }
 }

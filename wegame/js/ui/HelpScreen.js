@@ -353,11 +353,13 @@ class HelpScreen {
     // 计算面板尺寸（用于内容区域计算）
     const panelWidth = windowWidth * 0.65;
     const panelHeight = windowHeight * 0.75;
+    const panelX = (windowWidth - panelWidth) / 2;
     const panelY = (windowHeight - panelHeight) / 2;
     
     // 计算内容区域（确保标题下方有足够空间）
     // 标题在 panelY + panelHeight * 0.12，标题高度约为 TITLE_FONT_SIZE * 0.8
     // 内容区域从标题下方开始，留出足够的间距，确保第一行文字完全可见
+    const titleY = panelY + panelHeight * 0.12;
     const titleBottom = titleY + UIConfig.TITLE_FONT_SIZE * 0.8 * 0.5;
     // 增加间距，确保第一行文字（包括行高）完全可见
     const contentStartY = Math.max(titleBottom + 20, panelY + panelHeight * 0.22);

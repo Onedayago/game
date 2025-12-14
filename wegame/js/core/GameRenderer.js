@@ -6,6 +6,7 @@
 import { GameConfig } from '../config/GameConfig';
 import { WeaponDragPreview } from '../ui/WeaponDragPreview';
 import { ColorUtils, GameColors } from '../config/Colors';
+import { UIRenderer } from '../ui/UIRenderer';
 
 export class GameRenderer {
   constructor(ctx, gameContext) {
@@ -57,16 +58,20 @@ export class GameRenderer {
     
     // 更新和渲染武器（需要传入敌人列表用于寻找目标）
     // 注意：武器和敌人的坐标需要加上 offsetX 来应用战场偏移
-    if (weaponManager) {
+    if (weaponManager && !this.gameContext.gamePaused && !this.gameContext.gameOver) {
       const enemies = enemyManager ? enemyManager.getEnemies() : [];
       weaponManager.update(deltaTime, deltaMS, enemies);
+    }
+    if (weaponManager) {
       weaponManager.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
     }
     
     // 更新和渲染敌人（需要传入武器列表用于寻找目标）
-    if (enemyManager) {
+    if (enemyManager && !this.gameContext.gamePaused && !this.gameContext.gameOver) {
       const weapons = weaponManager ? weaponManager.getWeapons() : [];
       enemyManager.update(deltaTime, deltaMS, weapons);
+    }
+    if (enemyManager) {
       enemyManager.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
     }
     
@@ -114,10 +119,33 @@ export class GameRenderer {
       goldManager.render(this.ctx);
     }
     
+    // 渲染UI（使用UIRenderer）
+    if (this.gameContext.gameStarted) {
+      // 渲染波次信息
+      if (enemyManager) {
+        UIRenderer.renderWaveInfo(this.ctx, enemyManager);
+        // 渲染波次开始提示
+        if (enemyManager.shouldShowWaveNotification()) {
+          UIRenderer.renderWaveNotification(this.ctx, enemyManager);
+        }
+      }
+      
+      // 渲染暂停按钮
+      UIRenderer.renderPauseButton(this.ctx);
+      
+      // 渲染游戏结束界面（优先级最高）
+      if (this.gameContext.gameOver) {
+        UIRenderer.renderGameOverScreen(this.ctx);
+      }
+      // 渲染暂停界面（如果游戏已暂停且未结束）
+      else if (this.gameContext.gamePaused) {
+        UIRenderer.renderPauseScreen(this.ctx);
+      }
+    }
+    
     // 渲染战场小视图
     if (managers.battlefieldMinimap) {
       managers.battlefieldMinimap.render();
     }
   }
 }
-

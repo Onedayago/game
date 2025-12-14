@@ -9,6 +9,7 @@ export class GameContext {
   // 游戏状态
   gameStarted = false;
   gamePaused = false;
+  gameOver = false;
   
   // 当前波次
   currentWave = 1;
@@ -46,6 +47,7 @@ export class GameContext {
   reset() {
     this.gameStarted = false;
     this.gamePaused = false;
+    this.gameOver = false;
     this.currentWave = 1;
     this.gold = 1000;
     this.enemies = [];

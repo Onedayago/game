@@ -10,6 +10,7 @@ import { ColorUtils, GameColors } from '../config/Colors';
 import { polyfillRoundRect } from '../utils/CanvasUtils';
 import { RocketTowerRenderer } from './RocketTowerRenderer';
 import { LaserTowerRenderer } from './LaserTowerRenderer';
+import { GameContext } from '../core/GameContext';
 
 class WeaponRenderer {
   // 离屏Canvas缓存（血条）
@@ -105,6 +106,162 @@ class WeaponRenderer {
     );
     
     return true;
+  }
+  
+  /**
+   * 渲染选中指示器（高亮边框）
+   */
+  static renderSelectionIndicator(ctx, x, y, size) {
+    const radius = size / 2 + 3;
+    const lineWidth = 2;
+    
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0x00ff00, 0.8);
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // 内圈高光
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.5);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, radius - 1, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  
+  /**
+   * 绘制单个按钮（参考 StartScreen 风格）
+   */
+  static drawButton(ctx, x, y, width, height, radius, text, color) {
+    polyfillRoundRect(ctx);
+    ctx.save();
+    
+    // 绘制按钮阴影
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 5;
+    
+    // 绘制按钮背景（渐变）
+    const btnGradient = ctx.createLinearGradient(
+      x - width / 2, y - height / 2,
+      x - width / 2, y + height / 2
+    );
+    btnGradient.addColorStop(0, ColorUtils.hexToCanvas(color, 0.95));
+    btnGradient.addColorStop(0.5, ColorUtils.hexToCanvas(color, 0.85));
+    btnGradient.addColorStop(1, ColorUtils.hexToCanvas(color, 0.75));
+    ctx.fillStyle = btnGradient;
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, y - height / 2, width, height, radius);
+    ctx.fill();
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // 绘制按钮高光
+    const highlightGradient = ctx.createLinearGradient(
+      x - width / 2, y - height / 2,
+      x - width / 2, y - height / 2 + height * 0.4
+    );
+    highlightGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 0.4));
+    highlightGradient.addColorStop(1, ColorUtils.hexToCanvas(0xffffff, 0));
+    ctx.fillStyle = highlightGradient;
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, y - height / 2, width, height * 0.4, radius);
+    ctx.fill();
+    
+    // 绘制按钮边框（发光效果）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.9);
+    ctx.lineWidth = UIConfig.BORDER_WIDTH * 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, y - height / 2, width, height, radius);
+    ctx.stroke();
+    
+    // 绘制按钮文字（带阴影）
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 5;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN);
+    ctx.font = `bold ${UIConfig.ACTION_BUTTON_FONT_SIZE}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    ctx.restore();
+  }
+  
+  /**
+   * 渲染升级/移除按钮（左右两个按钮）
+   * @returns {Object} 返回按钮位置信息 { upgradeButton: {x, y, width, height}, sellButton: {x, y, width, height} }
+   */
+  static renderUpgradeHint(ctx, x, y, size, level, maxLevel, upgradeCost, sellGain) {
+    const gameContext = GameContext.getInstance();
+    const hasEnoughGold = gameContext.gold >= upgradeCost;
+    const isMaxLevel = level >= maxLevel;
+    
+    // 按钮尺寸
+    const buttonWidth = UIConfig.ACTION_BUTTON_WIDTH;
+    const buttonHeight = UIConfig.ACTION_BUTTON_HEIGHT;
+    const buttonRadius = UIConfig.ACTION_BUTTON_RADIUS;
+    const buttonSpacing = size * 0.3; // 按钮之间的间距
+    
+    // 按钮Y位置（武器左右两侧，与武器中心对齐）
+    const buttonY = y;
+    
+    // 升级按钮（左侧）
+    const upgradeButtonX = x - size / 2 - buttonWidth / 2 - buttonSpacing;
+    let upgradeButtonColor;
+    let upgradeButtonText;
+    
+    if (isMaxLevel) {
+      // 满级时，升级按钮显示为灰色（不可用）
+      upgradeButtonColor = 0x666666;
+      upgradeButtonText = 'MAX';
+    } else {
+      upgradeButtonColor = hasEnoughGold ? 0x00c853 : 0xff4444; // 绿色或红色
+      upgradeButtonText = `升级\n${upgradeCost}`;
+    }
+    
+    // 出售按钮（右侧）
+    const sellButtonX = x + size / 2 + buttonWidth / 2 + buttonSpacing;
+    const sellButtonColor = 0xffd700; // 金色
+    const sellButtonText = `出售\n${sellGain}`;
+    
+    // 绘制升级按钮
+    if (!isMaxLevel) {
+      this.drawButton(ctx, upgradeButtonX, buttonY, buttonWidth, buttonHeight, buttonRadius, upgradeButtonText, upgradeButtonColor);
+    }
+    
+    // 绘制出售按钮
+    this.drawButton(ctx, sellButtonX, buttonY, buttonWidth, buttonHeight, buttonRadius, sellButtonText, sellButtonColor);
+    
+    // 返回按钮位置信息（用于点击检测，位置是按钮左上角相对于武器中心 x, y 的偏移）
+    return {
+      upgradeButton: {
+        x: upgradeButtonX - buttonWidth / 2 - x, // 按钮左上角相对于武器中心的偏移
+        y: buttonY - buttonHeight / 2 - y, // 按钮左上角相对于武器中心的偏移
+        width: buttonWidth,
+        height: buttonHeight,
+        enabled: !isMaxLevel
+      },
+      sellButton: {
+        x: sellButtonX - buttonWidth / 2 - x, // 按钮左上角相对于武器中心的偏移
+        y: buttonY - buttonHeight / 2 - y, // 按钮左上角相对于武器中心的偏移
+        width: buttonWidth,
+        height: buttonHeight,
+        enabled: true
+      }
+    };
   }
   
   /**

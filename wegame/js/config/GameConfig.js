@@ -177,7 +177,7 @@ export class GameConfig {
   /** 敌人子弹速度（像素/秒） */
   static ENEMY_BULLET_SPEED = 160;
   /** 敌人子弹伤害值 */
-  static ENEMY_BULLET_DAMAGE = 1;
+  static ENEMY_BULLET_DAMAGE = 0;
   /**
    * 获取敌人子弹半径
    */

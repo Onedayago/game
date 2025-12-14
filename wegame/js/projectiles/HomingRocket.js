@@ -241,12 +241,12 @@ export class HomingRocket {
   }
   
   /**
-   * 渲染火箭（带视锥剔除，使用离屏Canvas缓存）
+   * 渲染火箭（带视锥剔除，使用离屏Canvas缓存，应用战场偏移）
    */
-  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity) {
+  render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
     if (this.destroyed) return;
     
-    // 视锥剔除：只渲染屏幕内的火箭
+    // 视锥剔除：只渲染屏幕内的火箭（使用世界坐标）
     if (!this.isInView(viewLeft, viewRight, viewTop, viewBottom)) {
       return;
     }
@@ -256,20 +256,26 @@ export class HomingRocket {
       HomingRocket.initCache(this.radius);
     }
     
+    // 计算Canvas坐标（应用战场偏移）
+    const renderX = this.x + offsetX;
+    const renderY = this.y + offsetY;
+    
     this.ctx.save();
     
     // 绘制短尾迹（动态绘制，不缓存）
     if (this.trailPositions.length > 1) {
       const lastPos = this.trailPositions[this.trailPositions.length - 2];
-      const dx = this.x - lastPos.x;
-      const dy = this.y - lastPos.y;
+      const lastRenderX = lastPos.x + offsetX;
+      const lastRenderY = lastPos.y + offsetY;
+      const dx = renderX - lastRenderX;
+      const dy = renderY - lastRenderY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       
       if (dist > 0.1) {
         const trailAngle = Math.atan2(dy, dx);
         
         this.ctx.save();
-        this.ctx.translate(lastPos.x, lastPos.y);
+        this.ctx.translate(lastRenderX, lastRenderY);
         this.ctx.rotate(trailAngle);
         
         // 简洁尾迹
@@ -289,8 +295,8 @@ export class HomingRocket {
       }
     }
     
-    // 使用缓存渲染火箭主体
-    HomingRocket.renderBodyFromCache(this.ctx, this.x, this.y, this.radius, this.angle);
+    // 使用缓存渲染火箭主体（应用战场偏移）
+    HomingRocket.renderBodyFromCache(this.ctx, renderX, renderY, this.radius, this.angle);
     
     this.ctx.restore();
   }
