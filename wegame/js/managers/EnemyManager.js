@@ -4,6 +4,9 @@
 
 import { GameContext } from '../core/GameContext';
 import { GameConfig } from '../config/GameConfig';
+import { EnemyConfig } from '../config/EnemyConfig';
+import { EnemyTankConfig } from '../config/enemies/EnemyTankConfig';
+import { WaveConfig } from '../config/WaveConfig';
 import { EnemyTank } from '../entities/EnemyTank';
 import { WeaponRenderer } from '../rendering/WeaponRenderer';
 import { EnemyRenderer } from '../rendering/EnemyRenderer';
@@ -15,7 +18,7 @@ export class EnemyManager {
     this.goldManager = goldManager;
     this.enemies = [];
     this.spawnTimer = 0;
-    this.spawnInterval = GameConfig.ENEMY_SPAWN_INTERVAL;
+    this.spawnInterval = EnemyConfig.ENEMY_SPAWN_INTERVAL;
     this.waveTimer = 0;
     this.waveLevel = 1;
     this.hpBonus = 0;
@@ -24,6 +27,14 @@ export class EnemyManager {
     this.isWaveComplete = false; // 当前波次是否完成
     this.waveStartTime = 0; // 波次开始时间（用于显示提示）
     this.showWaveNotification = false; // 是否显示波次提示
+    this.obstacleManager = null; // 障碍物管理器引用
+  }
+  
+  /**
+   * 设置障碍物管理器
+   */
+  setObstacleManager(obstacleManager) {
+    this.obstacleManager = obstacleManager;
   }
   
   /**
@@ -31,7 +42,7 @@ export class EnemyManager {
    */
   init() {
     // 初始化敌人渲染缓存
-    EnemyRenderer.initCache(GameConfig.ENEMY_SIZE);
+    EnemyRenderer.initCache(EnemyTankConfig.SIZE);
   }
   
   /**
@@ -40,7 +51,7 @@ export class EnemyManager {
   reset() {
     this.enemies = [];
     this.spawnTimer = 0;
-    this.spawnInterval = GameConfig.ENEMY_SPAWN_INTERVAL;
+    this.spawnInterval = EnemyConfig.ENEMY_SPAWN_INTERVAL;
     this.waveTimer = 0;
     this.waveLevel = 0; // 初始化为0，startNewWave会将其设为1
     this.hpBonus = 0;
@@ -59,11 +70,11 @@ export class EnemyManager {
     this.waveLevel++;
     this.waveEnemyCount = 0;
     this.isWaveComplete = false;
-    this.hpBonus = (this.waveLevel - 1) * GameConfig.HP_BONUS_PER_WAVE;
+    this.hpBonus = (this.waveLevel - 1) * WaveConfig.HP_BONUS_PER_WAVE;
     // 每波生成间隔递减（但不超过最小值）
     this.spawnInterval = Math.max(
-      GameConfig.ENEMY_MIN_SPAWN_INTERVAL,
-      GameConfig.ENEMY_SPAWN_INTERVAL * Math.pow(GameConfig.SPAWN_INTERVAL_REDUCTION, this.waveLevel - 1)
+      EnemyConfig.ENEMY_MIN_SPAWN_INTERVAL,
+      EnemyConfig.ENEMY_SPAWN_INTERVAL * Math.pow(WaveConfig.SPAWN_INTERVAL_REDUCTION, this.waveLevel - 1)
     );
     this.waveTimer = 0;
     this.spawnTimer = 0; // 重置生成计时器
@@ -100,8 +111,23 @@ export class EnemyManager {
       return; // 已达到本波上限，不再生成
     }
     
-    // 随机选择一行
-    const row = Math.floor(Math.random() * GameConfig.BATTLE_ROWS);
+    // 随机选择一行（避免在障碍物位置生成）
+    let row;
+    let attempts = 0;
+    const maxAttempts = 20; // 最多尝试20次
+    
+    do {
+      row = Math.floor(Math.random() * (GameConfig.BATTLE_END_ROW - GameConfig.BATTLE_START_ROW));
+      attempts++;
+      
+      // 检查起始位置（第一列）是否有障碍物
+      if (!this.obstacleManager || !this.obstacleManager.hasObstacle(0, row)) {
+        break; // 找到没有障碍物的位置
+      }
+    } while (attempts < maxAttempts);
+    
+    // 如果尝试多次都找不到，仍然生成（避免无限循环）
+    // 但这种情况应该很少见，因为第一列不应该有障碍物
     
     // 创建敌人
     const enemy = new EnemyTank(this.ctx, 0, 0);
@@ -170,7 +196,7 @@ export class EnemyManager {
       if (enemy.destroyed) {
         // 奖励金币
         if (this.goldManager) {
-          this.goldManager.addGold(GameConfig.ENEMY_KILL_REWARD);
+          this.goldManager.addGold(EnemyTankConfig.KILL_REWARD);
         }
         // 从 GameContext 移除
         const gameContext = GameContext.getInstance();
@@ -250,7 +276,7 @@ export class EnemyManager {
       if (!enemy || enemy.destroyed || enemy.finished) continue;
       
       // 视锥剔除：只渲染屏幕内的敌人
-      const enemySize = enemy.size || GameConfig.ENEMY_SIZE;
+      const enemySize = enemy.size || EnemyTankConfig.SIZE;
       if (enemy.x + enemySize < viewLeft || 
           enemy.x - enemySize > viewRight ||
           enemy.y + enemySize < viewTop || 

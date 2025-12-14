@@ -6,10 +6,6 @@ import { GameConfig } from './GameConfig';
 
 export class UIConfig {
   // ==================== UI 设计常量 ====================
-  /** 武器容器宽度 */
-  static get WEAPON_CONTAINER_WIDTH() {
-    return GameConfig.CELL_SIZE * 4;
-  }
   /** 武器容器高度 */
   static get WEAPON_CONTAINER_HEIGHT() {
     return GameConfig.CELL_SIZE * 2;
@@ -96,10 +92,6 @@ export class UIConfig {
   static get CARD_RADIUS() {
     return GameConfig.CELL_SIZE * 0.125;
   }
-  /** 卡片选中圆角 */
-  static get CARD_SELECTED_RADIUS() {
-    return GameConfig.CELL_SIZE * 0.175;
-  }
   /** 按钮边框宽度 */
   static get BORDER_WIDTH() {
     return GameConfig.DESIGN_HEIGHT * 0.004;
@@ -107,20 +99,6 @@ export class UIConfig {
   /** 卡片边框宽度 */
   static get CARD_BORDER_WIDTH() {
     return GameConfig.DESIGN_HEIGHT * 0.004;
-  }
-  
-  // ==================== UI 图标和间距 ====================
-  /** 武器卡片图标尺寸 */
-  static get CARD_ICON_SIZE() {
-    return GameConfig.CELL_SIZE * 0.5;
-  }
-  /** 拖拽光晕尺寸 */
-  static get DRAG_GLOW_SIZE() {
-    return GameConfig.CELL_SIZE * 1.25;
-  }
-  /** 操作按钮X偏移 */
-  static get ACTION_BUTTON_OFFSET_X() {
-    return GameConfig.CELL_SIZE * 0.75;
   }
   
   // ==================== UI 血量条配置 ====================

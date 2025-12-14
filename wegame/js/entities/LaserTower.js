@@ -4,7 +4,8 @@
 
 import { Weapon } from './Weapon';
 import { WeaponType } from '../config/WeaponConfig';
-import { GameConfig } from '../config/GameConfig';
+import { WeaponStatsConfig } from '../config/WeaponStatsConfig';
+import { LaserTowerConfig } from '../config/weapons/LaserTowerConfig';
 import { LaserBeam } from '../projectiles/LaserBeam';
 import { ColorUtils, GameColors } from '../config/Colors';
 
@@ -12,9 +13,9 @@ export class LaserTower extends Weapon {
   constructor(ctx, x, y) {
     super(ctx, x, y, WeaponType.LASER);
     
-    this.fireInterval = GameConfig.LASER_FIRE_INTERVAL;
-    this.attackRange = GameConfig.LASER_ATTACK_RANGE;
-    this.damage = GameConfig.LASER_DAMAGE;
+    this.fireInterval = LaserTowerConfig.FIRE_INTERVAL;
+    this.attackRange = LaserTowerConfig.ATTACK_RANGE;
+    this.damage = LaserTowerConfig.BASE_DAMAGE;
     
     this.currentBeam = null;
     this.beamDuration = 0;
@@ -28,14 +29,14 @@ export class LaserTower extends Weapon {
    */
   applyLevelStats() {
     if (this.level === 1) {
-      this.fireInterval = GameConfig.LASER_FIRE_INTERVAL * 1.2;
-      this.damage = GameConfig.LASER_DAMAGE * 1;
+      this.fireInterval = LaserTowerConfig.FIRE_INTERVAL * LaserTowerConfig.LEVEL_1_FIRE_INTERVAL_MULTIPLIER;
+      this.damage = LaserTowerConfig.BASE_DAMAGE * LaserTowerConfig.LEVEL_1_DAMAGE_MULTIPLIER;
     } else if (this.level === 2) {
-      this.fireInterval = GameConfig.LASER_FIRE_INTERVAL * 1.0;
-      this.damage = GameConfig.LASER_DAMAGE * 1.5;
+      this.fireInterval = LaserTowerConfig.FIRE_INTERVAL * LaserTowerConfig.LEVEL_2_FIRE_INTERVAL_MULTIPLIER;
+      this.damage = LaserTowerConfig.BASE_DAMAGE * LaserTowerConfig.LEVEL_2_DAMAGE_MULTIPLIER;
     } else if (this.level === 3) {
-      this.fireInterval = GameConfig.LASER_FIRE_INTERVAL * 0.8;
-      this.damage = GameConfig.LASER_DAMAGE * 2;
+      this.fireInterval = LaserTowerConfig.FIRE_INTERVAL * LaserTowerConfig.LEVEL_3_FIRE_INTERVAL_MULTIPLIER;
+      this.damage = LaserTowerConfig.BASE_DAMAGE * LaserTowerConfig.LEVEL_3_DAMAGE_MULTIPLIER;
     }
   }
   
@@ -76,7 +77,7 @@ export class LaserTower extends Weapon {
       this.damage
     );
     
-    this.beamDuration = GameConfig.LASER_BEAM_DURATION;
+    this.beamDuration = LaserTowerConfig.BEAM_DURATION;
     
     // 对目标造成伤害
     target.takeDamage(this.damage);

@@ -61,13 +61,13 @@ export class WeaponContainerUI {
     
     this.ctx.restore();
     
-    // 绘制拖拽图标（不在战斗区域时显示）
+    // 绘制拖拽图标（不在战斗区域时显示，排除底部UI区域）
     if (this._isDragging && this.dragType) {
       const battleStartY = GameConfig.BATTLE_START_ROW * GameConfig.CELL_SIZE;
-      const battleEndY = (GameConfig.BATTLE_START_ROW + GameConfig.BATTLE_ROWS) * GameConfig.CELL_SIZE;
+      const battleEndY = GameConfig.BATTLE_END_ROW * GameConfig.CELL_SIZE;
       
       // 不在战斗区域，显示拖拽图标
-      if (this.dragY < battleStartY || this.dragY > battleEndY) {
+      if (this.dragY < battleStartY || this.dragY >= battleEndY) {
         this.renderDragIcon(this.dragX, this.dragY, this.dragType);
       }
       // 在战斗区域的预览由 GameRenderer 在战场层级渲染

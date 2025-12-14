@@ -3,6 +3,10 @@
  */
 
 import { GameConfig } from '../config/GameConfig';
+import { WeaponStatsConfig } from '../config/WeaponStatsConfig';
+import { RocketTowerConfig } from '../config/weapons/RocketTowerConfig';
+import { LaserTowerConfig } from '../config/weapons/LaserTowerConfig';
+import { ParticleConfig } from '../config/ParticleConfig';
 import { UIConfig } from '../config/UIConfig';
 import { WeaponRenderer } from '../rendering/WeaponRenderer';
 import { WeaponType } from '../config/WeaponConfig';
@@ -19,9 +23,9 @@ export class Weapon {
     this.isSelected = false; // 是否被选中
     this.buttonBounds = null; // 按钮位置信息 { upgradeButton, sellButton }
     this.level = 1;
-    this.maxLevel = GameConfig.WEAPON_MAX_LEVEL;
-    this.hp = GameConfig.WEAPON_MAX_HP;
-    this.maxHp = GameConfig.WEAPON_MAX_HP;
+    this.maxLevel = WeaponStatsConfig.WEAPON_MAX_LEVEL;
+    this.hp = WeaponStatsConfig.WEAPON_MAX_HP;
+    this.maxHp = WeaponStatsConfig.WEAPON_MAX_HP;
     this.fireInterval = 500;
     this.attackRange = 4;
     this.damage = 1;
@@ -155,7 +159,7 @@ export class Weapon {
           this.x,
           this.y,
           explosionColor,
-          GameConfig.PARTICLE_EXPLOSION_COUNT
+          ParticleConfig.PARTICLE_EXPLOSION_COUNT
         );
       }
     }
@@ -170,9 +174,9 @@ export class Weapon {
     }
     
     if (this.weaponType === WeaponType.ROCKET) {
-      return GameConfig.ROCKET_UPGRADE_COST;
+      return RocketTowerConfig.UPGRADE_COST;
     } else if (this.weaponType === WeaponType.LASER) {
-      return GameConfig.LASER_UPGRADE_COST;
+      return LaserTowerConfig.UPGRADE_COST;
     }
     
     return 0;
@@ -183,9 +187,9 @@ export class Weapon {
    */
   getSellGain() {
     if (this.weaponType === WeaponType.ROCKET) {
-      return GameConfig.ROCKET_SELL_GAIN;
+      return RocketTowerConfig.SELL_GAIN;
     } else if (this.weaponType === WeaponType.LASER) {
-      return GameConfig.LASER_SELL_GAIN;
+      return LaserTowerConfig.SELL_GAIN;
     }
     
     return 0;

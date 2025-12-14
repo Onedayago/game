@@ -4,6 +4,7 @@
  */
 
 import { GameConfig } from './config/GameConfig';
+import { EconomyConfig } from './config/EconomyConfig';
 import { GameContext } from './core/GameContext';
 import { GameInitializer } from './core/GameInitializer';
 import { GameInputHandler } from './core/GameInputHandler';
@@ -23,6 +24,7 @@ export default class GameMain {
     this.enemyManager = null;
     this.goldManager = null;
     this.particleManager = null;
+    this.obstacleManager = null;
     this.soundManager = null;
     
     // UI
@@ -61,6 +63,7 @@ export default class GameMain {
     this.enemyManager = managers.enemyManager;
     this.goldManager = managers.goldManager;
     this.particleManager = managers.particleManager;
+    this.obstacleManager = managers.obstacleManager;
     this.soundManager = managers.soundManager;
     
     // 初始化 UI
@@ -77,8 +80,9 @@ export default class GameMain {
     this.battlefieldMinimap = uiComponents.battlefieldMinimap;
     
     // 设置战场小视图点击回调
-    this.battlefieldMinimap.setOnClick((targetWorldOffsetX) => {
+    this.battlefieldMinimap.setOnClick((targetWorldOffsetX, targetWorldOffsetY) => {
       this.gameContext.worldOffsetX = targetWorldOffsetX;
+      this.gameContext.worldOffsetY = targetWorldOffsetY || 0;
     });
     
     // 创建游戏渲染器
@@ -130,8 +134,8 @@ export default class GameMain {
     
     // 重置金币管理器
     if (this.goldManager) {
-      this.goldManager.init(GameConfig.INITIAL_GOLD);
-      this.gameContext.gold = GameConfig.INITIAL_GOLD;
+      this.goldManager.init(EconomyConfig.INITIAL_GOLD);
+      this.gameContext.gold = EconomyConfig.INITIAL_GOLD;
     }
     
     // 清空武器和敌人
@@ -140,6 +144,11 @@ export default class GameMain {
     }
     if (this.enemyManager) {
       this.enemyManager.reset();
+    }
+    
+    // 重置障碍物管理器（重新生成障碍物）
+    if (this.obstacleManager) {
+      this.obstacleManager.reset();
     }
     
     // 播放背景音乐
@@ -209,6 +218,11 @@ export default class GameMain {
       this.enemyManager.reset();
     }
     
+    // 重置障碍物管理器（重新生成障碍物）
+    if (this.obstacleManager) {
+      this.obstacleManager.reset();
+    }
+    
     // 清空武器
     if (this.weaponManager) {
       this.weaponManager.weapons = [];
@@ -217,8 +231,8 @@ export default class GameMain {
     
     // 重置金币管理器
     if (this.goldManager) {
-      this.goldManager.init(GameConfig.INITIAL_GOLD);
-      this.gameContext.gold = GameConfig.INITIAL_GOLD;
+      this.goldManager.init(EconomyConfig.INITIAL_GOLD);
+      this.gameContext.gold = EconomyConfig.INITIAL_GOLD;
     }
     
     // 清空粒子
@@ -332,6 +346,7 @@ export default class GameMain {
         weaponManager: this.weaponManager,
         enemyManager: this.enemyManager,
         particleManager: this.particleManager,
+        obstacleManager: this.obstacleManager,
         weaponContainerUI: this.weaponContainerUI,
         startScreen: this.startScreen,
         helpScreen: this.helpScreen,

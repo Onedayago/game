@@ -35,7 +35,9 @@ export class BattlefieldMinimap {
     // 拖拽相关
     this.isDragging = false;
     this.dragStartX = 0;
+    this.dragStartY = 0;
     this.worldStartX = 0;
+    this.worldStartY = 0;
   }
   
   /**
@@ -227,8 +229,10 @@ export class BattlefieldMinimap {
     // 开始拖拽
     this.isDragging = true;
     this.dragStartX = x;
+    this.dragStartY = y;
     const gameContext = GameContext.getInstance();
     this.worldStartX = gameContext ? gameContext.worldOffsetX : 0;
+    this.worldStartY = gameContext ? gameContext.worldOffsetY : 0;
     
     return true;
   }
@@ -243,24 +247,35 @@ export class BattlefieldMinimap {
     if (!touch) return false;
     
     const x = touch.x || touch.clientX || e.x || 0;
+    const y = touch.y || touch.clientY || e.y || 0;
     const dx = x - this.dragStartX;
+    const dy = y - this.dragStartY;
     
     // 计算缩放比例
     const scaleX = this.width / GameConfig.BATTLE_WIDTH;
+    const scaleY = this.height / GameConfig.BATTLE_HEIGHT;
     
     // 将拖拽距离转换为战场偏移
     // 在小地图上向右拖拽（dx > 0），应该显示更多右侧内容，所以 worldOffsetX 应该增加
     const deltaBattleX = dx / scaleX;
     const targetWorldOffsetX = this.worldStartX + deltaBattleX;
     
+    // 在小地图上向下拖拽（dy > 0），应该显示更多下方内容，所以 worldOffsetY 应该增加
+    const deltaBattleY = dy / scaleY;
+    const targetWorldOffsetY = this.worldStartY + deltaBattleY;
+    
     // 限制在有效范围内
     const { minX, maxX } = this.calculatePanBounds();
     const clampedOffsetX = Math.max(minX, Math.min(maxX, targetWorldOffsetX));
+    
+    const { minY, maxY } = this.calculatePanBoundsY();
+    const clampedOffsetY = Math.max(minY, Math.min(maxY, targetWorldOffsetY));
     
     // 更新世界偏移
     const gameContext = GameContext.getInstance();
     if (gameContext) {
       gameContext.worldOffsetX = clampedOffsetX;
+      gameContext.worldOffsetY = clampedOffsetY;
     }
     
     return true;
@@ -278,12 +293,21 @@ export class BattlefieldMinimap {
   }
   
   /**
-   * 计算拖动边界（与 GameInputHandler 中的逻辑一致）
+   * 计算拖动边界（X方向，与 GameInputHandler 中的逻辑一致）
    */
   calculatePanBounds() {
     const minX = 0;
     const maxX = Math.max(0, GameConfig.BATTLE_WIDTH - GameConfig.DESIGN_WIDTH);
     return { minX, maxX };
+  }
+  
+  /**
+   * 计算拖动边界（Y方向，与 GameInputHandler 中的逻辑一致）
+   */
+  calculatePanBoundsY() {
+    const minY = 0;
+    const maxY = Math.max(0, GameConfig.BATTLE_HEIGHT - GameConfig.DESIGN_HEIGHT);
+    return { minY, maxY };
   }
   
   /**
@@ -303,7 +327,7 @@ export class BattlefieldMinimap {
     
     // 计算缩放比例（用于动态部分）
     const scaleX = this.width / GameConfig.BATTLE_WIDTH;
-    const scaleY = this.height / (GameConfig.BATTLE_ROWS * GameConfig.CELL_SIZE);
+    const scaleY = this.height / GameConfig.BATTLE_HEIGHT;
     
     // 绘制武器（动态部分）
     if (this.weaponManager) {
@@ -358,12 +382,13 @@ export class BattlefieldMinimap {
     
     // 绘制当前可见区域的指示器（美化版）
     const worldOffsetX = gameContext.worldOffsetX;
+    const worldOffsetY = gameContext.worldOffsetY;
     
     // 计算可见区域在小视图中的位置
     const visibleStartX = this.x + worldOffsetX * scaleX;
     const visibleEndX = this.x + (worldOffsetX + GameConfig.DESIGN_WIDTH) * scaleX;
-    const visibleStartY = this.y;
-    const visibleEndY = this.y + this.height;
+    const visibleStartY = this.y + worldOffsetY * scaleY;
+    const visibleEndY = this.y + (worldOffsetY + GameConfig.DESIGN_HEIGHT) * scaleY;
     const visibleWidth = visibleEndX - visibleStartX;
     const visibleHeight = visibleEndY - visibleStartY;
     

@@ -15,6 +15,14 @@ export class WeaponManager {
     this.ctx = ctx;
     this.weapons = [];
     this.selectedWeapon = null;
+    this.obstacleManager = null; // 障碍物管理器引用
+  }
+  
+  /**
+   * 设置障碍物管理器
+   */
+  setObstacleManager(obstacleManager) {
+    this.obstacleManager = obstacleManager;
   }
   
   /**
@@ -25,10 +33,15 @@ export class WeaponManager {
     const col = Math.floor(x / GameConfig.CELL_SIZE);
     const row = Math.floor(y / GameConfig.CELL_SIZE);
     
-    // 检查是否在战斗区域内
+    // 检查是否在战斗区域内（排除底部UI区域）
     if (row < GameConfig.BATTLE_START_ROW || 
-        row >= GameConfig.BATTLE_START_ROW + GameConfig.BATTLE_ROWS) {
+        row >= GameConfig.BATTLE_END_ROW) {
       return false;
+    }
+    
+    // 检查格子是否有障碍物
+    if (this.obstacleManager && this.obstacleManager.hasObstacle(col, row)) {
+      return false; // 格子有障碍物，不能放置武器
     }
     
     // 检查格子是否已被占用

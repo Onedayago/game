@@ -144,7 +144,7 @@ export class ParticleManager {
   /**
    * 创建爆炸粒子（使用固定颜色）
    */
-  createExplosion(x, y, color, count = GameConfig.PARTICLE_EXPLOSION_COUNT) {
+  createExplosion(x, y, color, count = ParticleConfig.PARTICLE_EXPLOSION_COUNT) {
     // 如果粒子数量过多，减少创建数量
     const availableSlots = this.maxParticles - this.particles.length;
     if (availableSlots <= 0) return; // 没有空间创建新粒子

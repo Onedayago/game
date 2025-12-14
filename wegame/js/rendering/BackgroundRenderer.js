@@ -26,7 +26,7 @@ export class BackgroundRenderer {
     
     try {
       const width = GameConfig.BATTLE_WIDTH;
-      const height = GameConfig.DESIGN_HEIGHT;
+      const height = GameConfig.BATTLE_HEIGHT;
       
       if (typeof wx !== 'undefined') {
         this._cachedCanvas = wx.createCanvas();
@@ -65,12 +65,12 @@ export class BackgroundRenderer {
       const px = x * GameConfig.CELL_SIZE;
       ctx.beginPath();
       ctx.moveTo(px, 0);
-      ctx.lineTo(px, GameConfig.DESIGN_HEIGHT);
+      ctx.lineTo(px, GameConfig.BATTLE_HEIGHT);
       ctx.stroke();
     }
     
-    // 绘制水平线（直接使用 Canvas 坐标系，Y 轴从上往下）
-    for (let row = 0; row <= GameConfig.TOTAL_ROWS; row++) {
+    // 绘制水平线（直接使用 Canvas 坐标系，Y 轴从上往下，只绘制到战斗区域结束，不包括UI区域）
+    for (let row = GameConfig.BATTLE_START_ROW; row <= GameConfig.BATTLE_END_ROW; row++) {
       const y = row * GameConfig.CELL_SIZE;
       ctx.beginPath();
       ctx.moveTo(0, y);
@@ -125,12 +125,12 @@ export class BackgroundRenderer {
       const px = x * GameConfig.CELL_SIZE + offsetX;
       this.ctx.beginPath();
       this.ctx.moveTo(px, 0 + offsetY);
-      this.ctx.lineTo(px, GameConfig.DESIGN_HEIGHT + offsetY);
+      this.ctx.lineTo(px, GameConfig.BATTLE_HEIGHT + offsetY);
       this.ctx.stroke();
     }
     
-    // 绘制水平线（应用战场偏移）
-    for (let row = 0; row <= GameConfig.TOTAL_ROWS; row++) {
+    // 绘制水平线（应用战场偏移，只绘制到战斗区域结束，不包括UI区域）
+    for (let row = GameConfig.BATTLE_START_ROW; row <= GameConfig.BATTLE_END_ROW; row++) {
       const y = row * GameConfig.CELL_SIZE + offsetY;
       this.ctx.beginPath();
       this.ctx.moveTo(0 + offsetX, y);

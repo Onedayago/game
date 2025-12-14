@@ -3,6 +3,9 @@
  */
 
 import { GameConfig } from '../config/GameConfig';
+import { EnemyConfig } from '../config/EnemyConfig';
+import { EnemyTankConfig } from '../config/enemies/EnemyTankConfig';
+import { ParticleConfig } from '../config/ParticleConfig';
 import { EnemyRenderer } from '../rendering/EnemyRenderer';
 import { WeaponRenderer } from '../rendering/WeaponRenderer';
 import { GameContext } from '../core/GameContext';
@@ -18,12 +21,13 @@ export class Enemy {
     this.gridX = 0;
     this.gridY = 0;
     
-    this.maxHp = GameConfig.ENEMY_MAX_HP;
+    // 使用默认值（具体敌人类型会在子类中覆盖）
+    this.maxHp = EnemyTankConfig.MAX_HP;
     this.hp = this.maxHp;
-    this.moveSpeed = GameConfig.ENEMY_MOVE_SPEED;
-    this.attackRange = GameConfig.ENEMY_ATTACK_RANGE;
-    this.fireInterval = GameConfig.ENEMY_FIRE_INTERVAL;
-    this.damage = GameConfig.ENEMY_BULLET_DAMAGE;
+    this.moveSpeed = EnemyTankConfig.MOVE_SPEED;
+    this.attackRange = EnemyTankConfig.ATTACK_RANGE;
+    this.fireInterval = EnemyTankConfig.FIRE_INTERVAL;
+    this.damage = 0;
     
     this.timeSinceLastFire = 0;
     this.currentTarget = null;
@@ -37,14 +41,14 @@ export class Enemy {
     this.finished = false;
     
     // 敌人尺寸
-    this.size = GameConfig.ENEMY_SIZE;
+    this.size = EnemyTankConfig.SIZE;
   }
   
   /**
    * 设置血量加成
    */
   setHpBonus(bonus) {
-    this.maxHp = GameConfig.ENEMY_MAX_HP + bonus;
+    this.maxHp = EnemyTankConfig.MAX_HP + bonus;
     this.hp = this.maxHp;
   }
   
@@ -134,7 +138,12 @@ export class Enemy {
     // 只有在没有攻击目标时才移动
     if (!this.currentTarget || this.targetLostTime > this.TARGET_LOCK_DURATION) {
       this.angle = 0; // 恢复默认朝向
-      EnemyMovement.moveInGrid(this, deltaTime);
+      // 获取所有敌人列表用于碰撞检测
+      const gameContext = GameContext.getInstance();
+      const allEnemies = gameContext.enemies || [];
+      // 获取障碍物管理器（从 GameContext 或通过其他方式）
+      const obstacleManager = gameContext.obstacleManager || null;
+      EnemyMovement.moveInGrid(this, deltaTime, allEnemies, obstacleManager);
     }
     
     // 检查是否到达终点
@@ -171,26 +180,29 @@ export class Enemy {
   takeDamage(damage) {
     this.hp -= damage;
     
-    // 创建击中粒子效果
-    const gameContext = GameContext.getInstance();
-    if (gameContext.particleManager) {
-      gameContext.particleManager.createHitSpark(
-        this.x,
-        this.y,
-        GameColors.ENEMY_DETAIL
-      );
-    }
-    
+    // 确保 hp 不会变成负数，并处理浮点数精度问题
     if (this.hp <= 0) {
+      this.hp = 0;
       this.destroyed = true;
       
       // 创建死亡爆炸效果
+      const gameContext = GameContext.getInstance();
       if (gameContext.particleManager) {
         gameContext.particleManager.createExplosion(
           this.x,
           this.y,
           GameColors.ENEMY_TANK,
-          GameConfig.PARTICLE_EXPLOSION_COUNT
+          ParticleConfig.PARTICLE_EXPLOSION_COUNT
+        );
+      }
+    } else {
+      // 创建击中粒子效果（只在未死亡时）
+      const gameContext = GameContext.getInstance();
+      if (gameContext.particleManager) {
+        gameContext.particleManager.createHitSpark(
+          this.x,
+          this.y,
+          GameColors.ENEMY_DETAIL
         );
       }
     }

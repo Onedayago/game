@@ -4,16 +4,18 @@
 
 import { Weapon } from './Weapon';
 import { WeaponType } from '../config/WeaponConfig';
-import { GameConfig } from '../config/GameConfig';
+import { WeaponStatsConfig } from '../config/WeaponStatsConfig';
+import { RocketTowerConfig } from '../config/weapons/RocketTowerConfig';
+import { HomingRocketConfig } from '../config/weapons/HomingRocketConfig';
 import { HomingRocket } from '../projectiles/HomingRocket';
 
 export class RocketTower extends Weapon {
   constructor(ctx, x, y) {
     super(ctx, x, y, WeaponType.ROCKET);
     
-    this.fireInterval = GameConfig.ROCKET_FIRE_INTERVAL;
-    this.attackRange = 5;
-    this.damage = GameConfig.BULLET_DAMAGE * GameConfig.ROCKET_DAMAGE_MULTIPLIER;
+    this.fireInterval = RocketTowerConfig.FIRE_INTERVAL;
+    this.attackRange = RocketTowerConfig.ATTACK_RANGE;
+    this.damage = WeaponStatsConfig.BULLET_BASE_DAMAGE * RocketTowerConfig.DAMAGE_MULTIPLIER;
     
     this.rockets = [];
     
@@ -22,7 +24,7 @@ export class RocketTower extends Weapon {
     
     // 初始化火箭渲染缓存
     if (!HomingRocket._initialized) {
-      HomingRocket.initCache(GameConfig.BULLET_RADIUS);
+      HomingRocket.initCache(HomingRocketConfig.RADIUS);
     }
   }
   
@@ -31,14 +33,14 @@ export class RocketTower extends Weapon {
    */
   applyLevelStats() {
     if (this.level === 1) {
-      this.fireInterval = GameConfig.ROCKET_FIRE_INTERVAL * 1.2;
-      this.damage = GameConfig.BULLET_DAMAGE * 2;
+      this.fireInterval = RocketTowerConfig.FIRE_INTERVAL * RocketTowerConfig.LEVEL_1_FIRE_INTERVAL_MULTIPLIER;
+      this.damage = WeaponStatsConfig.BULLET_BASE_DAMAGE * RocketTowerConfig.LEVEL_1_DAMAGE_MULTIPLIER;
     } else if (this.level === 2) {
-      this.fireInterval = GameConfig.ROCKET_FIRE_INTERVAL * 1.0;
-      this.damage = GameConfig.BULLET_DAMAGE * 2.5;
+      this.fireInterval = RocketTowerConfig.FIRE_INTERVAL * RocketTowerConfig.LEVEL_2_FIRE_INTERVAL_MULTIPLIER;
+      this.damage = WeaponStatsConfig.BULLET_BASE_DAMAGE * RocketTowerConfig.LEVEL_2_DAMAGE_MULTIPLIER;
     } else if (this.level === 3) {
-      this.fireInterval = GameConfig.ROCKET_FIRE_INTERVAL * 0.8;
-      this.damage = GameConfig.BULLET_DAMAGE * 3;
+      this.fireInterval = RocketTowerConfig.FIRE_INTERVAL * RocketTowerConfig.LEVEL_3_FIRE_INTERVAL_MULTIPLIER;
+      this.damage = WeaponStatsConfig.BULLET_BASE_DAMAGE * RocketTowerConfig.LEVEL_3_DAMAGE_MULTIPLIER;
     }
   }
   

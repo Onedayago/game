@@ -123,7 +123,7 @@ export class GameInputHandler {
         // 武器的世界坐标：selectedWeapon.x, selectedWeapon.y
         // 武器的Canvas坐标：selectedWeapon.x + offsetX, selectedWeapon.y + offsetY
         const offsetX = -this.gameContext.worldOffsetX;
-        const offsetY = 0;
+        const offsetY = -this.gameContext.worldOffsetY;
         const weaponCanvasX = selectedWeapon.x + offsetX;
         const weaponCanvasY = selectedWeapon.y + offsetY;
         
@@ -174,10 +174,10 @@ export class GameInputHandler {
       
       // 检查是否点击了武器
       // 触摸坐标是 Canvas 坐标，需要转换为世界坐标
-      // 在 GameRenderer 中，使用 offsetX = -worldOffsetX 来平移画布
+      // 在 GameRenderer 中，使用 offsetX = -worldOffsetX, offsetY = -worldOffsetY 来平移画布
       // 所以当 worldOffsetX > 0 时，画布向左移动，世界坐标需要加上这个偏移
       const worldX = x + this.gameContext.worldOffsetX;
-      const worldY = y;
+      const worldY = y + this.gameContext.worldOffsetY;
       const weapon = weaponManager.findWeaponAt(worldX, worldY);
       
       if (weapon) {
@@ -200,6 +200,7 @@ export class GameInputHandler {
       this.panStartX = x;
       this.panStartY = y;
       this.worldStartX = this.gameContext.worldOffsetX;
+      this.worldStartY = this.gameContext.worldOffsetY;
       this.isPanning = false; // 初始不是拖拽，等 onTouchMove 确认
       console.log('GameInputHandler.onTouchStart: 准备战场拖拽', {
         x, y,
@@ -271,10 +272,17 @@ export class GameInputHandler {
         let nextX = this.worldStartX - (x - this.panStartX); // 反转 dx
         nextX = Math.max(minX, Math.min(maxX, nextX));
         
+        // 计算Y方向拖动
+        const { minY, maxY } = this.calculatePanBoundsY();
+        let nextY = this.worldStartY - (y - this.panStartY); // 反转 dy
+        nextY = Math.max(minY, Math.min(maxY, nextY));
+        
         this.gameContext.worldOffsetX = nextX;
+        this.gameContext.worldOffsetY = nextY;
         console.log('GameInputHandler.onTouchMove: 战场拖拽', {
-          x, dx, distance, nextX, minX, maxX,
+          x, y, dx, dy, distance, nextX, nextY, minX, maxX, minY, maxY,
           worldOffsetX: this.gameContext.worldOffsetX,
+          worldOffsetY: this.gameContext.worldOffsetY,
           isPanning: this.isPanning
         });
       }
@@ -329,10 +337,10 @@ export class GameInputHandler {
         // 如果没有记录，重新查找
         if (!weapon) {
           // 考虑战场偏移：触摸坐标是 Canvas 坐标，需要转换为世界坐标
-          // 在 GameRenderer 中，使用 offsetX = -worldOffsetX 来平移画布
+          // 在 GameRenderer 中，使用 offsetX = -worldOffsetX, offsetY = -worldOffsetY 来平移画布
           // 所以当 worldOffsetX > 0 时，画布向左移动，世界坐标需要加上这个偏移
           const worldX = x + this.gameContext.worldOffsetX;
-          const worldY = y;
+          const worldY = y + this.gameContext.worldOffsetY;
           weapon = weaponManager.findWeaponAt(worldX, worldY);
         }
         
@@ -461,15 +469,15 @@ export class GameInputHandler {
    */
   isInBattleArea(x, y) {
     // 微信小游戏的触摸坐标是相对于 Canvas 左上角的（Y 轴从上往下）
-    // 直接使用 Canvas 坐标系检查
+    // 直接使用 Canvas 坐标系检查（排除底部UI区域）
     const battleStartY = GameConfig.BATTLE_START_ROW * GameConfig.CELL_SIZE;
-    const battleEndY = (GameConfig.BATTLE_START_ROW + GameConfig.BATTLE_ROWS) * GameConfig.CELL_SIZE;
+    const battleEndY = GameConfig.BATTLE_END_ROW * GameConfig.CELL_SIZE;
     
-    return y >= battleStartY && y <= battleEndY;
+    return y >= battleStartY && y < battleEndY;
   }
   
   /**
-   * 计算拖动边界
+   * 计算拖动边界（X方向）
    */
   calculatePanBounds() {
     // 战场宽度是 BATTLE_WIDTH，设计宽度是 DESIGN_WIDTH
@@ -480,6 +488,20 @@ export class GameInputHandler {
     const maxX = Math.max(0, GameConfig.BATTLE_WIDTH - GameConfig.DESIGN_WIDTH); // 最大偏移
     
     return { minX, maxX };
+  }
+  
+  /**
+   * 计算拖动边界（Y方向）
+   */
+  calculatePanBoundsY() {
+    // 战场高度是 BATTLE_HEIGHT，设计高度是 DESIGN_HEIGHT
+    // worldOffsetY 的范围：0 到 (BATTLE_HEIGHT - DESIGN_HEIGHT)
+    // 0: 初始位置，战场上边界对齐画布上边界
+    // BATTLE_HEIGHT - DESIGN_HEIGHT: 战场下边界对齐画布下边界
+    const minY = 0; // 初始位置，不偏移
+    const maxY = Math.max(0, GameConfig.BATTLE_HEIGHT - GameConfig.DESIGN_HEIGHT); // 最大偏移
+    
+    return { minY, maxY };
   }
 }
 

@@ -2,7 +2,8 @@
  * 武器配置
  */
 
-import { GameConfig } from './GameConfig';
+import { RocketTowerConfig } from './weapons/RocketTowerConfig';
+import { LaserTowerConfig } from './weapons/LaserTowerConfig';
 
 /**
  * 武器类型定义
@@ -22,9 +23,9 @@ export class WeaponConfigs {
       name: '火箭塔',
       icon: '🚀',
       description: '追踪火箭\n高爆溅射伤害',
-      baseCost: GameConfig.ROCKET_BASE_COST,
-      upgradeCost: GameConfig.ROCKET_UPGRADE_COST,
-      sellGain: GameConfig.ROCKET_SELL_GAIN,
+      baseCost: RocketTowerConfig.BASE_COST,
+      upgradeCost: RocketTowerConfig.UPGRADE_COST,
+      sellGain: RocketTowerConfig.SELL_GAIN,
       colorHex: 0x9d00ff,
     }],
     [WeaponType.LASER, {
@@ -32,9 +33,9 @@ export class WeaponConfigs {
       name: '激光塔',
       icon: '⚡',
       description: '持续射线\n高射速攻击',
-      baseCost: GameConfig.LASER_BASE_COST,
-      upgradeCost: GameConfig.LASER_UPGRADE_COST,
-      sellGain: GameConfig.LASER_SELL_GAIN,
+      baseCost: LaserTowerConfig.BASE_COST,
+      upgradeCost: LaserTowerConfig.UPGRADE_COST,
+      sellGain: LaserTowerConfig.SELL_GAIN,
       colorHex: 0x00ff41,
     }],
   ]);

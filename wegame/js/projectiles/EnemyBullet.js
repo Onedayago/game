@@ -3,6 +3,7 @@
  */
 
 import { GameConfig } from '../config/GameConfig';
+import { EnemyBulletConfig } from '../config/enemies/EnemyBulletConfig';
 import { ColorUtils, GameColors } from '../config/Colors';
 import { GameContext } from '../core/GameContext';
 
@@ -19,8 +20,8 @@ export class EnemyBullet {
     this.y = y;
     this.angle = angle;
     this.damage = damage;
-    this.speed = GameConfig.ENEMY_BULLET_SPEED;
-    this.radius = GameConfig.ENEMY_BULLET_RADIUS;
+    this.speed = EnemyBulletConfig.SPEED;
+    this.radius = EnemyBulletConfig.RADIUS;
     this.destroyed = false;
     this.lifetime = 3000; // 3秒
     this.age = 0;

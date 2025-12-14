@@ -4,6 +4,8 @@
  */
 
 import { GameConfig } from '../config/GameConfig';
+import { EconomyConfig } from '../config/EconomyConfig';
+import { EnemyTankConfig } from '../config/enemies/EnemyTankConfig';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 import { WeaponRenderer } from '../rendering/WeaponRenderer';
 import { WeaponManager } from '../managers/WeaponManager';
@@ -16,6 +18,7 @@ import { StartScreen } from '../ui/StartScreen';
 import { HelpScreen } from '../ui/HelpScreen';
 import { WeaponContainerUI } from '../ui/WeaponContainerUI';
 import { BattlefieldMinimap } from '../ui/BattlefieldMinimap';
+import { ObstacleManager } from '../managers/ObstacleManager';
 import { initCanvasUtils } from '../utils/CanvasUtils';
 import { GameRenderer } from './GameRenderer';
 import { UIRenderer } from '../ui/UIRenderer';
@@ -74,14 +77,14 @@ export class GameInitializer {
     BackgroundRenderer.initCache();
     
     // 初始化血条缓存（使用最大可能的实体尺寸）
-    const maxEntitySize = Math.max(GameConfig.ENEMY_SIZE, GameConfig.CELL_SIZE * 0.8);
+    const maxEntitySize = Math.max(EnemyTankConfig.SIZE, GameConfig.CELL_SIZE * 0.8);
     WeaponRenderer.initHealthBarCache(maxEntitySize);
     
     // 金币管理器
     const goldManager = new GoldManager();
-    goldManager.init(GameConfig.INITIAL_GOLD);
+    goldManager.init(EconomyConfig.INITIAL_GOLD);
     // 同步到游戏上下文
-    gameContext.gold = GameConfig.INITIAL_GOLD;
+    gameContext.gold = EconomyConfig.INITIAL_GOLD;
     
     // 武器管理器
     const weaponManager = new WeaponManager(ctx);
@@ -100,8 +103,15 @@ export class GameInitializer {
     // 初始化激光束缓存
     LaserBeam.initCache();
     
+    // 障碍物管理器
+    const obstacleManager = new ObstacleManager(ctx);
+    obstacleManager.init(); // 初始化障碍物
+    
     // 初始化UI缓存
     UIRenderer.initCaches();
+    
+    // 初始化金币管理器缓存
+    GoldManager.initCache();
     
     // 音效管理器
     const soundManager = new SoundManager();
@@ -109,6 +119,11 @@ export class GameInitializer {
     
     // 更新游戏上下文
     gameContext.weaponManager = weaponManager;
+    gameContext.obstacleManager = obstacleManager; // 保存障碍物管理器引用
+    
+    // 设置障碍物管理器引用
+    weaponManager.setObstacleManager(obstacleManager);
+    enemyManager.setObstacleManager(obstacleManager);
     
     return {
       backgroundRenderer,
@@ -116,6 +131,7 @@ export class GameInitializer {
       enemyManager,
       goldManager,
       particleManager,
+      obstacleManager,
       soundManager
     };
   }

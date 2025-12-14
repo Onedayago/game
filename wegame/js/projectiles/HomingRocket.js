@@ -3,6 +3,10 @@
  */
 
 import { GameConfig } from '../config/GameConfig';
+import { WeaponStatsConfig } from '../config/WeaponStatsConfig';
+import { HomingRocketConfig } from '../config/weapons/HomingRocketConfig';
+import { EnemyTankConfig } from '../config/enemies/EnemyTankConfig';
+import { ParticleConfig } from '../config/ParticleConfig';
 import { ColorUtils, GameColors } from '../config/Colors';
 import { GameContext } from '../core/GameContext';
 
@@ -19,15 +23,15 @@ export class HomingRocket {
     this.y = y;
     this.target = target;
     this.damage = damage;
-    this.speed = GameConfig.BULLET_SPEED * 1.5;
-    this.radius = GameConfig.BULLET_RADIUS;
+    this.speed = WeaponStatsConfig.BULLET_BASE_SPEED * HomingRocketConfig.SPEED_MULTIPLIER;
+    this.radius = HomingRocketConfig.RADIUS;
     this.destroyed = false;
-    this.lifetime = 5000; // 5秒
+    this.lifetime = HomingRocketConfig.MAX_LIFETIME;
     this.age = 0;
     
     // 追踪相关属性
     this.angle = 0; // 当前飞行角度（弧度）
-    this.turnRate = Math.PI * 2; // 转向速度（弧度/秒），每秒可以转一圈
+    this.turnRate = HomingRocketConfig.TURN_RATE;
     this.velocityX = 0; // 当前速度X分量
     this.velocityY = 0; // 当前速度Y分量
     
@@ -146,7 +150,7 @@ export class HomingRocket {
     const dist = Math.sqrt(dx * dx + dy * dy);
     
     // 如果到达目标，造成伤害
-    const targetSize = this.target.size || GameConfig.ENEMY_SIZE || 20;
+    const targetSize = this.target.size || EnemyTankConfig.SIZE || 20;
     if (dist < this.radius + targetSize / 2) {
       this.target.takeDamage(this.damage);
       this.destroyed = true;
@@ -158,7 +162,7 @@ export class HomingRocket {
           this.x,
           this.y,
           GameColors.ROCKET_BULLET,
-          GameConfig.PARTICLE_EXPLOSION_COUNT
+          ParticleConfig.PARTICLE_EXPLOSION_COUNT
         );
       }
       

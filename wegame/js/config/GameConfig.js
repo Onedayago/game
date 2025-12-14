@@ -75,8 +75,8 @@ export class GameConfig {
     return this.DESIGN_HEIGHT / this.TOTAL_ROWS;
   }
   
-  /** 底部非战斗区域行数（Canvas 坐标系中，底部两行不是战斗区域） */
-  static BOTTOM_NON_BATTLE_ROWS = 2;
+  /** 底部UI区域行数（不能放置敌人和武器，用于放置武器卡片等UI元素） */
+  static BATTLE_BOTTOM_UI_ROWS = 2;
   
   /**
    * 获取战斗区域起始行
@@ -88,14 +88,33 @@ export class GameConfig {
   
   /**
    * 获取战斗区域行数
-   * 总行数减去底部非战斗区域行数
+   * 总行数减去底部UI区域行数，然后乘以高度倍数
    */
   static get BATTLE_ROWS() {
-    return this.TOTAL_ROWS - this.BOTTOM_NON_BATTLE_ROWS;
+    return (this.TOTAL_ROWS - this.BATTLE_BOTTOM_UI_ROWS) * this.BATTLE_HEIGHT_MULTIPLIER;
+  }
+  
+  /**
+   * 获取战斗区域结束行（不包括底部UI区域）
+   * 战斗区域从 BATTLE_START_ROW 开始，到 BATTLE_END_ROW 结束（不包括）
+   * 底部 BATTLE_BOTTOM_UI_ROWS 行用于UI，不能放置敌人和武器
+   */
+  static get BATTLE_END_ROW() {
+    return this.BATTLE_START_ROW + this.BATTLE_ROWS - this.BATTLE_BOTTOM_UI_ROWS;
   }
   
   /** 战斗区域宽度倍数 */
   static BATTLE_WIDTH_MULTIPLIER = 2;
+  
+  /** 战斗区域高度倍数 */
+  static BATTLE_HEIGHT_MULTIPLIER = 4;
+  
+  /**
+   * 获取战斗区域实际高度
+   */
+  static get BATTLE_HEIGHT() {
+    return this.BATTLE_ROWS * this.CELL_SIZE;
+  }
   
   /**
    * 获取战斗区域实际宽度
@@ -111,140 +130,12 @@ export class GameConfig {
     return Math.floor(this.BATTLE_WIDTH / this.CELL_SIZE);
   }
   
-  // ==================== 经济系统 ====================
-  /** 初始金币数量 */
-  static INITIAL_GOLD = 1000;
-  /** 击杀敌人奖励金币 */
-  static ENEMY_KILL_REWARD = 20;
-  
-  // ==================== 武器基础配置 ====================
-  /** 武器最大生命值 */
-  static WEAPON_MAX_HP = 5;
-  /** 武器最大等级 */
-  static WEAPON_MAX_LEVEL = 3;
-  
-  // ==================== 火箭塔配置 ====================
-  /** 火箭塔购买成本 */
-  static ROCKET_BASE_COST = 120;
-  /** 火箭塔升级成本 */
-  static ROCKET_UPGRADE_COST = 70;
-  /** 火箭塔出售收益 */
-  static ROCKET_SELL_GAIN = 60;
-  /** 火箭塔开火间隔（毫秒） */
-  static ROCKET_FIRE_INTERVAL = 600;
-  /** 火箭塔伤害倍数 */
-  static ROCKET_DAMAGE_MULTIPLIER = 2;
-  
-  // ==================== 激光塔配置 ====================
-  /** 激光塔购买成本 */
-  static LASER_BASE_COST = 100;
-  /** 激光塔升级成本 */
-  static LASER_UPGRADE_COST = 60;
-  /** 激光塔出售收益 */
-  static LASER_SELL_GAIN = 50;
-  /** 激光塔开火间隔（毫秒） */
-  static LASER_FIRE_INTERVAL = 400;
-  /** 激光塔伤害值 */
-  static LASER_DAMAGE = 1;
-  /** 激光光束持续时间（毫秒） */
-  static LASER_BEAM_DURATION = 150;
-  /** 激光塔攻击范围（格子数） */
-  static LASER_ATTACK_RANGE = 4;
-  
-  // ==================== 武器子弹配置 ====================
-  /** 武器子弹速度（像素/秒） */
-  static BULLET_SPEED = 200;
-  /** 武器子弹半径（像素） */
-  static BULLET_RADIUS = 8.8;
-  /** 武器子弹伤害值 */
-  static BULLET_DAMAGE = 1;
-  
-  // ==================== 敌人基础配置 ====================
-  /**
-   * 获取敌人尺寸
-   */
-  static get ENEMY_SIZE() {
-    return this.CELL_SIZE * 0.55;
-  }
-  /** 敌人移动速度（像素/秒） */
-  static ENEMY_MOVE_SPEED = 50;
-  /** 敌人初始生命值 */
-  static ENEMY_MAX_HP = 10;
-  /** 敌人攻击范围（格子数） */
-  static ENEMY_ATTACK_RANGE = 3;
-  /** 敌人开火间隔（毫秒） */
-  static ENEMY_FIRE_INTERVAL = 1000;
-  /** 敌人子弹速度（像素/秒） */
-  static ENEMY_BULLET_SPEED = 160;
-  /** 敌人子弹伤害值 */
-  static ENEMY_BULLET_DAMAGE = 0;
-  /**
-   * 获取敌人子弹半径
-   */
-  static get ENEMY_BULLET_RADIUS() {
-    return this.CELL_SIZE * 0.08;
-  }
-  
-  // ==================== 敌人生成配置 ====================
-  /** 基础刷怪间隔（毫秒） */
-  static ENEMY_SPAWN_INTERVAL = 2000;
-  /** 最小刷怪间隔（毫秒） */
-  static ENEMY_MIN_SPAWN_INTERVAL = 800;
-  
-  // ==================== 声波坦克配置 ====================
-  /** 声波坦克生命值 */
-  static SONIC_TANK_HP = 15;
-  /** 声波坦克攻击范围（格子数） */
-  static SONIC_TANK_ATTACK_RANGE = 6;
-  /** 声波坦克开火间隔（毫秒） */
-  static SONIC_TANK_FIRE_INTERVAL = 2500;
-  /** 声波伤害值 */
-  static SONIC_WAVE_DAMAGE = 2;
-  
-  // ==================== 波次系统 ====================
-  /** 每波持续时间（毫秒） */
-  static WAVE_DURATION = 15000;
-  /** 每波增加的血量 */
-  static HP_BONUS_PER_WAVE = 2;
-  /** 每波生成间隔递减率 */
-  static SPAWN_INTERVAL_REDUCTION = 0.92;
-  
-  // ==================== 动画效果配置 ====================
-  /** 升级闪烁持续时间（毫秒） */
-  static UPGRADE_FLASH_DURATION = 260;
-  /** 受击闪烁持续时间（毫秒） */
-  static HIT_FLASH_DURATION = 120;
-  
-  // ==================== UI 血量条配置 ====================
-  /** 血量条宽度相对于实体大小的比例 */
-  static HP_BAR_WIDTH_RATIO = 0.9;
-  /** 血量条高度（像素） */
-  static HP_BAR_HEIGHT = 6;
-  /** 血量条Y轴偏移相对于实体大小的比例 */
-  static HP_BAR_OFFSET_Y_RATIO = 0.4;
-  /** 血量条危险阈值 */
-  static HP_BAR_CRITICAL_THRESHOLD = 0.3;
-  /** 血量条警告阈值 */
-  static HP_BAR_WARNING_THRESHOLD = 0.6;
-  
-  // ==================== 粒子效果配置 ====================
-  /** 爆炸粒子数量 */
-  static PARTICLE_EXPLOSION_COUNT = 8;
-  /** 枪口闪光粒子数量 */
-  static PARTICLE_MUZZLE_FLASH_COUNT = 6;
-  
   // ==================== 边界和容差 ====================
   /**
    * 获取抛射物边界检查容差
    */
   static get PROJECTILE_BOUNDS_MARGIN() {
     return this.CELL_SIZE * 1.25;
-  }
-  /**
-   * 获取敌人子弹最小半径
-   */
-  static get ENEMY_BULLET_MIN_RADIUS() {
-    return this.CELL_SIZE * 0.04;
   }
 }
 

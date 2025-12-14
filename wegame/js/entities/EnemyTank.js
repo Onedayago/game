@@ -5,25 +5,26 @@
 import { Enemy } from './Enemy';
 import { EnemyRenderer } from '../rendering/EnemyRenderer';
 import { WeaponRenderer } from '../rendering/WeaponRenderer';
-import { GameConfig } from '../config/GameConfig';
+import { EnemyTankConfig } from '../config/enemies/EnemyTankConfig';
+import { EnemyBulletConfig } from '../config/enemies/EnemyBulletConfig';
 import { EnemyBullet } from '../projectiles/EnemyBullet';
 
 export class EnemyTank extends Enemy {
   constructor(ctx, x, y) {
     super(ctx, x, y);
     
-    this.maxHp = GameConfig.ENEMY_MAX_HP;
+    this.maxHp = EnemyTankConfig.MAX_HP;
     this.hp = this.maxHp;
-    this.moveSpeed = GameConfig.ENEMY_MOVE_SPEED;
-    this.attackRange = GameConfig.ENEMY_ATTACK_RANGE;
-    this.fireInterval = GameConfig.ENEMY_FIRE_INTERVAL;
-    this.damage = GameConfig.ENEMY_BULLET_DAMAGE;
+    this.moveSpeed = EnemyTankConfig.MOVE_SPEED;
+    this.attackRange = EnemyTankConfig.ATTACK_RANGE;
+    this.fireInterval = EnemyTankConfig.FIRE_INTERVAL;
+    this.damage = EnemyBulletConfig.DAMAGE;
     
     this.bullets = [];
     
     // 初始化子弹渲染缓存
     if (!EnemyBullet._initialized) {
-      EnemyBullet.initCache(GameConfig.ENEMY_BULLET_RADIUS);
+      EnemyBullet.initCache(EnemyBulletConfig.RADIUS);
     }
   }
   

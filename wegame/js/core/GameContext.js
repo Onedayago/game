@@ -22,6 +22,7 @@ export class GameContext {
   particleManager = null;
   weaponManager = null;
   weaponContainerUI = null;
+  obstacleManager = null; // 障碍物管理器引用
   
   // 敌人和武器数组
   enemies = [];

@@ -25,7 +25,8 @@ export class GameRenderer {
       particleManager,
       weaponContainerUI,
       startScreen,
-      goldManager
+      goldManager,
+      obstacleManager
     } = managers;
     
     
@@ -43,7 +44,7 @@ export class GameRenderer {
     // 应用战场偏移（拖拽）- 不使用 translate，手动计算坐标
     const gameContext = this.gameContext;
     const offsetX = -gameContext.worldOffsetX;
-    const offsetY = 0;
+    const offsetY = -gameContext.worldOffsetY;
     
     // 渲染背景（应用战场偏移，不使用 translate）
     if (backgroundRenderer) {
@@ -53,8 +54,13 @@ export class GameRenderer {
     // 计算视锥范围（考虑战场偏移）
     const viewLeft = -offsetX;
     const viewRight = viewLeft + windowWidth;
-    const viewTop = 0;
-    const viewBottom = windowHeight;
+    const viewTop = -offsetY;
+    const viewBottom = viewTop + windowHeight;
+    
+    // 渲染障碍物（在背景之后，武器和敌人之前）
+    if (obstacleManager) {
+      obstacleManager.render(viewLeft, viewRight, viewTop, viewBottom, offsetX, offsetY);
+    }
     
     // 更新和渲染武器（需要传入敌人列表用于寻找目标）
     // 注意：武器和敌人的坐标需要加上 offsetX 来应用战场偏移
@@ -85,18 +91,18 @@ export class GameRenderer {
       const dragX = weaponContainerUI.dragX;
       const dragY = weaponContainerUI.dragY;
       const battleStartY = GameConfig.BATTLE_START_ROW * GameConfig.CELL_SIZE;
-      const battleEndY = (GameConfig.BATTLE_START_ROW + GameConfig.BATTLE_ROWS) * GameConfig.CELL_SIZE;
+      const battleEndY = GameConfig.BATTLE_END_ROW * GameConfig.CELL_SIZE;
       
-      if (dragY >= battleStartY && dragY <= battleEndY) {
+      if (dragY >= battleStartY && dragY < battleEndY) {
         // 在战斗区域内，显示预览（需要转换坐标）
         const worldX = dragX + gameContext.worldOffsetX;
-        const worldY = dragY;
+        const worldY = dragY + gameContext.worldOffsetY;
         const col = Math.floor(worldX / GameConfig.CELL_SIZE);
         const row = Math.floor(worldY / GameConfig.CELL_SIZE);
-        const previewX = col * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2 + offsetX;
-        const previewY = row * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2 + offsetY;
+        const previewWorldX = col * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
+        const previewWorldY = row * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
         
-        WeaponDragPreview.renderPreviewAt(this.ctx, previewX, previewY, weaponContainerUI.dragType, weaponManager);
+        WeaponDragPreview.renderPreviewAt(this.ctx, previewWorldX, previewWorldY, weaponContainerUI.dragType, weaponManager, managers.obstacleManager);
       }
     }
     

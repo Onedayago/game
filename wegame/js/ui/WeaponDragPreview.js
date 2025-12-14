@@ -21,17 +21,22 @@ export class WeaponDragPreview {
    * @param {string} weaponType - 武器类型
    * @param {WeaponManager} weaponManager - 武器管理器
    */
-  static renderPreviewAt(ctx, worldX, worldY, weaponType, weaponManager) {
+  static renderPreviewAt(ctx, worldX, worldY, weaponType, weaponManager, obstacleManager = null) {
     // 对齐到网格
     const col = Math.floor(worldX / GameConfig.CELL_SIZE);
     const row = Math.floor(worldY / GameConfig.CELL_SIZE);
     
     // 检查是否可以放置
-    const canPlace = this.canPlaceAt(col, row, weaponManager);
+    const canPlace = this.canPlaceAt(col, row, weaponManager, obstacleManager);
     
-    // 计算预览位置（网格中心）
-    const previewX = col * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
-    const previewY = row * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
+    // 计算预览位置（网格中心，世界坐标）
+    const previewWorldX = col * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
+    const previewWorldY = row * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
+    
+    // 转换为 Canvas 坐标（应用战场偏移）
+    const gameContext = GameContext.getInstance();
+    const previewX = previewWorldX - gameContext.worldOffsetX;
+    const previewY = previewWorldY - gameContext.worldOffsetY;
     
     ctx.save();
     
@@ -60,10 +65,10 @@ export class WeaponDragPreview {
     const gameContext = GameContext.getInstance();
     
     // 触摸坐标是 Canvas 左上角原点，需要转换为世界坐标
-    // 在 GameRenderer 中，使用 offsetX = -worldOffsetX 来平移画布
+    // 在 GameRenderer 中，使用 offsetX = -worldOffsetX, offsetY = -worldOffsetY 来平移画布
     // 所以当 worldOffsetX > 0 时，画布向左移动，世界坐标需要加上这个偏移
     const worldX = x + gameContext.worldOffsetX;
-    const worldY = y;
+    const worldY = y + gameContext.worldOffsetY;
     
     // 对齐到网格
     const col = Math.floor(worldX / GameConfig.CELL_SIZE);
@@ -77,8 +82,8 @@ export class WeaponDragPreview {
     const previewWorldY = row * GameConfig.CELL_SIZE + GameConfig.CELL_SIZE / 2;
     
     // 转换回 Canvas 坐标（用于绘制）
-    const canvasX = previewWorldX + gameContext.worldOffsetX;
-    const canvasY = previewWorldY;
+    const canvasX = previewWorldX - gameContext.worldOffsetX;
+    const canvasY = previewWorldY - gameContext.worldOffsetY;
     
     ctx.save();
     
@@ -94,11 +99,16 @@ export class WeaponDragPreview {
   /**
    * 检查是否可以在指定位置放置武器
    */
-  static canPlaceAt(col, row, weaponManager) {
-    // 检查是否在战斗区域内
+  static canPlaceAt(col, row, weaponManager, obstacleManager = null) {
+    // 检查是否在战斗区域内（排除底部UI区域）
     if (row < GameConfig.BATTLE_START_ROW || 
-        row >= GameConfig.BATTLE_START_ROW + GameConfig.BATTLE_ROWS) {
+        row >= GameConfig.BATTLE_END_ROW) {
       return false;
+    }
+    
+    // 检查格子是否有障碍物
+    if (obstacleManager && obstacleManager.hasObstacle(col, row)) {
+      return false; // 格子有障碍物，不能放置武器
     }
     
     // 检查格子是否已被占用

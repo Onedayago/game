@@ -21,11 +21,11 @@ export class WeaponDragHandler {
   handleDrop(x, y, dragType) {
     if (!dragType) return false;
     
-    // 检查是否在战斗区域内（直接使用 Canvas 坐标系，Y 轴从上往下）
+    // 检查是否在战斗区域内（直接使用 Canvas 坐标系，Y 轴从上往下，排除底部UI区域）
     const battleStartY = GameConfig.BATTLE_START_ROW * GameConfig.CELL_SIZE;
-    const battleEndY = (GameConfig.BATTLE_START_ROW + GameConfig.BATTLE_ROWS) * GameConfig.CELL_SIZE;
+    const battleEndY = GameConfig.BATTLE_END_ROW * GameConfig.CELL_SIZE;
     
-    if (y < battleStartY || y > battleEndY) {
+    if (y < battleStartY || y >= battleEndY) {
       return false;
     }
     
@@ -39,10 +39,10 @@ export class WeaponDragHandler {
     const gameContext = GameContext.getInstance();
     
     // 触摸坐标是 Canvas 左上角原点，需要转换为世界坐标
-    // 在 GameRenderer 中，使用 offsetX = -worldOffsetX 来平移画布
+    // 在 GameRenderer 中，使用 offsetX = -worldOffsetX, offsetY = -worldOffsetY 来平移画布
     // 所以当 worldOffsetX > 0 时，画布向左移动，世界坐标需要加上这个偏移
     const worldX = x + gameContext.worldOffsetX;
-    const worldY = y;
+    const worldY = y + gameContext.worldOffsetY;
     
     // 对齐到网格中心
     const col = Math.floor(worldX / GameConfig.CELL_SIZE);
