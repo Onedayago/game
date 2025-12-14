@@ -201,12 +201,8 @@ export class EnemyBullet {
   render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
     if (this.destroyed) return;
     
-    // 视锥剔除：只渲染屏幕内的子弹（考虑战场偏移）
-    const adjustedViewLeft = viewLeft - offsetX;
-    const adjustedViewRight = viewRight - offsetX;
-    const adjustedViewTop = viewTop - offsetY;
-    const adjustedViewBottom = viewBottom - offsetY;
-    if (!this.isInView(adjustedViewLeft, adjustedViewRight, adjustedViewTop, adjustedViewBottom)) {
+    // 视锥剔除：只渲染屏幕内的子弹（viewLeft 等已经是世界坐标）
+    if (!this.isInView(viewLeft, viewRight, viewTop, viewBottom)) {
       return;
     }
     

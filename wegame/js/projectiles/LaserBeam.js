@@ -187,11 +187,12 @@ export class LaserBeam {
     const x2 = this.x2 + offsetX;
     const y2 = this.y2 + offsetY;
     
-    // 视锥剔除：只渲染屏幕内的激光束（考虑战场偏移）
-    const minX = Math.min(x1, x2);
-    const maxX = Math.max(x1, x2);
-    const minY = Math.min(y1, y2);
-    const maxY = Math.max(y1, y2);
+    // 视锥剔除：只渲染屏幕内的激光束（viewLeft 等已经是世界坐标）
+    // this.x1, this.y1, this.x2, this.y2 存储的是世界坐标
+    const minX = Math.min(this.x1, this.x2);
+    const maxX = Math.max(this.x1, this.x2);
+    const minY = Math.min(this.y1, this.y2);
+    const maxY = Math.max(this.y1, this.y2);
     
     if (maxX < viewLeft || minX > viewRight ||
         maxY < viewTop || minY > viewBottom) {
