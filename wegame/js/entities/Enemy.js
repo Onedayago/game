@@ -104,6 +104,7 @@ export class Enemy {
     
     // 如果有目标，攻击目标（优化：减少每帧的距离计算）
     if (this.currentTarget) {
+      
       // 只在查找目标时验证有效性，减少每帧验证
       if (shouldSearchTarget) {
         // 检查锁定目标是否仍然有效

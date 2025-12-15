@@ -7,6 +7,7 @@ import { EnemyBulletConfig } from '../config/enemies/EnemyBulletConfig';
 import { ColorUtils, GameColors } from '../config/Colors';
 import { GameContext } from '../core/GameContext';
 import { EnemyBulletRenderer } from '../rendering/projectiles/EnemyBulletRenderer';
+import { LogUtils } from '../utils/LogUtils';
 
 export class EnemyBullet {
   // 离屏Canvas缓存（静态）
@@ -177,9 +178,9 @@ export class EnemyBullet {
       }
     }
     
-    // 检查边界
+    // 检查边界（使用战斗区域的实际尺寸）
     if (this.x < 0 || this.x > GameConfig.BATTLE_WIDTH ||
-        this.y < 0 || this.y > GameConfig.DESIGN_HEIGHT) {
+        this.y < 0 || this.y > GameConfig.BATTLE_HEIGHT) {
       this.destroyed = true;
     }
   }
@@ -199,10 +200,13 @@ export class EnemyBullet {
    * 渲染子弹（带视锥剔除，优化：使用离屏Canvas缓存，应用战场偏移）
    */
   render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
-    if (this.destroyed) return;
     
+   
+    if (this.destroyed) return;
+  
     // 视锥剔除：只渲染屏幕内的子弹（viewLeft 等已经是世界坐标）
     if (!this.isInView(viewLeft, viewRight, viewTop, viewBottom)) {
+      
       return;
     }
     

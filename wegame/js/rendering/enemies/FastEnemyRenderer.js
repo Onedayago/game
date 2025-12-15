@@ -54,20 +54,74 @@ export class FastEnemyRenderer {
     ctx.save();
     ctx.translate(centerX, centerY);
     
-    // 快速敌人：较小的蓝色坦克
     const color = ColorUtils.hexToCanvas(0x4488ff);
+    const darkColor = ColorUtils.hexToCanvas(0x2d5aa0);
+    const lightColor = ColorUtils.hexToCanvas(0x66aaff);
+    const accentColor = ColorUtils.hexToCanvas(0x88ccff);
     
-    // 主体
+    // === 多层阴影 ===
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.beginPath();
+    ctx.roundRect(-size / 2 + 3, -size / 2 + 4, size - 6, size - 4, size * 0.2);
+    ctx.fill();
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+    ctx.beginPath();
+    ctx.roundRect(-size / 2 + 4, -size / 2 + 5, size - 8, size - 6, size * 0.18);
+    ctx.fill();
+    
+    // === 主体（流线型设计）===
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.roundRect(-size / 2, -size / 2, size, size, size * 0.2);
     ctx.fill();
     
-    // 高光
-    ctx.fillStyle = ColorUtils.hexToCanvas(0x66aaff);
+    // 边框
+    ctx.strokeStyle = darkColor;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    
+    // === 侧边装甲条 ===
+    ctx.fillStyle = darkColor;
     ctx.beginPath();
-    ctx.roundRect(-size / 2 + 2, -size / 2 + 2, size - 4, size * 0.3, size * 0.15);
+    ctx.roundRect(-size / 2 + 2, -size / 2 + size * 0.3, size - 4, size * 0.15, size * 0.05);
     ctx.fill();
+    ctx.beginPath();
+    ctx.roundRect(-size / 2 + 2, size / 2 - size * 0.45, size - 4, size * 0.15, size * 0.05);
+    ctx.fill();
+    
+    // === 顶部高光（流线型）===
+    ctx.fillStyle = lightColor;
+    ctx.beginPath();
+    ctx.roundRect(-size / 2 + 3, -size / 2 + 3, size - 6, size * 0.35, size * 0.15);
+    ctx.fill();
+    
+    // === 前部细节（速度感）===
+    ctx.fillStyle = accentColor;
+    ctx.beginPath();
+    ctx.roundRect(-size / 2 + 4, -size * 0.15, size * 0.4, size * 0.3, size * 0.08);
+    ctx.fill();
+    
+    // === 侧边装饰线条 ===
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-size * 0.15, -size * 0.2);
+    ctx.lineTo(-size * 0.15, size * 0.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(size * 0.15, -size * 0.2);
+    ctx.lineTo(size * 0.15, size * 0.2);
+    ctx.stroke();
+    
+    // === 中心标识（速度符号）===
+    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.8);
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
     
     ctx.restore();
   }
