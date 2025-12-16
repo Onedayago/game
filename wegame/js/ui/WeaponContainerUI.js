@@ -8,9 +8,22 @@ import { WeaponType, WeaponConfigs } from '../config/WeaponConfig';
 import { ColorUtils, GameColors } from '../config/Colors';
 import { WeaponCardRenderer } from './WeaponCardRenderer';
 import { WeaponDragHandler } from './WeaponDragHandler';
+import { WeaponRenderer } from '../rendering/WeaponRenderer';
 import { polyfillRoundRect } from '../utils/CanvasUtils';
 
 export class WeaponContainerUI {
+  // 离屏Canvas缓存（静态部分：背景、箭头）
+  static _backgroundCache = null;
+  static _backgroundCtx = null;
+  static _leftArrowCache = null;
+  static _leftArrowCtx = null;
+  static _rightArrowCache = null;
+  static _rightArrowCtx = null;
+  static _cacheWidth = 0;
+  static _cacheHeight = 0;
+  static _arrowSize = 0;
+  static _initialized = false;
+  
   constructor(ctx, goldManager, weaponManager) {
     this.ctx = ctx;
     this.goldManager = goldManager;
@@ -21,8 +34,178 @@ export class WeaponContainerUI {
     this.dragX = 0;
     this.dragY = 0;
     
+    // 武器容器滚动相关
+    this.scrollIndex = 0; // 当前显示的起始索引
+    this.visibleCount = 2; // 一次显示的武器数量
+    
     // 拖拽处理器
     this.dragHandler = new WeaponDragHandler(goldManager, weaponManager);
+    
+    // 初始化静态缓存
+    this.initStaticCache();
+  }
+  
+  /**
+   * 初始化静态部分缓存
+   */
+  initStaticCache() {
+    const containerWidth = UIConfig.WEAPON_CONTAINER_WIDTH;
+    const containerHeight = UIConfig.WEAPON_CONTAINER_HEIGHT;
+    const arrowSize = containerHeight * 0.4;
+    
+    // 如果已经初始化且尺寸相同，直接返回
+    if (WeaponContainerUI._initialized && 
+        WeaponContainerUI._cacheWidth === containerWidth && 
+        WeaponContainerUI._cacheHeight === containerHeight &&
+        WeaponContainerUI._arrowSize === arrowSize) {
+      return;
+    }
+    
+    // 初始化背景缓存
+    WeaponContainerUI._backgroundCache = wx.createCanvas();
+    WeaponContainerUI._backgroundCache.width = containerWidth;
+    WeaponContainerUI._backgroundCache.height = containerHeight;
+    WeaponContainerUI._backgroundCtx = WeaponContainerUI._backgroundCache.getContext('2d');
+    
+    // 初始化箭头缓存
+    const arrowCanvasSize = Math.ceil(arrowSize * 1.5);
+    WeaponContainerUI._leftArrowCache = wx.createCanvas();
+    WeaponContainerUI._leftArrowCache.width = arrowCanvasSize;
+    WeaponContainerUI._leftArrowCache.height = arrowCanvasSize;
+    WeaponContainerUI._leftArrowCtx = WeaponContainerUI._leftArrowCache.getContext('2d');
+    
+    WeaponContainerUI._rightArrowCache = wx.createCanvas();
+    WeaponContainerUI._rightArrowCache.width = arrowCanvasSize;
+    WeaponContainerUI._rightArrowCache.height = arrowCanvasSize;
+    WeaponContainerUI._rightArrowCtx = WeaponContainerUI._rightArrowCache.getContext('2d');
+    
+    WeaponContainerUI._cacheWidth = containerWidth;
+    WeaponContainerUI._cacheHeight = containerHeight;
+    WeaponContainerUI._arrowSize = arrowSize;
+    
+    // 绘制背景到缓存
+    this.drawBackgroundToCache(WeaponContainerUI._backgroundCtx, containerWidth, containerHeight);
+    
+    // 绘制箭头到缓存
+    this.drawArrowToCache(WeaponContainerUI._leftArrowCtx, arrowCanvasSize / 2, arrowCanvasSize / 2, arrowSize, true);
+    this.drawArrowToCache(WeaponContainerUI._rightArrowCtx, arrowCanvasSize / 2, arrowCanvasSize / 2, arrowSize, false);
+    
+    WeaponContainerUI._initialized = true;
+  }
+  
+  /**
+   * 绘制背景到缓存Canvas
+   */
+  drawBackgroundToCache(ctx, width, height) {
+    polyfillRoundRect(ctx);
+    
+    const radius = UIConfig.PANEL_RADIUS_SMALL;
+    
+    // 绘制阴影
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = -5;
+    
+    // 绘制背景渐变
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+    bgGradient.addColorStop(0, 'rgba(20, 25, 35, 0.95)');
+    bgGradient.addColorStop(0.3, 'rgba(15, 20, 30, 0.93)');
+    bgGradient.addColorStop(0.7, 'rgba(10, 15, 25, 0.92)');
+    bgGradient.addColorStop(1, 'rgba(5, 10, 20, 0.9)');
+    
+    ctx.fillStyle = bgGradient;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, width, height, radius);
+    ctx.fill();
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // 绘制边框（发光效果）
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.5);
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.6);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, width, height, radius);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    // 绘制内边框（高光）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.1);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(1, 1, width - 2, height - 2, radius - 1);
+    ctx.stroke();
+  }
+  
+  /**
+   * 绘制箭头到缓存Canvas
+   */
+  drawArrowToCache(ctx, x, y, size, left) {
+    // 绘制箭头背景（圆形）
+    const bgRadius = size * 0.6;
+    const bgGradient = ctx.createRadialGradient(x, y, 0, x, y, bgRadius);
+    bgGradient.addColorStop(0, 'rgba(30, 35, 45, 0.9)');
+    bgGradient.addColorStop(1, 'rgba(15, 20, 30, 0.85)');
+    
+    ctx.fillStyle = bgGradient;
+    ctx.beginPath();
+    ctx.arc(x, y, bgRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 绘制箭头边框
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.5);
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.7);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, bgRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    // 绘制箭头形状（三角形）
+    const arrowWidth = size * 0.6;
+    const arrowHeight = size * 0.5;
+    
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.9);
+    ctx.beginPath();
+    
+    if (left) {
+      // 左箭头：指向左（三角形顶点在左边）
+      ctx.moveTo(x - arrowWidth / 2, y); // 顶点（左）
+      ctx.lineTo(x + arrowWidth / 2, y - arrowHeight / 2); // 右上
+      ctx.lineTo(x + arrowWidth / 2, y + arrowHeight / 2); // 右下
+      ctx.closePath();
+    } else {
+      // 右箭头：指向右（三角形顶点在右边）
+      ctx.moveTo(x + arrowWidth / 2, y); // 顶点（右）
+      ctx.lineTo(x - arrowWidth / 2, y - arrowHeight / 2); // 左上
+      ctx.lineTo(x - arrowWidth / 2, y + arrowHeight / 2); // 左下
+      ctx.closePath();
+    }
+    
+    ctx.fill();
+    
+    // 绘制箭头高光（上半部分）
+    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.3);
+    ctx.beginPath();
+    if (left) {
+      ctx.moveTo(x - arrowWidth / 2, y);
+      ctx.lineTo(x + arrowWidth / 2, y - arrowHeight / 2);
+      ctx.lineTo(x + arrowWidth / 4, y - arrowHeight / 4);
+      ctx.closePath();
+    } else {
+      ctx.moveTo(x + arrowWidth / 2, y);
+      ctx.lineTo(x - arrowWidth / 2, y - arrowHeight / 2);
+      ctx.lineTo(x - arrowWidth / 4, y - arrowHeight / 4);
+      ctx.closePath();
+    }
+    ctx.fill();
   }
   
   /**
@@ -31,7 +214,7 @@ export class WeaponContainerUI {
   init() {
     // 初始化武器卡片渲染缓存
     const cardSize = GameConfig.CELL_SIZE;
-    const weaponTypes = [WeaponType.ROCKET, WeaponType.LASER];
+    const weaponTypes = [WeaponType.ROCKET, WeaponType.LASER, WeaponType.CANNON, WeaponType.SNIPER];
     
     for (const weaponType of weaponTypes) {
       WeaponCardRenderer.initCache(weaponType, cardSize);
@@ -54,15 +237,18 @@ export class WeaponContainerUI {
     
     // 计算容器位置（用于定位武器卡片）
     const containerHeight = UIConfig.WEAPON_CONTAINER_HEIGHT;
-    const containerY = GameConfig.DESIGN_HEIGHT - containerHeight-20;
+    const containerY = GameConfig.DESIGN_HEIGHT - containerHeight - UIConfig.WEAPON_CONTAINER_BOTTOM_OFFSET;
     const containerWidth = UIConfig.WEAPON_CONTAINER_WIDTH;
-    const containerX = (GameConfig.DESIGN_WIDTH - containerWidth) / 2 + 100; // 居中
+    const containerX = (GameConfig.DESIGN_WIDTH - containerWidth) / 2 + UIConfig.WEAPON_CONTAINER_HORIZONTAL_OFFSET;
     
     // 绘制背景
     this.renderBackground(containerX, containerY, containerWidth, containerHeight);
     
     // 绘制武器卡片
     this.renderWeaponCards(containerX, containerY, containerWidth, containerHeight);
+    
+    // 绘制左右箭头
+    this.renderArrows(containerX, containerY, containerWidth, containerHeight);
     
     this.ctx.restore();
     
@@ -80,53 +266,22 @@ export class WeaponContainerUI {
   }
   
   /**
-   * 渲染背景
+   * 渲染背景（使用缓存）
    */
   renderBackground(containerX, containerY, containerWidth, containerHeight) {
-    polyfillRoundRect(this.ctx);
+    if (!WeaponContainerUI._initialized || !WeaponContainerUI._backgroundCache) {
+      this.initStaticCache();
+    }
     
-    const radius = 8; // 使用圆角
-    
-    // 绘制阴影
-    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    this.ctx.shadowBlur = 15;
-    this.ctx.shadowOffsetX = 0;
-    this.ctx.shadowOffsetY = -5; // 向上投影
-    
-    // 绘制背景渐变
-    const bgGradient = this.ctx.createLinearGradient(containerX, containerY, containerX, containerY + containerHeight);
-    bgGradient.addColorStop(0, 'rgba(20, 25, 35, 0.95)');
-    bgGradient.addColorStop(0.3, 'rgba(15, 20, 30, 0.93)');
-    bgGradient.addColorStop(0.7, 'rgba(10, 15, 25, 0.92)');
-    bgGradient.addColorStop(1, 'rgba(5, 10, 20, 0.9)');
-    
-    this.ctx.fillStyle = bgGradient;
-    this.ctx.beginPath();
-    this.ctx.roundRect(containerX, containerY, containerWidth, containerHeight, radius);
-    this.ctx.fill();
-    
-    // 重置阴影
-    this.ctx.shadowColor = 'transparent';
-    this.ctx.shadowBlur = 0;
-    this.ctx.shadowOffsetX = 0;
-    this.ctx.shadowOffsetY = 0;
-    
-    // 绘制边框（发光效果）
-    this.ctx.shadowBlur = 8;
-    this.ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.5);
-    this.ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.6);
-    this.ctx.lineWidth = 2;
-    this.ctx.beginPath();
-    this.ctx.roundRect(containerX, containerY, containerWidth, containerHeight, radius);
-    this.ctx.stroke();
-    this.ctx.shadowBlur = 0;
-    
-    // 绘制内边框（高光）
-    this.ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.1);
-    this.ctx.lineWidth = 1;
-    this.ctx.beginPath();
-    this.ctx.roundRect(containerX + 1, containerY + 1, containerWidth - 2, containerHeight - 2, radius - 1);
-    this.ctx.stroke();
+    if (WeaponContainerUI._backgroundCache) {
+      this.ctx.drawImage(
+        WeaponContainerUI._backgroundCache,
+        containerX,
+        containerY,
+        containerWidth,
+        containerHeight
+      );
+    }
   }
   
   /**
@@ -135,13 +290,18 @@ export class WeaponContainerUI {
   renderWeaponCards(containerX, containerY, containerWidth, containerHeight) {
     const cardSize = GameConfig.CELL_SIZE;
     const spacing = UIConfig.WEAPON_CARD_SPACING;
-    const totalCardsWidth = cardSize * 2 + spacing;
-    const startX = containerX + (containerWidth - totalCardsWidth) / 2; // 在容器内居中
+    const allWeaponTypes = [WeaponType.ROCKET, WeaponType.LASER, WeaponType.CANNON, WeaponType.SNIPER];
+    
+    // 获取当前可见的武器类型
+    const visibleWeaponTypes = allWeaponTypes.slice(this.scrollIndex, this.scrollIndex + this.visibleCount);
+    
+    // 计算卡片总宽度和起始位置（在容器内居中）
+    const totalCardsWidth = cardSize * visibleWeaponTypes.length + spacing * (visibleWeaponTypes.length - 1);
+    const startX = containerX + (containerWidth - totalCardsWidth) / 2;
     const cardY = containerY + (containerHeight - cardSize) / 2;
     
-    const weaponTypes = [WeaponType.ROCKET, WeaponType.LASER];
-    
-    weaponTypes.forEach((type, index) => {
+    // 渲染每个可见的武器卡片
+    visibleWeaponTypes.forEach((type, index) => {
       const cardX = startX + index * (cardSize + spacing);
       this.renderWeaponCard(cardX, cardY, cardSize, type);
     });
@@ -156,6 +316,82 @@ export class WeaponContainerUI {
   }
   
   /**
+   * 渲染左右箭头
+   */
+  renderArrows(containerX, containerY, containerWidth, containerHeight) {
+    const arrowSize = containerHeight * 0.4; // 箭头大小
+    const arrowPadding = UIConfig.ARROW_PADDING;
+    const arrowBgRadius = arrowSize * 0.6; // 箭头背景半径
+    const allWeaponTypes = [WeaponType.ROCKET, WeaponType.LASER, WeaponType.CANNON, WeaponType.SNIPER];
+    const maxScrollIndex = Math.max(0, allWeaponTypes.length - this.visibleCount);
+    
+    // 左箭头（如果可以向左滚动）
+    // 箭头中心到容器左边缘的距离 = arrowPadding + arrowBgRadius
+    if (this.scrollIndex > 0) {
+      const leftArrowX = containerX - arrowPadding - arrowBgRadius;
+      const leftArrowY = containerY + containerHeight / 2;
+      this.renderArrow(leftArrowX, leftArrowY, arrowSize, true); // true = 向左
+    }
+    
+    // 右箭头（如果可以向右滚动）
+    // 箭头中心到容器右边缘的距离 = arrowPadding + arrowBgRadius
+    if (this.scrollIndex < maxScrollIndex) {
+      const rightArrowX = containerX + containerWidth + arrowPadding + arrowBgRadius;
+      const rightArrowY = containerY + containerHeight / 2;
+      this.renderArrow(rightArrowX, rightArrowY, arrowSize, false); // false = 向右
+    }
+  }
+  
+  /**
+   * 向左滚动
+   */
+  scrollLeft() {
+    if (this.scrollIndex > 0) {
+      this.scrollIndex--;
+    }
+  }
+  
+  /**
+   * 向右滚动
+   */
+  scrollRight() {
+    const allWeaponTypes = [WeaponType.ROCKET, WeaponType.LASER, WeaponType.CANNON, WeaponType.SNIPER];
+    const maxScrollIndex = Math.max(0, allWeaponTypes.length - this.visibleCount);
+    if (this.scrollIndex < maxScrollIndex) {
+      this.scrollIndex++;
+    }
+  }
+  
+  /**
+   * 渲染单个箭头（使用缓存）
+   * @param {number} x - 箭头中心X坐标
+   * @param {number} y - 箭头中心Y坐标
+   * @param {number} size - 箭头大小
+   * @param {boolean} left - true为左箭头，false为右箭头
+   */
+  renderArrow(x, y, size, left) {
+    if (!WeaponContainerUI._initialized) {
+      this.initStaticCache();
+    }
+    
+    const arrowCache = left ? WeaponContainerUI._leftArrowCache : WeaponContainerUI._rightArrowCache;
+    if (!arrowCache) {
+      return;
+    }
+    
+    const arrowCanvasSize = arrowCache.width;
+    const halfSize = arrowCanvasSize / 2;
+    
+    this.ctx.drawImage(
+      arrowCache,
+      x - halfSize,
+      y - halfSize,
+      arrowCanvasSize,
+      arrowCanvasSize
+    );
+  }
+  
+  /**
    * 渲染拖拽中的武器图标
    */
   renderDragIcon(x, y, weaponType) {
@@ -166,18 +402,26 @@ export class WeaponContainerUI {
     
     const size = UIConfig.DRAG_GHOST_SIZE * UIConfig.DRAG_GHOST_SCALE;
     
-    // 绘制半透明背景
-    this.ctx.fillStyle = ColorUtils.hexToCanvas(config.colorHex, 0.5);
+    // 绘制半透明背景圆形
+    const bgGradient = this.ctx.createRadialGradient(x, y, 0, x, y, size / 2);
+    bgGradient.addColorStop(0, ColorUtils.hexToCanvas(config.colorHex, 0.6));
+    bgGradient.addColorStop(1, ColorUtils.hexToCanvas(config.colorHex, 0.3));
+    this.ctx.fillStyle = bgGradient;
     this.ctx.beginPath();
     this.ctx.arc(x, y, size / 2, 0, Math.PI * 2);
     this.ctx.fill();
     
-    // 绘制图标
-    this.ctx.fillStyle = ColorUtils.hexToCanvas(config.colorHex);
-    this.ctx.font = `${size * 0.6}px Arial`;
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText(config.icon, x, y);
+    // 绘制边框
+    this.ctx.strokeStyle = ColorUtils.hexToCanvas(config.colorHex, 0.8);
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+    this.ctx.stroke();
+    
+    // 使用武器渲染器绘制武器图标
+    this.ctx.globalAlpha = 0.9;
+    WeaponRenderer.renderWeaponIcon(this.ctx, x, y, weaponType, size * 0.7);
+    this.ctx.globalAlpha = 1.0;
     
     this.ctx.restore();
   }
@@ -213,25 +457,48 @@ export class WeaponContainerUI {
     const containerHeight = UIConfig.WEAPON_CONTAINER_HEIGHT;
     const containerY = GameConfig.DESIGN_HEIGHT - containerHeight;
     const containerWidth = UIConfig.WEAPON_CONTAINER_WIDTH;
-    const containerX = (GameConfig.DESIGN_WIDTH - containerWidth) / 2; // 居中
-    const totalCardsWidth = cardSize * 2 + spacing;
-    const startX = containerX + (containerWidth - totalCardsWidth) / 2; // 在容器内居中
+    const containerX = (GameConfig.DESIGN_WIDTH - containerWidth) / 2 + UIConfig.WEAPON_CONTAINER_HORIZONTAL_OFFSET;
+    
+    // 检查是否点击了箭头
+    const allWeaponTypes = [WeaponType.ROCKET, WeaponType.LASER, WeaponType.CANNON, WeaponType.SNIPER];
+    const arrowSize = containerHeight * 0.4;
+    const arrowPadding = UIConfig.ARROW_PADDING;
+    const arrowBgRadius = arrowSize * 0.6; // 箭头背景半径
+    const maxScrollIndex = Math.max(0, allWeaponTypes.length - this.visibleCount);
+    
+    // 左箭头区域
+    // 箭头中心到容器左边缘的距离 = arrowPadding + arrowBgRadius
+    if (this.scrollIndex > 0) {
+      const leftArrowX = containerX - arrowPadding - arrowBgRadius;
+      const leftArrowY = containerY + containerHeight / 2;
+      const dx = x - leftArrowX;
+      const dy = y - leftArrowY;
+      if (dx * dx + dy * dy <= arrowBgRadius * arrowBgRadius) {
+        this.scrollLeft();
+        return;
+      }
+    }
+    
+    // 右箭头区域
+    // 箭头中心到容器右边缘的距离 = arrowPadding + arrowBgRadius
+    if (this.scrollIndex < maxScrollIndex) {
+      const rightArrowX = containerX + containerWidth + arrowPadding + arrowBgRadius;
+      const rightArrowY = containerY + containerHeight / 2;
+      const dx = x - rightArrowX;
+      const dy = y - rightArrowY;
+      if (dx * dx + dy * dy <= arrowBgRadius * arrowBgRadius) {
+        this.scrollRight();
+        return;
+      }
+    }
+    
+    // 检查是否点击了武器卡片
+    const visibleTypes = allWeaponTypes.slice(this.scrollIndex, this.scrollIndex + this.visibleCount);
+    const totalCardsWidth = cardSize * visibleTypes.length + spacing * (visibleTypes.length - 1);
+    const startX = containerX + (containerWidth - totalCardsWidth) / 2;
     const cardY = containerY + (containerHeight - cardSize) / 2;
     
-    console.log('卡片位置', { 
-      cardSize, 
-      spacing, 
-      containerHeight, 
-      containerY, 
-      startX, 
-      cardY,
-      DESIGN_HEIGHT: GameConfig.DESIGN_HEIGHT,
-      DESIGN_WIDTH: GameConfig.DESIGN_WIDTH
-    });
-    
-    const weaponTypes = [WeaponType.ROCKET, WeaponType.LASER];
-    
-    weaponTypes.forEach((type, index) => {
+    visibleTypes.forEach((type, index) => {
       const cardX = startX + index * (cardSize + spacing);
       
       console.log(`检查卡片 ${index}`, { 

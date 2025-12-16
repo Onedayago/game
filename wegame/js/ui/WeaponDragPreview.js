@@ -162,6 +162,10 @@ export class WeaponDragPreview {
       WeaponRenderer.renderRocketTower(ctx, x, y, size, 1);
     } else if (weaponType === WeaponType.LASER) {
       WeaponRenderer.renderLaserTower(ctx, x, y, size, 1);
+    } else if (weaponType === WeaponType.CANNON) {
+      WeaponRenderer.renderCannonTower(ctx, x, y, size, 1);
+    } else if (weaponType === WeaponType.SNIPER) {
+      WeaponRenderer.renderSniperTower(ctx, x, y, size, 1);
     }
     
     ctx.restore();

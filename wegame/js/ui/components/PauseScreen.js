@@ -14,12 +14,24 @@ export class PauseScreen {
   static _cachedCtx = null;
   static _initialized = false;
   
-  static PANEL_WIDTH = 300;
-  static PANEL_HEIGHT = 200;
-  static PANEL_RADIUS = 12;
-  static BUTTON_WIDTH = 120;
-  static BUTTON_HEIGHT = 45;
-  static BUTTON_RADIUS = 8;
+  static get PANEL_WIDTH() {
+    return UIConfig.PAUSE_PANEL_WIDTH;
+  }
+  static get PANEL_HEIGHT() {
+    return UIConfig.PAUSE_PANEL_HEIGHT;
+  }
+  static get PANEL_RADIUS() {
+    return UIConfig.PANEL_RADIUS_LARGE;
+  }
+  static get BUTTON_WIDTH() {
+    return UIConfig.PAUSE_PANEL_BUTTON_WIDTH;
+  }
+  static get BUTTON_HEIGHT() {
+    return UIConfig.PAUSE_PANEL_BUTTON_HEIGHT;
+  }
+  static get BUTTON_RADIUS() {
+    return UIConfig.BUTTON_RADIUS;
+  }
   
   /**
    * 初始化缓存
@@ -32,8 +44,8 @@ export class PauseScreen {
     try {
       const panelWidth = this.PANEL_WIDTH;
       const panelHeight = this.PANEL_HEIGHT;
-      const canvasWidth = panelWidth + 40;
-      const canvasHeight = panelHeight + 40;
+      const canvasWidth = panelWidth + UIConfig.CACHE_PADDING * 2;
+      const canvasHeight = panelHeight + UIConfig.CACHE_PADDING * 2;
       
       const canvas = wx.createCanvas();
       canvas.width = canvasWidth;
@@ -46,8 +58,8 @@ export class PauseScreen {
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
       
       polyfillRoundRect(ctx);
-      const offsetX = 20;
-      const offsetY = 20;
+      const offsetX = UIConfig.CACHE_OFFSET;
+      const offsetY = UIConfig.CACHE_OFFSET;
       const radius = this.PANEL_RADIUS;
       
       ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
@@ -100,7 +112,7 @@ export class PauseScreen {
       ctx.font = `bold ${UIConfig.TITLE_FONT_SIZE}px Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('游戏已暂停', offsetX + panelWidth / 2, offsetY + 60);
+      ctx.fillText('游戏已暂停', offsetX + panelWidth / 2, offsetY + UIConfig.PAUSE_PANEL_TITLE_Y_OFFSET);
       
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
@@ -108,12 +120,12 @@ export class PauseScreen {
       ctx.shadowOffsetY = 0;
       ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN, 0.8);
       ctx.font = `${UIConfig.BUTTON_FONT_SIZE * 0.9}px Arial`;
-      ctx.fillText('点击继续按钮恢复游戏', offsetX + panelWidth / 2, offsetY + 120);
+      ctx.fillText('点击继续按钮恢复游戏', offsetX + panelWidth / 2, offsetY + UIConfig.PAUSE_PANEL_SUBTITLE_Y_OFFSET);
       
       const buttonWidth = this.BUTTON_WIDTH;
       const buttonHeight = this.BUTTON_HEIGHT;
       const buttonX = offsetX + (panelWidth - buttonWidth) / 2;
-      const buttonY = offsetY + panelHeight - buttonHeight - 20;
+      const buttonY = offsetY + panelHeight - buttonHeight - UIConfig.PANEL_BUTTON_BOTTOM_OFFSET;
       const buttonRadius = this.BUTTON_RADIUS;
       
       ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
@@ -178,13 +190,13 @@ export class PauseScreen {
       const panelHeight = this.PANEL_HEIGHT;
       const panelX = (GameConfig.DESIGN_WIDTH - panelWidth) / 2;
       const panelY = (GameConfig.DESIGN_HEIGHT - panelHeight) / 2;
-      const canvasWidth = panelWidth + 40;
-      const canvasHeight = panelHeight + 40;
+      const canvasWidth = panelWidth + UIConfig.CACHE_PADDING * 2;
+      const canvasHeight = panelHeight + UIConfig.CACHE_PADDING * 2;
       
       ctx.drawImage(
         this._cachedCanvas,
         0, 0, canvasWidth, canvasHeight,
-        panelX - 20, panelY - 20, canvasWidth, canvasHeight
+        panelX - UIConfig.CACHE_OFFSET, panelY - UIConfig.CACHE_OFFSET, canvasWidth, canvasHeight
       );
       return;
     }
@@ -256,7 +268,7 @@ export class PauseScreen {
     ctx.font = `bold ${UIConfig.TITLE_FONT_SIZE}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('游戏已暂停', panelX + panelWidth / 2, panelY + 60);
+    ctx.fillText('游戏已暂停', panelX + panelWidth / 2, panelY + UIConfig.PAUSE_PANEL_TITLE_Y_OFFSET);
     
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
@@ -264,12 +276,12 @@ export class PauseScreen {
     ctx.shadowOffsetY = 0;
     ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN, 0.8);
     ctx.font = `${UIConfig.BUTTON_FONT_SIZE * 0.9}px Arial`;
-    ctx.fillText('点击继续按钮恢复游戏', panelX + panelWidth / 2, panelY + 120);
+    ctx.fillText('点击继续按钮恢复游戏', panelX + panelWidth / 2, panelY + UIConfig.PAUSE_PANEL_SUBTITLE_Y_OFFSET);
     
     const buttonWidth = this.BUTTON_WIDTH;
     const buttonHeight = this.BUTTON_HEIGHT;
     const buttonX = panelX + (panelWidth - buttonWidth) / 2;
-    const buttonY = panelY + panelHeight - buttonHeight - 20;
+    const buttonY = panelY + panelHeight - buttonHeight - UIConfig.PANEL_BUTTON_BOTTOM_OFFSET;
     const buttonRadius = this.BUTTON_RADIUS;
     
     ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
@@ -327,7 +339,7 @@ export class PauseScreen {
     const buttonWidth = this.BUTTON_WIDTH;
     const buttonHeight = this.BUTTON_HEIGHT;
     const buttonX = panelX + (panelWidth - buttonWidth) / 2;
-    const buttonY = panelY + panelHeight - buttonHeight - 20;
+    const buttonY = panelY + panelHeight - buttonHeight - UIConfig.PANEL_BUTTON_BOTTOM_OFFSET;
     return {
       x: buttonX,
       y: buttonY,

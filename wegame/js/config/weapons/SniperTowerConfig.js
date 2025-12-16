@@ -1,0 +1,42 @@
+/**
+ * 狙击塔配置
+ */
+
+export class SniperTowerConfig {
+  /** 狙击塔购买成本 */
+  static BASE_COST = 180;
+  
+  /** 狙击塔升级成本 */
+  static UPGRADE_COST = 100;
+  
+  /** 狙击塔出售收益 */
+  static SELL_GAIN = 90;
+  
+  /** 狙击塔开火间隔（毫秒） */
+  static FIRE_INTERVAL = 1000;
+  
+  /** 狙击塔攻击范围（格子数） */
+  static ATTACK_RANGE = 8;
+  
+  /** 狙击塔伤害倍数 */
+  static DAMAGE_MULTIPLIER = 4;
+  
+  /** 等级1：开火间隔倍数 */
+  static LEVEL_1_FIRE_INTERVAL_MULTIPLIER = 1.2;
+  
+  /** 等级1：伤害倍数 */
+  static LEVEL_1_DAMAGE_MULTIPLIER = 4;
+  
+  /** 等级2：开火间隔倍数 */
+  static LEVEL_2_FIRE_INTERVAL_MULTIPLIER = 1.0;
+  
+  /** 等级2：伤害倍数 */
+  static LEVEL_2_DAMAGE_MULTIPLIER = 4.5;
+  
+  /** 等级3：开火间隔倍数 */
+  static LEVEL_3_FIRE_INTERVAL_MULTIPLIER = 0.8;
+  
+  /** 等级3：伤害倍数 */
+  static LEVEL_3_DAMAGE_MULTIPLIER = 5;
+}
+

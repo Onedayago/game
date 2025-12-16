@@ -4,9 +4,10 @@
  */
 
 import { UIConfig } from '../config/UIConfig';
-import { WeaponConfigs } from '../config/WeaponConfig';
+import { WeaponConfigs, WeaponType } from '../config/WeaponConfig';
 import { ColorUtils, GameColors } from '../config/Colors';
 import { polyfillRoundRect } from '../utils/CanvasUtils';
+import { WeaponRenderer } from '../rendering/WeaponRenderer';
 
 export class WeaponCardRenderer {
   // 离屏Canvas缓存（按武器类型和尺寸缓存）
@@ -30,26 +31,22 @@ export class WeaponCardRenderer {
       return; // 已经初始化
     }
     
-    try {
-      const canvasSize = Math.ceil(size * 1.1); // 包含阴影
-      
-      const canvas = wx.createCanvas();
-      canvas.width = canvasSize;
-      canvas.height = canvasSize;
-      
-      const ctx = canvas.getContext('2d');
-      this._cachedCanvases[cacheKey] = canvas;
-      this._cachedCtxs[cacheKey] = ctx;
-      
-      // 清空缓存Canvas
-      ctx.clearRect(0, 0, canvasSize, canvasSize);
-      
-      // 绘制武器卡片到缓存
-      polyfillRoundRect(ctx);
-      this.drawCardToCache(ctx, weaponType, size, 0, 0);
-    } catch (e) {
-      console.warn('武器卡片渲染缓存初始化失败:', e);
-    }
+    const canvasSize = Math.ceil(size * 1.1); // 包含阴影
+    
+    const canvas = wx.createCanvas();
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    
+    const ctx = canvas.getContext('2d');
+    this._cachedCanvases[cacheKey] = canvas;
+    this._cachedCtxs[cacheKey] = ctx;
+    
+    // 清空缓存Canvas
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+    
+    // 绘制武器卡片到缓存
+    polyfillRoundRect(ctx);
+    this.drawCardToCache(ctx, weaponType, size, 0, 0);
   }
   
   /**
@@ -97,16 +94,16 @@ export class WeaponCardRenderer {
     WeaponCardRenderer.roundRect(ctx, x + 1, y + 1, size - 2, size - 2, radius - 1);
     ctx.stroke();
     
-    // 绘制武器图标
-    const iconSize = size * 0.5;
+    // 绘制武器图标（使用 WeaponRenderer）
+    const iconSize = size * 0.45;
     const iconX = x + size / 2;
-    const iconY = y + size / 2 - size * 0.1;
+    const iconY = y + size / 2 - size * 0.08;
     
     // 绘制图标背景（圆形，带渐变）
     const iconBgGradient = ctx.createRadialGradient(iconX, iconY, 0, iconX, iconY, iconSize / 2);
     const color = ColorUtils.hexToRgb(config.colorHex);
-    iconBgGradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.3)`);
-    iconBgGradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0.1)`);
+    iconBgGradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.25)`);
+    iconBgGradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0.05)`);
     ctx.fillStyle = iconBgGradient;
     ctx.beginPath();
     ctx.arc(iconX, iconY, iconSize / 2, 0, Math.PI * 2);
@@ -114,23 +111,18 @@ export class WeaponCardRenderer {
     
     // 绘制图标边框（带发光）
     ctx.shadowBlur = 6;
-    ctx.shadowColor = ColorUtils.hexToCanvas(config.colorHex, 0.7);
-    ctx.strokeStyle = ColorUtils.hexToCanvas(config.colorHex, 0.6);
+    ctx.shadowColor = ColorUtils.hexToCanvas(config.colorHex, 0.6);
+    ctx.strokeStyle = ColorUtils.hexToCanvas(config.colorHex, 0.5);
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(iconX, iconY, iconSize / 2, 0, Math.PI * 2);
     ctx.stroke();
     ctx.shadowBlur = 0;
     
-    // 绘制武器图标文字（带阴影）
-    ctx.shadowBlur = 4;
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillStyle = ColorUtils.hexToCanvas(config.colorHex);
-    ctx.font = `bold ${size * 0.38}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(config.icon, iconX, iconY);
-    ctx.shadowBlur = 0;
+    // 使用武器渲染器绘制武器图标
+    ctx.save();
+    WeaponRenderer.renderWeaponIcon(ctx, iconX, iconY, weaponType, iconSize);
+    ctx.restore();
     
     // 绘制成本背景
     const costY = y + size * 0.75;
@@ -187,8 +179,13 @@ export class WeaponCardRenderer {
       this.initCache(weaponType, size);
     }
     
-    // 使用缓存渲染
+    // 使用缓存渲染基础卡片
     this.renderFromCache(ctx, x, y, weaponType, size);
+    
+    // 如果选中，绘制选中状态覆盖层
+    if (isSelected) {
+      this.drawSelectedOverlay(ctx, x, y, size, weaponType);
+    }
   }
   
   /**
@@ -242,39 +239,34 @@ export class WeaponCardRenderer {
     ctx.stroke();
     
     // 绘制武器图标（使用 WeaponRenderer）
-    const iconSize = size * 0.5;
+    const iconSize = size * 0.45;
     const iconX = x + size / 2;
-    const iconY = y + size / 2 - size * 0.1;
+    const iconY = y + size / 2 - size * 0.08;
     
     // 绘制图标背景（圆形，带渐变）
     const iconBgGradient = ctx.createRadialGradient(iconX, iconY, 0, iconX, iconY, iconSize / 2);
     const color = ColorUtils.hexToRgb(config.colorHex);
-    iconBgGradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.3)`);
-    iconBgGradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0.1)`);
+    iconBgGradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.25)`);
+    iconBgGradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0.05)`);
     ctx.fillStyle = iconBgGradient;
     ctx.beginPath();
     ctx.arc(iconX, iconY, iconSize / 2, 0, Math.PI * 2);
     ctx.fill();
     
-    // 绘制图标边框（带发光，始终使用未选中状态的样式）
+    // 绘制图标边框（带发光）
     ctx.shadowBlur = 6;
-    ctx.shadowColor = ColorUtils.hexToCanvas(config.colorHex, 0.7);
-    ctx.strokeStyle = ColorUtils.hexToCanvas(config.colorHex, 0.6);
+    ctx.shadowColor = ColorUtils.hexToCanvas(config.colorHex, 0.6);
+    ctx.strokeStyle = ColorUtils.hexToCanvas(config.colorHex, 0.5);
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(iconX, iconY, iconSize / 2, 0, Math.PI * 2);
     ctx.stroke();
     ctx.shadowBlur = 0;
     
-    // 绘制武器图标文字（带阴影）
-    ctx.shadowBlur = 4;
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillStyle = ColorUtils.hexToCanvas(config.colorHex);
-    ctx.font = `bold ${size * 0.38}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(config.icon, iconX, iconY);
-    ctx.shadowBlur = 0;
+    // 使用武器渲染器绘制武器图标
+    ctx.save();
+    WeaponRenderer.renderWeaponIcon(ctx, iconX, iconY, weaponType, iconSize);
+    ctx.restore();
     
     // 绘制成本背景（更精致的设计）
     const costY = y + size * 0.75;
@@ -312,6 +304,62 @@ export class WeaponCardRenderer {
     ctx.shadowBlur = 0;
     
     ctx.restore();
+  }
+  
+  /**
+   * 绘制选中状态的覆盖层
+   */
+  static drawSelectedOverlay(ctx, x, y, size, weaponType) {
+    const config = WeaponConfigs.getConfig(weaponType);
+    if (!config) return;
+    
+    const radius = UIConfig.CARD_RADIUS;
+    
+    // 绘制选中高亮背景（半透明）
+    const selectedGradient = ctx.createLinearGradient(x, y, x, y + size);
+    const color = ColorUtils.hexToRgb(config.colorHex);
+    selectedGradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.15)`);
+    selectedGradient.addColorStop(0.5, `rgba(${color.r}, ${color.g}, ${color.b}, 0.25)`);
+    selectedGradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0.15)`);
+    ctx.fillStyle = selectedGradient;
+    WeaponCardRenderer.roundRect(ctx, x, y, size, size, radius);
+    ctx.fill();
+    
+    // 绘制选中边框（更亮更粗）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(config.colorHex, 0.9);
+    ctx.lineWidth = UIConfig.CARD_BORDER_WIDTH * 2;
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = ColorUtils.hexToCanvas(config.colorHex, 0.8);
+    WeaponCardRenderer.roundRect(ctx, x, y, size, size, radius);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    // 绘制内部高亮边框
+    ctx.strokeStyle = ColorUtils.hexToCanvas(config.colorHex, 0.6);
+    ctx.lineWidth = 2;
+    WeaponCardRenderer.roundRect(ctx, x + 2, y + 2, size - 4, size - 4, radius - 2);
+    ctx.stroke();
+    
+    // 绘制四个角的装饰
+    const cornerSize = size * 0.12;
+    const cornerOffset = size * 0.08;
+    ctx.fillStyle = ColorUtils.hexToCanvas(config.colorHex, 0.8);
+    
+    // 左上角
+    ctx.fillRect(x + cornerOffset, y + cornerOffset, cornerSize, 2);
+    ctx.fillRect(x + cornerOffset, y + cornerOffset, 2, cornerSize);
+    
+    // 右上角
+    ctx.fillRect(x + size - cornerOffset - cornerSize, y + cornerOffset, cornerSize, 2);
+    ctx.fillRect(x + size - cornerOffset - 2, y + cornerOffset, 2, cornerSize);
+    
+    // 左下角
+    ctx.fillRect(x + cornerOffset, y + size - cornerOffset - 2, cornerSize, 2);
+    ctx.fillRect(x + cornerOffset, y + size - cornerOffset - cornerSize, 2, cornerSize);
+    
+    // 右下角
+    ctx.fillRect(x + size - cornerOffset - cornerSize, y + size - cornerOffset - 2, cornerSize, 2);
+    ctx.fillRect(x + size - cornerOffset - 2, y + size - cornerOffset - cornerSize, 2, cornerSize);
   }
   
   /**

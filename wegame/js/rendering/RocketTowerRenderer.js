@@ -89,7 +89,7 @@ export class RocketTowerRenderer {
   /**
    * 从缓存渲染火箭塔
    */
-  static renderFromCache(ctx, x, y, size, level) {
+  static renderFromCache(ctx, x, y, size, level, angle = 0) {
     const cacheKey = this.getCacheKey(size, level);
     const cachedCanvas = this._cachedCanvases[cacheKey];
     
@@ -98,13 +98,19 @@ export class RocketTowerRenderer {
     const canvasSize = cachedCanvas.width;
     const halfSize = canvasSize * 0.5;
     
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    
     ctx.drawImage(
       cachedCanvas,
-      x - halfSize,
-      y - halfSize,
+      -halfSize,
+      -halfSize,
       canvasSize,
       canvasSize
     );
+    
+    ctx.restore();
   }
   
   /**
@@ -114,15 +120,16 @@ export class RocketTowerRenderer {
    * @param {number} y - Canvas 坐标系 Y（从上往下）
    * @param {number} size - 尺寸
    * @param {number} level - 等级
+   * @param {number} angle - 旋转角度（弧度，0为向右）
    */
-  static render(ctx, x, y, size, level = 1) {
+  static render(ctx, x, y, size, level = 1, angle = 0) {
     // 初始化缓存（如果未初始化）
     if (!this._cachedCanvases[this.getCacheKey(size, level)]) {
       this.initCache(size, level);
     }
     
     // 使用缓存渲染
-    this.renderFromCache(ctx, x, y, size, level);
+    this.renderFromCache(ctx, x, y, size, level, angle);
   }
   
   /**

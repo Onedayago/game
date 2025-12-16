@@ -8,6 +8,8 @@ import { UIConfig } from '../config/UIConfig';
 import { WeaponType } from '../config/WeaponConfig';
 import { RocketTower } from '../entities/RocketTower';
 import { LaserTower } from '../entities/LaserTower';
+import { CannonTower } from '../entities/CannonTower';
+import { SniperTower } from '../entities/SniperTower';
 import { LogUtils } from '../utils/LogUtils';
 
 export class WeaponManager {
@@ -62,6 +64,10 @@ export class WeaponManager {
       weapon = new RocketTower(this.ctx, gridX, gridY);
     } else if (weaponType === WeaponType.LASER) {
       weapon = new LaserTower(this.ctx, gridX, gridY);
+    } else if (weaponType === WeaponType.CANNON) {
+      weapon = new CannonTower(this.ctx, gridX, gridY);
+    } else if (weaponType === WeaponType.SNIPER) {
+      weapon = new SniperTower(this.ctx, gridX, gridY);
     } else {
       return false;
     }

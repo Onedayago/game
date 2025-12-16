@@ -4,13 +4,17 @@
 
 import { RocketTowerConfig } from './weapons/RocketTowerConfig';
 import { LaserTowerConfig } from './weapons/LaserTowerConfig';
+import { CannonTowerConfig } from './weapons/CannonTowerConfig';
+import { SniperTowerConfig } from './weapons/SniperTowerConfig';
 
 /**
  * 武器类型定义
  */
 export const WeaponType = {
   ROCKET: 'rocket',
-  LASER: 'laser'
+  LASER: 'laser',
+  CANNON: 'cannon',
+  SNIPER: 'sniper'
 };
 
 /**
@@ -37,6 +41,26 @@ export class WeaponConfigs {
       upgradeCost: LaserTowerConfig.UPGRADE_COST,
       sellGain: LaserTowerConfig.SELL_GAIN,
       colorHex: 0x00ff41,
+    }],
+    [WeaponType.CANNON, {
+      id: 'cannon',
+      name: '加农炮',
+      icon: '💣',
+      description: '直线炮弹\n高爆伤害',
+      baseCost: CannonTowerConfig.BASE_COST,
+      upgradeCost: CannonTowerConfig.UPGRADE_COST,
+      sellGain: CannonTowerConfig.SELL_GAIN,
+      colorHex: 0xff8800,
+    }],
+    [WeaponType.SNIPER, {
+      id: 'sniper',
+      name: '狙击塔',
+      icon: '🎯',
+      description: '快速子弹\n超远射程',
+      baseCost: SniperTowerConfig.BASE_COST,
+      upgradeCost: SniperTowerConfig.UPGRADE_COST,
+      sellGain: SniperTowerConfig.SELL_GAIN,
+      colorHex: 0x00d4ff,
     }],
   ]);
   

@@ -4,6 +4,7 @@
  */
 
 import { GameConfig } from '../../config/GameConfig';
+import { UIConfig } from '../../config/UIConfig';
 import { ColorUtils } from '../../config/Colors';
 import { polyfillRoundRect } from '../../utils/CanvasUtils';
 
@@ -13,10 +14,18 @@ export class PauseButton {
   static _cachedCtx = null;
   static _initialized = false;
   
-  static BUTTON_SIZE = 40;
-  static BUTTON_RADIUS = 8;
-  static BUTTON_X_OFFSET = 20; // 距离右边的距离
-  static BUTTON_Y_OFFSET = 70; // 距离顶部的距离
+  static get BUTTON_SIZE() {
+    return UIConfig.PAUSE_BUTTON_SIZE;
+  }
+  static get BUTTON_RADIUS() {
+    return UIConfig.PAUSE_BUTTON_RADIUS;
+  }
+  static get BUTTON_X_OFFSET() {
+    return UIConfig.PAUSE_BUTTON_X_OFFSET;
+  }
+  static get BUTTON_Y_OFFSET() {
+    return UIConfig.PAUSE_BUTTON_Y_OFFSET;
+  }
   
   /**
    * 初始化缓存
@@ -28,7 +37,7 @@ export class PauseButton {
     
     try {
       const buttonSize = this.BUTTON_SIZE;
-      const canvasSize = buttonSize + 20; // 包含阴影
+      const canvasSize = buttonSize + UIConfig.CACHE_PADDING; // 包含阴影
       
       const canvas = wx.createCanvas();
       canvas.width = canvasSize;
@@ -77,14 +86,14 @@ export class PauseButton {
       ctx.shadowBlur = 0;
       
       // 绘制暂停图标（两个竖条）
-      const iconWidth = 6;
-      const iconHeight = 16;
-      const iconX = offsetX + buttonSize / 2 - iconWidth - 2;
+      const iconWidth = UIConfig.PAUSE_ICON_WIDTH;
+      const iconHeight = UIConfig.PAUSE_ICON_HEIGHT;
+      const iconX = offsetX + buttonSize / 2 - iconWidth - UIConfig.PAUSE_ICON_SPACING / 2;
       const iconY = offsetY + buttonSize / 2 - iconHeight / 2;
       
       ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 1.0);
       ctx.fillRect(iconX, iconY, iconWidth, iconHeight);
-      ctx.fillRect(iconX + iconWidth + 4, iconY, iconWidth, iconHeight);
+      ctx.fillRect(iconX + iconWidth + UIConfig.PAUSE_ICON_SPACING, iconY, iconWidth, iconHeight);
       
       this._initialized = true;
     } catch (e) {
@@ -102,7 +111,7 @@ export class PauseButton {
       const buttonSize = this.BUTTON_SIZE;
       const buttonX = GameConfig.DESIGN_WIDTH - buttonSize - this.BUTTON_X_OFFSET;
       const buttonY = this.BUTTON_Y_OFFSET;
-      const canvasSize = buttonSize + 20;
+      const canvasSize = buttonSize + UIConfig.CACHE_PADDING;
       const offsetX = (canvasSize - buttonSize) / 2;
       const offsetY = (canvasSize - buttonSize) / 2;
       
@@ -157,14 +166,14 @@ export class PauseButton {
     ctx.stroke();
     ctx.shadowBlur = 0;
     
-    const iconWidth = 6;
-    const iconHeight = 16;
-    const iconX = buttonX + buttonSize / 2 - iconWidth - 2;
+    const iconWidth = UIConfig.PAUSE_ICON_WIDTH;
+    const iconHeight = UIConfig.PAUSE_ICON_HEIGHT;
+    const iconX = buttonX + buttonSize / 2 - iconWidth - UIConfig.PAUSE_ICON_SPACING / 2;
     const iconY = buttonY + buttonSize / 2 - iconHeight / 2;
     
     ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 1.0);
     ctx.fillRect(iconX, iconY, iconWidth, iconHeight);
-    ctx.fillRect(iconX + iconWidth + 4, iconY, iconWidth, iconHeight);
+    ctx.fillRect(iconX + iconWidth + UIConfig.PAUSE_ICON_SPACING, iconY, iconWidth, iconHeight);
     
     ctx.restore();
   }

@@ -10,6 +10,8 @@ import { ColorUtils, GameColors } from '../config/Colors';
 import { polyfillRoundRect } from '../utils/CanvasUtils';
 import { RocketTowerRenderer } from './RocketTowerRenderer';
 import { LaserTowerRenderer } from './LaserTowerRenderer';
+import { CannonTowerRenderer } from './CannonTowerRenderer';
+import { SniperTowerRenderer } from './SniperTowerRenderer';
 import { GameContext } from '../core/GameContext';
 
 class WeaponRenderer {
@@ -207,8 +209,8 @@ class WeaponRenderer {
     const buttonRadius = UIConfig.ACTION_BUTTON_RADIUS;
     const buttonSpacing = size * 0.3; // 按钮之间的间距
     
-    // 按钮Y位置（武器左右两侧，与武器中心对齐）
-    const buttonY = y;
+    // 按钮Y位置（武器左右两侧，往上移动）
+    const buttonY = y - size * 0.3;
     
     // 升级按钮（左侧）
     const upgradeButtonX = x - size / 2 - buttonWidth / 2 - buttonSpacing;
@@ -319,9 +321,10 @@ class WeaponRenderer {
    * @param {number} y - Canvas 坐标系 Y（从上往下）
    * @param {number} size - 尺寸
    * @param {number} level - 等级
+   * @param {number} angle - 旋转角度（弧度，0为向右）
    */
-  static renderRocketTower(ctx, x, y, size, level = 1) {
-    RocketTowerRenderer.render(ctx, x, y, size, level);
+  static renderRocketTower(ctx, x, y, size, level = 1, angle = 0) {
+    RocketTowerRenderer.render(ctx, x, y, size, level, angle);
   }
   
   /**
@@ -331,9 +334,36 @@ class WeaponRenderer {
    * @param {number} y - Canvas 坐标系 Y（从上往下）
    * @param {number} size - 尺寸
    * @param {number} level - 等级
+   * @param {number} angle - 旋转角度（弧度，0为向右）
    */
-  static renderLaserTower(ctx, x, y, size, level = 1) {
-    LaserTowerRenderer.render(ctx, x, y, size, level);
+  static renderLaserTower(ctx, x, y, size, level = 1, angle = 0) {
+    LaserTowerRenderer.render(ctx, x, y, size, level, angle);
+  }
+  
+  /**
+   * 渲染加农炮塔
+   * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
+   * @param {number} x - Canvas 坐标系 X
+   * @param {number} y - Canvas 坐标系 Y（从上往下）
+   * @param {number} size - 尺寸
+   * @param {number} level - 等级
+   * @param {number} angle - 旋转角度（弧度，0为向右）
+   */
+  static renderCannonTower(ctx, x, y, size, level = 1, angle = 0) {
+    CannonTowerRenderer.render(ctx, x, y, size, level, angle);
+  }
+  
+  /**
+   * 渲染狙击塔
+   * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
+   * @param {number} x - Canvas 坐标系 X
+   * @param {number} y - Canvas 坐标系 Y（从上往下）
+   * @param {number} size - 尺寸
+   * @param {number} level - 等级
+   * @param {number} angle - 旋转角度（弧度，0为向右）
+   */
+  static renderSniperTower(ctx, x, y, size, level = 1, angle = 0) {
+    SniperTowerRenderer.render(ctx, x, y, size, level, angle);
   }
   
   /**
@@ -344,8 +374,13 @@ class WeaponRenderer {
       this.renderRocketTower(ctx, x, y, size, 1);
     } else if (weaponType === WeaponType.LASER) {
       this.renderLaserTower(ctx, x, y, size, 1);
+    } else if (weaponType === WeaponType.CANNON) {
+      this.renderCannonTower(ctx, x, y, size, 1);
+    } else if (weaponType === WeaponType.SNIPER) {
+      this.renderSniperTower(ctx, x, y, size, 1);
     }
   }
+  
   
   /**
    * 渲染血条（优化：使用离屏Canvas缓存）

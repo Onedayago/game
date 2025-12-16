@@ -6,6 +6,8 @@ import { GameConfig } from '../config/GameConfig';
 import { WeaponStatsConfig } from '../config/WeaponStatsConfig';
 import { RocketTowerConfig } from '../config/weapons/RocketTowerConfig';
 import { LaserTowerConfig } from '../config/weapons/LaserTowerConfig';
+import { CannonTowerConfig } from '../config/weapons/CannonTowerConfig';
+import { SniperTowerConfig } from '../config/weapons/SniperTowerConfig';
 import { ParticleConfig } from '../config/ParticleConfig';
 import { UIConfig } from '../config/UIConfig';
 import { WeaponRenderer } from '../rendering/WeaponRenderer';
@@ -152,9 +154,14 @@ export class Weapon {
       
       // 创建死亡爆炸效果
       if (gameContext.particleManager) {
-        const explosionColor = this.weaponType === WeaponType.ROCKET 
-          ? GameColors.ROCKET_BULLET 
-          : GameColors.LASER_BEAM;
+        let explosionColor = GameColors.LASER_BEAM;
+        if (this.weaponType === WeaponType.ROCKET) {
+          explosionColor = GameColors.ROCKET_BULLET;
+        } else if (this.weaponType === WeaponType.CANNON) {
+          explosionColor = GameColors.CANNON_BULLET;
+        } else if (this.weaponType === WeaponType.SNIPER) {
+          explosionColor = GameColors.SNIPER_BULLET;
+        }
         gameContext.particleManager.createExplosion(
           this.x,
           this.y,
@@ -177,6 +184,10 @@ export class Weapon {
       return RocketTowerConfig.UPGRADE_COST;
     } else if (this.weaponType === WeaponType.LASER) {
       return LaserTowerConfig.UPGRADE_COST;
+    } else if (this.weaponType === WeaponType.CANNON) {
+      return CannonTowerConfig.UPGRADE_COST;
+    } else if (this.weaponType === WeaponType.SNIPER) {
+      return SniperTowerConfig.UPGRADE_COST;
     }
     
     return 0;
@@ -190,6 +201,10 @@ export class Weapon {
       return RocketTowerConfig.SELL_GAIN;
     } else if (this.weaponType === WeaponType.LASER) {
       return LaserTowerConfig.SELL_GAIN;
+    } else if (this.weaponType === WeaponType.CANNON) {
+      return CannonTowerConfig.SELL_GAIN;
+    } else if (this.weaponType === WeaponType.SNIPER) {
+      return SniperTowerConfig.SELL_GAIN;
     }
     
     return 0;
@@ -225,10 +240,22 @@ export class Weapon {
     const renderY = this.y + offsetY;
     
     // 渲染武器本体 - 应用战场偏移
+    // 计算旋转角度（如果有目标）
+    let angle = 0;
+    if (this.currentTarget && !this.currentTarget.destroyed) {
+      const dx = this.currentTarget.x - this.x;
+      const dy = this.currentTarget.y - this.y;
+      angle = Math.atan2(dy, dx);
+    }
+    
     if (this.weaponType === WeaponType.ROCKET) {
-      WeaponRenderer.renderRocketTower(this.ctx, renderX, renderY, this.size, this.level);
+      WeaponRenderer.renderRocketTower(this.ctx, renderX, renderY, this.size, this.level, angle);
     } else if (this.weaponType === WeaponType.LASER) {
-      WeaponRenderer.renderLaserTower(this.ctx, renderX, renderY, this.size, this.level);
+      WeaponRenderer.renderLaserTower(this.ctx, renderX, renderY, this.size, this.level, angle);
+    } else if (this.weaponType === WeaponType.CANNON) {
+      WeaponRenderer.renderCannonTower(this.ctx, renderX, renderY, this.size, this.level, angle);
+    } else if (this.weaponType === WeaponType.SNIPER) {
+      WeaponRenderer.renderSniperTower(this.ctx, renderX, renderY, this.size, this.level, angle);
     }
     
     // 渲染选中状态（高亮边框）

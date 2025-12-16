@@ -15,11 +15,13 @@ export class LaserTowerRenderer {
    * @param {number} y - Canvas 坐标系 Y（从上往下）
    * @param {number} size - 尺寸
    * @param {number} level - 等级
+   * @param {number} angle - 旋转角度（弧度，0为向右）
    */
-  static render(ctx, x, y, size, level = 1) {
+  static render(ctx, x, y, size, level = 1, angle = 0) {
     polyfillRoundRect(ctx);
     ctx.save();
     ctx.translate(x, y);
+    ctx.rotate(angle);
     
     const towerRadius = size * 0.20;
     const coreRadius = size * 0.12;

@@ -14,11 +14,21 @@ export class WaveInfo {
   static _bgCtx = null;
   static _bgInitialized = false;
   
-  static PANEL_WIDTH = 120;
-  static PANEL_HEIGHT = 40;
-  static PANEL_X_OFFSET = 20; // 距离右边的距离（已废弃，保留用于兼容）
-  static PANEL_Y_OFFSET = 20; // 距离顶部的距离
-  static PANEL_RADIUS = 8;
+  static get PANEL_WIDTH() {
+    return UIConfig.WAVE_PANEL_WIDTH;
+  }
+  static get PANEL_HEIGHT() {
+    return UIConfig.WAVE_PANEL_HEIGHT;
+  }
+  static get PANEL_X_OFFSET() {
+    return UIConfig.MARGIN_MEDIUM; // 距离右边的距离（已废弃，保留用于兼容）
+  }
+  static get PANEL_Y_OFFSET() {
+    return UIConfig.MARGIN_MEDIUM; // 距离顶部的距离
+  }
+  static get PANEL_RADIUS() {
+    return UIConfig.PANEL_RADIUS_SMALL;
+  }
   
   /**
    * 初始化背景缓存
@@ -31,8 +41,8 @@ export class WaveInfo {
     try {
       const panelWidth = this.PANEL_WIDTH;
       const panelHeight = this.PANEL_HEIGHT;
-      const canvasWidth = panelWidth + 40;
-      const canvasHeight = panelHeight + 40;
+      const canvasWidth = panelWidth + UIConfig.CACHE_PADDING * 2;
+      const canvasHeight = panelHeight + UIConfig.CACHE_PADDING * 2;
       
       const canvas = wx.createCanvas();
       canvas.width = canvasWidth;
@@ -45,8 +55,8 @@ export class WaveInfo {
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
       
       polyfillRoundRect(ctx);
-      const offsetX = 20;
-      const offsetY = 20;
+      const offsetX = UIConfig.CACHE_OFFSET;
+      const offsetY = UIConfig.CACHE_OFFSET;
       const radius = this.PANEL_RADIUS;
       
       ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
@@ -106,18 +116,18 @@ export class WaveInfo {
     const panelWidth = this.PANEL_WIDTH;
     const panelHeight = this.PANEL_HEIGHT;
     // 顶部中间偏右（金币面板在左侧，波次面板在右侧）
-    const panelX = GameConfig.DESIGN_WIDTH / 2 + 10; // 中间偏右，留10px间距
+    const panelX = GameConfig.DESIGN_WIDTH / 2 + UIConfig.PANEL_SPACING; // 中间偏右
     const panelY = this.PANEL_Y_OFFSET;
     
     // 使用缓存绘制背景
     if (this._bgInitialized && this._bgCache) {
-      const canvasWidth = panelWidth + 40;
-      const canvasHeight = panelHeight + 40;
+      const canvasWidth = panelWidth + UIConfig.CACHE_PADDING * 2;
+      const canvasHeight = panelHeight + UIConfig.CACHE_PADDING * 2;
       
       ctx.drawImage(
         this._bgCache,
         0, 0, canvasWidth, canvasHeight,
-        panelX - 20, panelY - 20, canvasWidth, canvasHeight
+        panelX - UIConfig.CACHE_OFFSET, panelY - UIConfig.CACHE_OFFSET, canvasWidth, canvasHeight
       );
     }
     

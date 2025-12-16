@@ -14,6 +14,16 @@ export class GameColors {
   static LASER_BEAM = 0x00ff41;
   static LASER_DETAIL = 0x00ff41;
   
+  static CANNON_BASE = 0x8b4513;
+  static CANNON_TOWER = 0xff8800;
+  static CANNON_BULLET = 0xff8800;
+  static CANNON_DETAIL = 0xffaa00;
+  
+  static SNIPER_BASE = 0x1a1a2e;
+  static SNIPER_TOWER = 0x00d4ff;
+  static SNIPER_BULLET = 0x00d4ff;
+  static SNIPER_DETAIL = 0x00ffff;
+  
   // 友军颜色（用于武器）
   static ALLY_BODY = 0x334155;
   static ALLY_DETAIL = 0x0ea5e9;

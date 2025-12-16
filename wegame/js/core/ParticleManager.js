@@ -10,9 +10,11 @@ export class ParticleManager {
   static PARTICLE_COLORS = [
     GameColors.ROCKET_BULLET,  // 0: 火箭/武器爆炸
     GameColors.LASER_BEAM,     // 1: 激光/武器击中
-    GameColors.ENEMY_TANK,      // 2: 敌人爆炸
-    GameColors.ENEMY_DETAIL,    // 3: 敌人击中
-    GameColors.ENEMY_BULLET,    // 4: 敌人子弹击中
+    GameColors.CANNON_BULLET,  // 2: 加农炮/武器爆炸
+    GameColors.SNIPER_BULLET,  // 3: 狙击塔/武器爆炸
+    GameColors.ENEMY_TANK,      // 4: 敌人爆炸
+    GameColors.ENEMY_DETAIL,    // 5: 敌人击中
+    GameColors.ENEMY_BULLET,    // 6: 敌人子弹击中
   ];
   
   // 颜色映射：将传入的颜色映射到固定颜色索引
@@ -24,14 +26,20 @@ export class ParticleManager {
     if (color === GameColors.LASER_BEAM || color === GameColors.LASER_TOWER || color === GameColors.LASER_DETAIL) {
       return 1; // 激光颜色
     }
+    if (color === GameColors.CANNON_BULLET || color === GameColors.CANNON_TOWER || color === GameColors.CANNON_DETAIL) {
+      return 2; // 加农炮颜色
+    }
+    if (color === GameColors.SNIPER_BULLET || color === GameColors.SNIPER_TOWER || color === GameColors.SNIPER_DETAIL) {
+      return 3; // 狙击塔颜色
+    }
     if (color === GameColors.ENEMY_TANK || color === GameColors.ENEMY_BODY || color === GameColors.ENEMY_BODY_DARK) {
-      return 2; // 敌人爆炸
+      return 4; // 敌人爆炸
     }
     if (color === GameColors.ENEMY_DETAIL) {
-      return 3; // 敌人击中
+      return 5; // 敌人击中
     }
     if (color === GameColors.ENEMY_BULLET) {
-      return 4; // 敌人子弹
+      return 6; // 敌人子弹
     }
     // 默认使用第一个颜色
     return 0;

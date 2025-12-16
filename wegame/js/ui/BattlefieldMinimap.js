@@ -54,9 +54,9 @@ export class BattlefieldMinimap {
     this.height = GameConfig.CELL_SIZE * 1.5;
     
     // 位置：左下角，留出边距
-    const margin = 50;
+    const margin = UIConfig.MINIMAP_MARGIN;
     this.x = margin;
-    this.y = windowHeight - this.height-20;
+    this.y = windowHeight - this.height - UIConfig.MINIMAP_BOTTOM_OFFSET;
     
     // 初始化静态部分缓存
     this.initStaticCache();
@@ -101,7 +101,7 @@ export class BattlefieldMinimap {
   drawStaticToCache(ctx, width, height) {
     polyfillRoundRect(ctx);
     
-    const radius = 8; // 圆角半径
+    const radius = UIConfig.PANEL_RADIUS_SMALL;
     
     // 绘制阴影
     ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
@@ -330,12 +330,17 @@ export class BattlefieldMinimap {
         if (weapon && !weapon.destroyed) {
           const minimapX = this.x + weapon.x * scaleX;
           const minimapY = this.y + weapon.y * scaleY;
-          const size = 3;
+          const size = UIConfig.MINIMAP_WEAPON_SIZE;
           
           // 根据武器类型选择颜色
-          const weaponColor = weapon.weaponType === WeaponType.ROCKET 
-            ? GameColors.ROCKET_TOWER 
-            : GameColors.LASER_TOWER;
+          let weaponColor = GameColors.LASER_TOWER;
+          if (weapon.weaponType === WeaponType.ROCKET) {
+            weaponColor = GameColors.ROCKET_TOWER;
+          } else if (weapon.weaponType === WeaponType.CANNON) {
+            weaponColor = GameColors.CANNON_TOWER;
+          } else if (weapon.weaponType === WeaponType.SNIPER) {
+            weaponColor = GameColors.SNIPER_TOWER;
+          }
           
           // 绘制武器图标（小方块，带边框）
           this.ctx.fillStyle = ColorUtils.hexToCanvas(weaponColor, 0.9);
@@ -356,7 +361,7 @@ export class BattlefieldMinimap {
         if (enemy && !enemy.destroyed && !enemy.finished) {
           const minimapX = this.x + enemy.x * scaleX;
           const minimapY = this.y + enemy.y * scaleY;
-          const size = 2.5;
+          const size = UIConfig.MINIMAP_ENEMY_SIZE;
           
           // 绘制敌人图标（小圆点）
           this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_TANK, 0.95);

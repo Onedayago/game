@@ -27,8 +27,8 @@ export class GoldManager {
     }
     
     try {
-      const panelWidth = 140;
-      const panelHeight = 40;
+      const panelWidth = UIConfig.GOLD_PANEL_WIDTH;
+      const panelHeight = UIConfig.GOLD_PANEL_HEIGHT;
       
       const canvas = wx.createCanvas();
       canvas.width = panelWidth;
@@ -217,10 +217,10 @@ export class GoldManager {
     const windowHeight = GameConfig.DESIGN_HEIGHT;
     
     // 金币面板尺寸和位置（顶部中间偏左）
-    const panelWidth = 140;
-    const panelHeight = 40;
-    const panelX = windowWidth / 2 - panelWidth - 10; // 中间偏左，留10px间距
-    const panelY = 20; // 顶部
+    const panelWidth = UIConfig.GOLD_PANEL_WIDTH;
+    const panelHeight = UIConfig.GOLD_PANEL_HEIGHT;
+    const panelX = windowWidth / 2 - panelWidth - UIConfig.PANEL_SPACING; // 中间偏左
+    const panelY = UIConfig.MARGIN_MEDIUM; // 顶部
     
     // 使用缓存渲染静态部分（背景、图标）
     GoldManager.renderStaticFromCache(ctx, panelX, panelY);
