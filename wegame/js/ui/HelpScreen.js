@@ -6,6 +6,18 @@ import { GameConfig } from '../config/GameConfig';
 import { UIConfig } from '../config/UIConfig';
 import { ColorUtils, GameColors } from '../config/Colors';
 import { polyfillRoundRect } from '../utils/CanvasUtils';
+import { WeaponRenderer } from '../rendering/WeaponRenderer';
+import { EnemyRenderer } from '../rendering/EnemyRenderer';
+import { WeaponType } from '../config/WeaponConfig';
+import { RocketTowerConfig } from '../config/weapons/RocketTowerConfig';
+import { LaserTowerConfig } from '../config/weapons/LaserTowerConfig';
+import { CannonTowerConfig } from '../config/weapons/CannonTowerConfig';
+import { SniperTowerConfig } from '../config/weapons/SniperTowerConfig';
+import { EnemyTankConfig } from '../config/enemies/EnemyTankConfig';
+import { FastEnemyConfig } from '../config/enemies/FastEnemyConfig';
+import { HeavyEnemyConfig } from '../config/enemies/HeavyEnemyConfig';
+import { FlyingEnemyConfig } from '../config/enemies/FlyingEnemyConfig';
+import { BomberEnemyConfig } from '../config/enemies/BomberEnemyConfig';
 
 class HelpScreen {
   // 离屏Canvas缓存（静态部分）
@@ -245,58 +257,109 @@ class HelpScreen {
    */
   calculateContentHeight(contentWidth) {
     const lineHeight = UIConfig.SUBTITLE_FONT_SIZE * 1.5;
+    const previewSize = 50; // 预览图片尺寸
+    const previewSpacing = 10; // 预览图片与文字的间距
     
     // 临时设置字体以测量文本
     this.ctx.save();
     this.ctx.font = `${UIConfig.SUBTITLE_FONT_SIZE * 0.9}px Arial`;
     
-    const helpTexts = [
-      '【游戏目标】',
-      '阻止敌人到达战场右端，保护基地！',
-      '',
-      '【操作说明】',
-      '1. 拖拽武器卡片到战场放置防御塔',
-      '2. 防御塔会自动攻击范围内的敌人',
-      '3. 击败敌人获得金币，购买更多武器',
-      '',
-      '【武器类型】',
-      '• 火箭塔：远程范围攻击',
-      '• 激光塔：持续伤害，攻击速度快',
-      '',
-      '【提示】',
-      '• 合理布局武器位置',
-      '• 优先升级高价值武器',
-      '• 注意敌人的移动路径'
+    let currentY = 0;
+    
+    // 游戏目标
+    currentY += this.measureTextHeight('【游戏目标】', contentWidth, lineHeight);
+    currentY += this.measureTextHeight('阻止敌人到达战场右端，保护基地！', contentWidth, lineHeight);
+    currentY += lineHeight * 1.5;
+    
+    // 操作说明
+    currentY += this.measureTextHeight('【操作说明】', contentWidth, lineHeight);
+    currentY += this.measureTextHeight('1. 拖拽武器卡片到战场放置防御塔', contentWidth, lineHeight);
+    currentY += this.measureTextHeight('2. 防御塔会自动攻击范围内的敌人', contentWidth, lineHeight);
+    currentY += this.measureTextHeight('3. 击败敌人获得金币，购买更多武器', contentWidth, lineHeight);
+    currentY += lineHeight * 1.5;
+    
+    // 武器类型（包含预览图片）
+    currentY += this.measureTextHeight('【武器类型】', contentWidth, lineHeight);
+    currentY += lineHeight * 0.5;
+    
+    // 4种武器，每种包含预览图片和介绍
+    const weapons = [
+      { type: WeaponType.ROCKET, name: '火箭塔', desc: `追踪火箭，高爆溅射伤害\n射程：${RocketTowerConfig.ATTACK_RANGE}格 | 伤害：高 | 成本：${RocketTowerConfig.BASE_COST}金币` },
+      { type: WeaponType.LASER, name: '激光塔', desc: `持续射线，高射速攻击\n射程：${LaserTowerConfig.ATTACK_RANGE}格 | 伤害：中 | 成本：${LaserTowerConfig.BASE_COST}金币` },
+      { type: WeaponType.CANNON, name: '加农炮', desc: `直线炮弹，高爆伤害\n射程：${CannonTowerConfig.ATTACK_RANGE}格 | 伤害：很高 | 成本：${CannonTowerConfig.BASE_COST}金币` },
+      { type: WeaponType.SNIPER, name: '狙击塔', desc: `快速子弹，超远射程\n射程：${SniperTowerConfig.ATTACK_RANGE}格 | 伤害：极高 | 成本：${SniperTowerConfig.BASE_COST}金币` }
     ];
     
-    let currentY = 0;
-    for (const text of helpTexts) {
-      // 处理文本换行
-      const words = text.split('');
-      let line = '';
-      let lineY = currentY;
-      
-      for (const char of words) {
-        const testLine = line + char;
-        const metrics = this.ctx.measureText(testLine);
-        if (metrics.width > contentWidth && line.length > 0) {
-          line = char;
-          lineY += lineHeight;
-        } else {
-          line = testLine;
-        }
-      }
-      
-      if (line.length > 0) {
-        lineY += lineHeight;
-      }
-      
-      currentY = lineY + lineHeight * 1.2;
+    for (const weapon of weapons) {
+      currentY += previewSize + previewSpacing; // 预览图片高度
+      currentY += this.measureTextHeight(weapon.name, contentWidth, lineHeight);
+      currentY += this.measureTextHeight(weapon.desc, contentWidth, lineHeight);
+      currentY += lineHeight * 1.2;
     }
+    
+    currentY += lineHeight * 0.5;
+    
+    // 敌人类型（包含预览图片）
+    currentY += this.measureTextHeight('【敌人类型】', contentWidth, lineHeight);
+    currentY += lineHeight * 0.5;
+    
+    // 5种敌人，每种包含预览图片和介绍
+    const enemies = [
+      { name: '普通坦克', desc: `基础敌人\n生命：${EnemyTankConfig.MAX_HP} | 速度：中等 | 奖励：${EnemyTankConfig.KILL_REWARD}金币`, size: EnemyTankConfig.SIZE, type: 'tank' },
+      { name: '快速敌人', desc: `移动速度快\n生命：${FastEnemyConfig.MAX_HP} | 速度：快 | 奖励：${FastEnemyConfig.KILL_REWARD}金币`, size: FastEnemyConfig.SIZE, type: 'fast' },
+      { name: '重型敌人', desc: `生命值高，移动慢\n生命：${HeavyEnemyConfig.MAX_HP} | 速度：慢 | 奖励：${HeavyEnemyConfig.KILL_REWARD}金币`, size: HeavyEnemyConfig.SIZE, type: 'heavy' },
+      { name: '飞行敌人', desc: `可飞越障碍物\n生命：${FlyingEnemyConfig.MAX_HP} | 速度：中快 | 奖励：${FlyingEnemyConfig.KILL_REWARD}金币`, size: FlyingEnemyConfig.SIZE, type: 'flying' },
+      { name: '自爆敌人', desc: `死亡时爆炸造成范围伤害\n生命：${BomberEnemyConfig.MAX_HP} | 速度：中 | 奖励：${BomberEnemyConfig.KILL_REWARD}金币`, size: BomberEnemyConfig.SIZE, type: 'bomber' }
+    ];
+    
+    for (const enemy of enemies) {
+      currentY += previewSize + previewSpacing; // 预览图片高度
+      currentY += this.measureTextHeight(enemy.name, contentWidth, lineHeight);
+      currentY += this.measureTextHeight(enemy.desc, contentWidth, lineHeight);
+      currentY += lineHeight * 1.2;
+    }
+    
+    currentY += lineHeight * 0.5;
+    
+    // 提示
+    currentY += this.measureTextHeight('【提示】', contentWidth, lineHeight);
+    currentY += this.measureTextHeight('• 合理布局武器位置', contentWidth, lineHeight);
+    currentY += this.measureTextHeight('• 优先升级高价值武器', contentWidth, lineHeight);
+    currentY += this.measureTextHeight('• 注意敌人的移动路径', contentWidth, lineHeight);
     
     this.ctx.restore();
     
     return currentY;
+  }
+  
+  /**
+   * 测量文本高度（考虑换行）
+   */
+  measureTextHeight(text, contentWidth, lineHeight) {
+    if (!text || text.length === 0) {
+      return lineHeight;
+    }
+    
+    const words = text.split('');
+    let line = '';
+    let lineCount = 0;
+    
+    for (const char of words) {
+      const testLine = line + char;
+      const metrics = this.ctx.measureText(testLine);
+      if (metrics.width > contentWidth && line.length > 0) {
+        line = char;
+        lineCount++;
+      } else {
+        line = testLine;
+      }
+    }
+    
+    if (line.length > 0) {
+      lineCount++;
+    }
+    
+    return lineCount * lineHeight;
   }
   
   /**
@@ -366,66 +429,78 @@ class HelpScreen {
     
     this.ctx.font = `${UIConfig.SUBTITLE_FONT_SIZE * 0.9}px Arial`;
     this.ctx.textAlign = 'left';
-    this.ctx.textBaseline = 'top'; // 使用 top baseline，确保文字从顶部开始绘制
+    this.ctx.textBaseline = 'top';
     this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN, 0.9);
     
-    const helpTexts = [
-      '【游戏目标】',
-      '阻止敌人到达战场右端，保护基地！',
-      '',
-      '【操作说明】',
-      '1. 拖拽武器卡片到战场放置防御塔',
-      '2. 防御塔会自动攻击范围内的敌人',
-      '3. 击败敌人获得金币，购买更多武器',
-      '',
-      '【武器类型】',
-      '• 火箭塔：远程范围攻击',
-      '• 激光塔：持续伤害，攻击速度快',
-      '',
-      '【提示】',
-      '• 合理布局武器位置',
-      '• 优先升级高价值武器',
-      '• 注意敌人的移动路径'
-    ];
+    const previewSize = 50; // 预览图片尺寸
+    const previewSpacing = 10; // 预览图片与文字的间距
     
     // 内容从 contentStartY 开始，减去滚动偏移
-    // 当 scrollY = 0 时，第一行文字从 contentStartY 开始显示
-    // 使用 textBaseline = 'top'，所以文字从 currentY 的顶部开始绘制
-    // 这样第一行文字就能完全可见
     let currentY = contentStartY - this.scrollY;
-    for (const text of helpTexts) {
-      if (text.startsWith('【') || text.startsWith('•')) {
-        // 标题或列表项，使用更亮的颜色
-        this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_TOWER, 0.9);
-        this.ctx.font = `bold ${UIConfig.SUBTITLE_FONT_SIZE * 0.9}px Arial`;
-      } else {
-        this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN, 0.85);
-        this.ctx.font = `${UIConfig.SUBTITLE_FONT_SIZE * 0.9}px Arial`;
-      }
+    
+    // 绘制游戏目标
+    currentY = this.drawTextSection(this.ctx, contentX, currentY, contentWidth, lineHeight, '【游戏目标】', '阻止敌人到达战场右端，保护基地！');
+    currentY += lineHeight * 1.5;
+    
+    // 绘制操作说明
+    currentY = this.drawTextSection(this.ctx, contentX, currentY, contentWidth, lineHeight, '【操作说明】', 
+      '1. 拖拽武器卡片到战场放置防御塔\n2. 防御塔会自动攻击范围内的敌人\n3. 击败敌人获得金币，购买更多武器');
+    currentY += lineHeight * 1.5;
+    
+    // 绘制武器类型（包含预览图片）
+    currentY = this.drawTextSection(this.ctx, contentX, currentY, contentWidth, lineHeight, '【武器类型】', '');
+    currentY += lineHeight * 0.5;
+    
+    const weapons = [
+      { type: WeaponType.ROCKET, name: '火箭塔', desc: `追踪火箭，高爆溅射伤害\n射程：${RocketTowerConfig.ATTACK_RANGE}格 | 伤害：高 | 成本：${RocketTowerConfig.BASE_COST}金币` },
+      { type: WeaponType.LASER, name: '激光塔', desc: `持续射线，高射速攻击\n射程：${LaserTowerConfig.ATTACK_RANGE}格 | 伤害：中 | 成本：${LaserTowerConfig.BASE_COST}金币` },
+      { type: WeaponType.CANNON, name: '加农炮', desc: `直线炮弹，高爆伤害\n射程：${CannonTowerConfig.ATTACK_RANGE}格 | 伤害：很高 | 成本：${CannonTowerConfig.BASE_COST}金币` },
+      { type: WeaponType.SNIPER, name: '狙击塔', desc: `快速子弹，超远射程\n射程：${SniperTowerConfig.ATTACK_RANGE}格 | 伤害：极高 | 成本：${SniperTowerConfig.BASE_COST}金币` }
+    ];
+    
+    for (const weapon of weapons) {
+      // 绘制武器预览图片
+      const previewX = contentX + previewSize / 2;
+      const previewY = currentY + previewSize / 2;
+      this.drawWeaponPreview(this.ctx, previewX, previewY, weapon.type, previewSize);
       
-      // 处理文本换行
-      const words = text.split('');
-      let line = '';
-      let lineY = currentY;
-      
-      for (const char of words) {
-        const testLine = line + char;
-        const metrics = this.ctx.measureText(testLine);
-        if (metrics.width > contentWidth && line.length > 0) {
-          this.ctx.fillText(line, contentX, lineY);
-          line = char;
-          lineY += lineHeight;
-        } else {
-          line = testLine;
-        }
-      }
-      
-      if (line.length > 0) {
-        this.ctx.fillText(line, contentX, lineY);
-      }
-      
-      currentY = lineY + lineHeight * 1.2;
+      // 绘制武器名称和介绍（在预览图片右侧）
+      const textX = contentX + previewSize + previewSpacing;
+      currentY = this.drawTextSection(this.ctx, textX, currentY, contentWidth - previewSize - previewSpacing, lineHeight, weapon.name, weapon.desc);
+      currentY += lineHeight * 1.2;
     }
+    
+    currentY += lineHeight * 0.5;
+    
+    // 绘制敌人类型（包含预览图片）
+    currentY = this.drawTextSection(this.ctx, contentX, currentY, contentWidth, lineHeight, '【敌人类型】', '');
+    currentY += lineHeight * 0.5;
+    
+    const enemies = [
+      { name: '普通坦克', desc: `基础敌人\n生命：${EnemyTankConfig.MAX_HP} | 速度：中等 | 奖励：${EnemyTankConfig.KILL_REWARD}金币`, size: EnemyTankConfig.SIZE, type: 'tank' },
+      { name: '快速敌人', desc: `移动速度快\n生命：${FastEnemyConfig.MAX_HP} | 速度：快 | 奖励：${FastEnemyConfig.KILL_REWARD}金币`, size: FastEnemyConfig.SIZE, type: 'fast' },
+      { name: '重型敌人', desc: `生命值高，移动慢\n生命：${HeavyEnemyConfig.MAX_HP} | 速度：慢 | 奖励：${HeavyEnemyConfig.KILL_REWARD}金币`, size: HeavyEnemyConfig.SIZE, type: 'heavy' },
+      { name: '飞行敌人', desc: `可飞越障碍物\n生命：${FlyingEnemyConfig.MAX_HP} | 速度：中快 | 奖励：${FlyingEnemyConfig.KILL_REWARD}金币`, size: FlyingEnemyConfig.SIZE, type: 'flying' },
+      { name: '自爆敌人', desc: `死亡时爆炸造成范围伤害\n生命：${BomberEnemyConfig.MAX_HP} | 速度：中 | 奖励：${BomberEnemyConfig.KILL_REWARD}金币`, size: BomberEnemyConfig.SIZE, type: 'bomber' }
+    ];
+    
+    for (const enemy of enemies) {
+      // 绘制敌人预览图片
+      const previewX = contentX + previewSize / 2;
+      const previewY = currentY + previewSize / 2;
+      this.drawEnemyPreview(this.ctx, previewX, previewY, enemy.size, previewSize, enemy.type);
+      
+      // 绘制敌人名称和介绍（在预览图片右侧）
+      const textX = contentX + previewSize + previewSpacing;
+      currentY = this.drawTextSection(this.ctx, textX, currentY, contentWidth - previewSize - previewSpacing, lineHeight, enemy.name, enemy.desc);
+      currentY += lineHeight * 1.2;
+    }
+    
+    currentY += lineHeight * 0.5;
+    
+    // 绘制提示
+    currentY = this.drawTextSection(this.ctx, contentX, currentY, contentWidth, lineHeight, '【提示】', 
+      '• 合理布局武器位置\n• 优先升级高价值武器\n• 注意敌人的移动路径');
     
     // 恢复裁剪区域
     this.ctx.restore();
@@ -433,6 +508,155 @@ class HelpScreen {
     // 绘制关闭按钮（使用缓存）
     const closeBtnY = panelY + panelHeight * 0.88;
     HelpScreen.renderButtonFromCache(this.ctx, windowWidth / 2, closeBtnY);
+  }
+  
+  /**
+   * 绘制文本段落（标题+内容）
+   */
+  drawTextSection(ctx, x, y, width, lineHeight, title, content) {
+    ctx.save();
+    
+    // 绘制标题
+    if (title) {
+      ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_TOWER, 0.9);
+      ctx.font = `bold ${UIConfig.SUBTITLE_FONT_SIZE * 0.9}px Arial`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      
+      const titleLines = this.wrapText(ctx, title, width);
+      let currentY = y;
+      for (const line of titleLines) {
+        ctx.fillText(line, x, currentY);
+        currentY += lineHeight;
+      }
+      y = currentY + lineHeight * 0.3;
+    }
+    
+    // 绘制内容
+    if (content) {
+      ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN, 0.85);
+      ctx.font = `${UIConfig.SUBTITLE_FONT_SIZE * 0.9}px Arial`;
+      
+      const contentLines = content.split('\n');
+      let currentY = y;
+      for (const line of contentLines) {
+        if (line.startsWith('•')) {
+          ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_TOWER, 0.8);
+        } else {
+          ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN, 0.85);
+        }
+        
+        const wrappedLines = this.wrapText(ctx, line, width);
+        for (const wrappedLine of wrappedLines) {
+          ctx.fillText(wrappedLine, x, currentY);
+          currentY += lineHeight;
+        }
+      }
+      y = currentY;
+    }
+    
+    ctx.restore();
+    return y;
+  }
+  
+  /**
+   * 文本换行
+   */
+  wrapText(ctx, text, maxWidth) {
+    if (!text || text.length === 0) {
+      return [];
+    }
+    
+    const words = text.split('');
+    const lines = [];
+    let line = '';
+    
+    for (const char of words) {
+      const testLine = line + char;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && line.length > 0) {
+        lines.push(line);
+        line = char;
+      } else {
+        line = testLine;
+      }
+    }
+    
+    if (line.length > 0) {
+      lines.push(line);
+    }
+    
+    return lines;
+  }
+  
+  /**
+   * 绘制武器预览图片
+   */
+  drawWeaponPreview(ctx, x, y, weaponType, size) {
+    polyfillRoundRect(ctx);
+    ctx.save();
+    
+    // 绘制背景框
+    ctx.fillStyle = ColorUtils.hexToCanvas(0x1a1a2e, 0.8);
+    ctx.beginPath();
+    ctx.roundRect(x - size / 2 - 2, y - size / 2 - 2, size + 4, size + 4, 4);
+    ctx.fill();
+    
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.5);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // 绘制武器图标
+    ctx.translate(x, y);
+    WeaponRenderer.renderWeaponIcon(ctx, 0, 0, weaponType, size * 0.8);
+    
+    ctx.restore();
+  }
+  
+  /**
+   * 绘制敌人预览图片
+   */
+  drawEnemyPreview(ctx, x, y, enemySize, previewSize, enemyType = 'tank') {
+    polyfillRoundRect(ctx);
+    ctx.save();
+    
+    // 绘制背景框
+    ctx.fillStyle = ColorUtils.hexToCanvas(0x1a1a2e, 0.8);
+    ctx.beginPath();
+    ctx.roundRect(x - previewSize / 2 - 2, y - previewSize / 2 - 2, previewSize + 4, previewSize + 4, 4);
+    ctx.fill();
+    
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.5);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // 绘制敌人图标（使用实际尺寸的比例）
+    const scale = previewSize / enemySize;
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    
+    // 根据敌人类型调用不同的渲染方法
+    switch (enemyType) {
+      case 'tank':
+        EnemyRenderer.renderEnemyTank(ctx, 0, 0, enemySize, 0);
+        break;
+      case 'fast':
+        EnemyRenderer.renderFastEnemy(ctx, 0, 0, enemySize, 0);
+        break;
+      case 'heavy':
+        EnemyRenderer.renderHeavyEnemy(ctx, 0, 0, enemySize, 0);
+        break;
+      case 'flying':
+        EnemyRenderer.renderFlyingEnemy(ctx, 0, 0, enemySize, 0);
+        break;
+      case 'bomber':
+        EnemyRenderer.renderBomberEnemy(ctx, 0, 0, enemySize, 0);
+        break;
+      default:
+        EnemyRenderer.renderEnemyTank(ctx, 0, 0, enemySize, 0);
+    }
+    
+    ctx.restore();
   }
   
   /**
