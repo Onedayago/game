@@ -87,27 +87,21 @@ export class HomingRocket {
   }
   
   /**
-   * 从缓存渲染火箭主体
+   * 从缓存渲染火箭主体（固定朝向，向右）
    */
-  static renderBodyFromCache(ctx, x, y, radius, angle) {
+  static renderBodyFromCache(ctx, x, y, radius) {
     if (!this._cachedCanvas) return;
     
     const canvasSize = this._cachedCanvas.width;
     const halfSize = canvasSize * 0.5;
     
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    
     ctx.drawImage(
       this._cachedCanvas,
-      -halfSize,
-      -halfSize,
+      x - halfSize,
+      y - halfSize,
       canvasSize,
       canvasSize
     );
-    
-    ctx.restore();
   }
   
   /**

@@ -8,7 +8,7 @@ import { UIConfig } from '../config/UIConfig';
 import { ColorUtils, GameColors } from '../config/Colors';
 import { GameContext } from '../core/GameContext';
 import { polyfillRoundRect } from '../utils/CanvasUtils';
-import { WeaponType } from '../config/WeaponConfig';
+import { WeaponType, WeaponConfigs } from '../config/WeaponConfig';
 
 export class BattlefieldMinimap {
   // 离屏Canvas缓存（静态部分：背景、边框、网格）
@@ -17,6 +17,9 @@ export class BattlefieldMinimap {
   static _cacheWidth = 0;
   static _cacheHeight = 0;
   static _initialized = false;
+  
+  // 动画时间
+  static _animationTime = 0;
   
   constructor(ctx, weaponManager, enemyManager) {
     this.ctx = ctx;
@@ -38,6 +41,13 @@ export class BattlefieldMinimap {
     this.dragStartY = 0;
     this.worldStartX = 0;
     this.worldStartY = 0;
+  }
+  
+  /**
+   * 更新动画
+   */
+  static updateAnimation(deltaTime) {
+    this._animationTime += deltaTime * 1000;
   }
   
   /**
@@ -298,7 +308,7 @@ export class BattlefieldMinimap {
   }
   
   /**
-   * 渲染小视图（美化版，优化：使用离屏Canvas缓存静态部分）
+   * 渲染小视图（美化版：脉冲波、射程圆圈、拖尾轨迹、发光标记）
    */
   render() {
     
@@ -316,7 +326,7 @@ export class BattlefieldMinimap {
     const scaleX = this.width / GameConfig.BATTLE_WIDTH;
     const scaleY = this.height / GameConfig.BATTLE_HEIGHT;
     
-    // 绘制武器（动态部分）
+    // 绘制武器（简单方块）
     if (this.weaponManager) {
       const weapons = this.weaponManager.getWeapons();
       for (const weapon of weapons) {
@@ -335,19 +345,14 @@ export class BattlefieldMinimap {
             weaponColor = GameColors.SNIPER_TOWER;
           }
           
-          // 绘制武器图标（小方块，带边框）
+          // 绘制武器图标（小方块）
           this.ctx.fillStyle = ColorUtils.hexToCanvas(weaponColor, 0.9);
           this.ctx.fillRect(minimapX - size, minimapY - size, size * 2, size * 2);
-          
-          // 绘制边框
-          this.ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.5);
-          this.ctx.lineWidth = 0.5;
-          this.ctx.strokeRect(minimapX - size, minimapY - size, size * 2, size * 2);
         }
       }
     }
     
-    // 绘制敌人（动态部分）
+    // 绘制敌人（简单圆点）
     if (this.enemyManager) {
       const enemies = this.enemyManager.getEnemies();
       for (const enemy of enemies) {
@@ -357,22 +362,15 @@ export class BattlefieldMinimap {
           const size = UIConfig.MINIMAP_ENEMY_SIZE;
           
           // 绘制敌人图标（小圆点）
-          this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_TANK, 0.95);
+          this.ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_TANK, 0.9);
           this.ctx.beginPath();
           this.ctx.arc(minimapX, minimapY, size, 0, Math.PI * 2);
           this.ctx.fill();
-          
-          // 绘制外圈（高光）
-          this.ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.7);
-          this.ctx.lineWidth = 0.5;
-          this.ctx.beginPath();
-          this.ctx.arc(minimapX, minimapY, size + 0.5, 0, Math.PI * 2);
-          this.ctx.stroke();
         }
       }
     }
     
-    // 绘制当前可见区域的指示器（美化版）
+    // 绘制当前可见区域的指示器（简单矩形框）
     const worldOffsetX = gameContext.worldOffsetX;
     const worldOffsetY = gameContext.worldOffsetY;
     
@@ -384,34 +382,10 @@ export class BattlefieldMinimap {
     const visibleWidth = visibleEndX - visibleStartX;
     const visibleHeight = visibleEndY - visibleStartY;
     
-    // 绘制可见区域半透明背景（渐变）
-    const visibleGradient = this.ctx.createLinearGradient(
-      visibleStartX, visibleStartY,
-      visibleStartX, visibleEndY
-    );
-    visibleGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffff00, 0.15));
-    visibleGradient.addColorStop(1, ColorUtils.hexToCanvas(0xffaa00, 0.1));
-    this.ctx.fillStyle = visibleGradient;
-    this.ctx.fillRect(visibleStartX, visibleStartY, visibleWidth, visibleHeight);
-    
-    // 绘制可见区域边框（发光效果）
-    this.ctx.shadowColor = ColorUtils.hexToCanvas(0xffff00, 0.8);
-    this.ctx.shadowBlur = 6;
-    this.ctx.shadowOffsetX = 0;
-    this.ctx.shadowOffsetY = 0;
-    
-    this.ctx.strokeStyle = ColorUtils.hexToCanvas(0xffff00, 0.9);
+    // 绘制边框
+    this.ctx.strokeStyle = ColorUtils.hexToCanvas(0xffff00, 0.8);
     this.ctx.lineWidth = 2;
     this.ctx.strokeRect(visibleStartX, visibleStartY, visibleWidth, visibleHeight);
-    
-    // 绘制内边框（高光）
-    this.ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.4);
-    this.ctx.lineWidth = 1;
-    this.ctx.strokeRect(visibleStartX + 1, visibleStartY + 1, visibleWidth - 2, visibleHeight - 2);
-    
-    // 重置阴影
-    this.ctx.shadowColor = 'transparent';
-    this.ctx.shadowBlur = 0;
     
     this.ctx.restore();
   }

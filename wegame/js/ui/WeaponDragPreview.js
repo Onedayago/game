@@ -13,8 +13,37 @@ import { CoordinateUtils } from '../utils/CoordinateUtils';
 import { GameContext } from '../core/GameContext';
 
 export class WeaponDragPreview {
+  // 拖拽拖尾效果（静态属性）
+  static _trailPositions = [];
+  static _maxTrailLength = 8;
+  static _animationTime = 0;
+  
   /**
-   * 渲染拖拽预览（在指定世界坐标位置）
+   * 更新动画时间
+   */
+  static updateAnimation(deltaTime) {
+    this._animationTime += deltaTime * 1000;
+  }
+  
+  /**
+   * 添加拖尾位置
+   */
+  static addTrailPosition(x, y) {
+    this._trailPositions.push({ x, y, time: this._animationTime });
+    if (this._trailPositions.length > this._maxTrailLength) {
+      this._trailPositions.shift();
+    }
+  }
+  
+  /**
+   * 清空拖尾
+   */
+  static clearTrail() {
+    this._trailPositions = [];
+  }
+  
+  /**
+   * 渲染拖拽预览（简化版：只显示范围和高亮）
    * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
    * @param {number} worldX - 世界坐标 X（已对齐到网格中心）
    * @param {number} worldY - 世界坐标 Y（已对齐到网格中心）
@@ -39,6 +68,9 @@ export class WeaponDragPreview {
     const previewY = previewWorldY - gameContext.worldOffsetY;
     
     ctx.save();
+    
+    // 绘制攻击范围圈
+    this.drawAttackRange(ctx, previewX, previewY, weaponType, canPlace);
     
     // 绘制预览网格高亮
     this.drawGridHighlight(ctx, previewX, previewY, canPlace);
@@ -126,23 +158,88 @@ export class WeaponDragPreview {
   }
   
   /**
-   * 绘制网格高亮
+   * 绘制拖尾效果
+   */
+  static drawTrail(ctx, weaponType, canPlace) {
+    if (this._trailPositions.length < 2) return;
+    
+    const config = WeaponConfigs.getConfig(weaponType);
+    const color = config ? config.colorHex : 0x00ff41;
+    const baseColor = canPlace ? color : 0xff0000;
+    
+    // 绘制连接线（渐变透明度）
+    for (let i = 1; i < this._trailPositions.length; i++) {
+      const pos1 = this._trailPositions[i - 1];
+      const pos2 = this._trailPositions[i];
+      const alpha = (i / this._trailPositions.length) * 0.4;
+      
+      ctx.strokeStyle = ColorUtils.hexToCanvas(baseColor, alpha);
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(pos1.x, pos1.y);
+      ctx.lineTo(pos2.x, pos2.y);
+      ctx.stroke();
+    }
+    
+    // 绘制拖尾圆点
+    for (let i = 0; i < this._trailPositions.length; i++) {
+      const pos = this._trailPositions[i];
+      const alpha = (i / this._trailPositions.length) * 0.5;
+      const size = (i / this._trailPositions.length) * 8;
+      
+      ctx.fillStyle = ColorUtils.hexToCanvas(baseColor, alpha);
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  
+  /**
+   * 绘制攻击范围圈（简化版）
+   */
+  static drawAttackRange(ctx, x, y, weaponType, canPlace) {
+    const config = WeaponConfigs.getConfig(weaponType);
+    if (!config) return;
+    
+    const range = config.attackRange * GameConfig.CELL_SIZE;
+    const color = canPlace ? config.colorHex : 0xff0000;
+    
+    // 数值验证
+    if (!isFinite(range) || range <= 0 || !isFinite(x) || !isFinite(y)) {
+      return;
+    }
+    
+    // 绘制范围圈
+    ctx.strokeStyle = ColorUtils.hexToCanvas(color, 0.5);
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 4]);
+    ctx.beginPath();
+    ctx.arc(x, y, range, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  
+  /**
+   * 绘制网格高亮（简化版）
    */
   static drawGridHighlight(ctx, x, y, canPlace) {
     const cellSize = GameConfig.CELL_SIZE;
     const halfSize = cellSize / 2;
     
-    // 绘制半透明背景
-    ctx.fillStyle = canPlace 
-      ? 'rgba(0, 255, 0, 0.2)'  // 绿色：可以放置
-      : 'rgba(255, 0, 0, 0.2)'; // 红色：不能放置
-    
+    // 绘制背景
+    if (canPlace) {
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
+    } else {
+      ctx.fillStyle = 'rgba(255, 50, 50, 0.3)';
+    }
     ctx.fillRect(x - halfSize, y - halfSize, cellSize, cellSize);
     
     // 绘制边框
-    ctx.strokeStyle = canPlace
-      ? 'rgba(0, 255, 0, 0.8)'  // 绿色边框
-      : 'rgba(255, 0, 0, 0.8)'; // 红色边框
+    if (canPlace) {
+      ctx.strokeStyle = 'rgba(0, 255, 100, 0.8)';
+    } else {
+      ctx.strokeStyle = 'rgba(255, 50, 50, 0.9)';
+    }
     ctx.lineWidth = 2;
     ctx.strokeRect(x - halfSize, y - halfSize, cellSize, cellSize);
   }

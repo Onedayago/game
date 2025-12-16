@@ -9,6 +9,8 @@ import { GameContext } from './core/GameContext';
 import { GameInitializer } from './core/GameInitializer';
 import { GameInputHandler } from './core/GameInputHandler';
 import { GameLoop } from './core/GameLoop';
+import { BattlefieldMinimap } from './ui/BattlefieldMinimap';
+import { WeaponDragPreview } from './ui/WeaponDragPreview';
 
 export default class GameMain {
   constructor(canvas, ctx) {
@@ -341,6 +343,15 @@ export default class GameMain {
   onUpdate(deltaTime, deltaMS) {
     // 计算FPS
     this.updateFPS();
+    
+    // 更新UI动画（无论游戏是否开始）
+    if (this.loadingScreen) {
+      this.loadingScreen.update(deltaMS);
+    }
+    
+    // 更新静态动画时间
+    BattlefieldMinimap.updateAnimation(deltaTime);
+    WeaponDragPreview.updateAnimation(deltaTime);
     
     if (this.gameContext.gameStarted && !this.gameContext.gamePaused) {
       this.update(deltaTime, deltaMS);

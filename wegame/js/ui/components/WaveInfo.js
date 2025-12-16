@@ -105,7 +105,7 @@ export class WaveInfo {
   }
   
   /**
-   * 渲染波次信息
+   * 渲染波次信息（简化版：移除动态shadowBlur）
    */
   static render(ctx, waveLevel, progress) {
     const panelWidth = this.PANEL_WIDTH;
@@ -127,10 +127,6 @@ export class WaveInfo {
     }
     
     // 绘制动态文字（波次和进度）
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    ctx.shadowBlur = 3;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 1;
     ctx.fillStyle = ColorUtils.hexToCanvas(0x9d00ff, 1.0);
     ctx.font = `bold ${UIConfig.BUTTON_FONT_SIZE * 0.9}px Arial`;
     ctx.textAlign = 'center';
@@ -140,11 +136,6 @@ export class WaveInfo {
     ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN, 0.9);
     ctx.font = `${UIConfig.BUTTON_FONT_SIZE * 0.8}px Arial`;
     ctx.fillText(`${progress.current}/${progress.max}`, panelX + panelWidth / 2, panelY + panelHeight - 12);
-    
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
   }
   
 }

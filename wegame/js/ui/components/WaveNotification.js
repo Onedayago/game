@@ -6,7 +6,6 @@
 import { GameConfig } from '../../config/GameConfig';
 import { ColorUtils } from '../../config/Colors';
 import { UIConfig } from '../../config/UIConfig';
-import { polyfillRoundRect } from '../../utils/CanvasUtils';
 
 export class WaveNotification {
   static DURATION = 3000; // 显示3秒
@@ -15,7 +14,7 @@ export class WaveNotification {
   static SCALE_DURATION = 800; // 缩放时间
   
   /**
-   * 渲染波次提示
+   * 渲染波次提示（简化版：移除所有动态特效）
    */
   static render(ctx, waveLevel, elapsed) {
     const duration = this.DURATION;
@@ -23,71 +22,61 @@ export class WaveNotification {
     // 计算透明度（淡入淡出效果）
     let alpha = 1.0;
     if (elapsed < this.FADE_IN_DURATION) {
-      // 前0.5秒淡入
       alpha = elapsed / this.FADE_IN_DURATION;
     } else if (elapsed > duration - this.FADE_OUT_DURATION) {
-      // 最后0.5秒淡出
       alpha = (duration - elapsed) / this.FADE_OUT_DURATION;
     }
     
-    // 计算缩放（放大效果）
-    let scale = 1.0;
-    if (elapsed < this.SCALE_DURATION) {
-      // 前0.8秒放大
-      scale = 0.5 + (elapsed / this.SCALE_DURATION) * 0.5;
-    }
-    
-    polyfillRoundRect(ctx);
     ctx.save();
     
     const centerX = GameConfig.DESIGN_WIDTH / 2;
     const centerY = GameConfig.DESIGN_HEIGHT / 2;
     
-    // 绘制半透明背景
+    // 绘制半透明遮罩
     ctx.fillStyle = `rgba(0, 0, 0, ${0.6 * alpha})`;
     ctx.fillRect(0, 0, GameConfig.DESIGN_WIDTH, GameConfig.DESIGN_HEIGHT);
     
-    // 绘制提示文字（带阴影和发光效果）
+    // 绘制提示文字
     const text = `第 ${waveLevel} 波`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    
-    // 应用缩放
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.scale(scale, scale);
-    ctx.translate(-centerX, -centerY);
-    
-    // 绘制文字阴影（多层）
-    ctx.shadowColor = `rgba(157, 0, 255, ${0.8 * alpha})`;
-    ctx.shadowBlur = 20;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    
-    // 绘制外发光
-    ctx.fillStyle = `rgba(157, 0, 255, ${0.3 * alpha})`;
-    ctx.font = `bold ${UIConfig.TITLE_FONT_SIZE * 1.2}px Arial`;
+    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, alpha);
+    ctx.font = `bold ${UIConfig.BUTTON_FONT_SIZE * 2.2}px Arial`;
     ctx.fillText(text, centerX, centerY);
     
-    // 绘制主文字
-    ctx.shadowColor = `rgba(0, 0, 0, ${0.8 * alpha})`;
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 3;
-    ctx.fillStyle = ColorUtils.hexToCanvas(0x9d00ff, alpha);
-    ctx.font = `bold ${UIConfig.BUTTON_FONT_SIZE * 2}px Arial`;
-    ctx.fillText(text, centerX, centerY);
-    
-    // 绘制高光文字
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, alpha * 0.5);
-    ctx.fillText(text, centerX - 2, centerY - 2);
-    
     ctx.restore();
-    ctx.restore();
+  }
+  
+  /**
+   * HSL转RGB（用于彩虹色）
+   */
+  static hslToRgb(h, s, l) {
+    let r, g, b;
+    
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    
+    return {
+      r: Math.round(r * 255),
+      g: Math.round(g * 255),
+      b: Math.round(b * 255)
+    };
   }
 }
 

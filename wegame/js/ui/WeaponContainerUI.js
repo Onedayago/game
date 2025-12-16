@@ -144,65 +144,137 @@ export class WeaponContainerUI {
   }
   
   /**
-   * 绘制箭头到缓存Canvas
+   * 绘制箭头到缓存Canvas（美化版：使用离屏渲染）
    */
   drawArrowToCache(ctx, x, y, size, left) {
-    // 绘制箭头背景（圆形）
     const bgRadius = size * 0.6;
-    const bgGradient = ctx.createRadialGradient(x, y, 0, x, y, bgRadius);
-    bgGradient.addColorStop(0, 'rgba(30, 35, 45, 0.9)');
-    bgGradient.addColorStop(1, 'rgba(15, 20, 30, 0.85)');
     
+    // 1. 绘制外层光晕（大圆，渐变）
+    const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, bgRadius * 1.3);
+    glowGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.3));
+    glowGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.15));
+    glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = glowGradient;
+    ctx.beginPath();
+    ctx.arc(x, y, bgRadius * 1.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 2. 绘制背景阴影（制造立体感）
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.beginPath();
+    ctx.arc(x + 2, y + 2, bgRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 3. 绘制主背景（渐变圆形，从上到下）
+    const bgGradient = ctx.createLinearGradient(x, y - bgRadius, x, y + bgRadius);
+    bgGradient.addColorStop(0, 'rgba(50, 55, 70, 0.95)');
+    bgGradient.addColorStop(0.3, 'rgba(40, 45, 60, 0.92)');
+    bgGradient.addColorStop(0.7, 'rgba(30, 35, 50, 0.9)');
+    bgGradient.addColorStop(1, 'rgba(20, 25, 40, 0.88)');
     ctx.fillStyle = bgGradient;
     ctx.beginPath();
     ctx.arc(x, y, bgRadius, 0, Math.PI * 2);
     ctx.fill();
     
-    // 绘制箭头边框
-    ctx.shadowBlur = 6;
-    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.5);
-    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.7);
-    ctx.lineWidth = 2;
+    // 4. 绘制内层高光（上半部分）
+    const highlightGradient = ctx.createRadialGradient(
+      x, y - bgRadius * 0.3, 0, 
+      x, y - bgRadius * 0.3, bgRadius * 0.8
+    );
+    highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+    highlightGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');
+    highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = highlightGradient;
+    ctx.beginPath();
+    ctx.arc(x, y, bgRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 5. 绘制外边框（渐变色）
+    const borderGradient = ctx.createLinearGradient(x, y - bgRadius, x, y + bgRadius);
+    borderGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.9));
+    borderGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.7));
+    borderGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.5));
+    ctx.strokeStyle = borderGradient;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(x, y, bgRadius, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.shadowBlur = 0;
     
-    // 绘制箭头形状（三角形）
-    const arrowWidth = size * 0.6;
-    const arrowHeight = size * 0.5;
-    
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.9);
+    // 6. 绘制内边框（高光）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.15);
+    ctx.lineWidth = 1;
     ctx.beginPath();
+    ctx.arc(x, y, bgRadius - 2, 0, Math.PI * 2);
+    ctx.stroke();
     
+    // 7. 绘制箭头主体（三角形，带渐变）
+    const arrowWidth = size * 0.5;
+    const arrowHeight = size * 0.4;
+    
+    // 箭头阴影
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.beginPath();
     if (left) {
-      // 左箭头：指向左（三角形顶点在左边）
-      ctx.moveTo(x - arrowWidth / 2, y); // 顶点（左）
-      ctx.lineTo(x + arrowWidth / 2, y - arrowHeight / 2); // 右上
-      ctx.lineTo(x + arrowWidth / 2, y + arrowHeight / 2); // 右下
+      ctx.moveTo(x - arrowWidth / 2 + 1, y + 1);
+      ctx.lineTo(x + arrowWidth / 2 + 1, y - arrowHeight / 2 + 1);
+      ctx.lineTo(x + arrowWidth / 2 + 1, y + arrowHeight / 2 + 1);
       ctx.closePath();
     } else {
-      // 右箭头：指向右（三角形顶点在右边）
-      ctx.moveTo(x + arrowWidth / 2, y); // 顶点（右）
-      ctx.lineTo(x - arrowWidth / 2, y - arrowHeight / 2); // 左上
-      ctx.lineTo(x - arrowWidth / 2, y + arrowHeight / 2); // 左下
+      ctx.moveTo(x + arrowWidth / 2 + 1, y + 1);
+      ctx.lineTo(x - arrowWidth / 2 + 1, y - arrowHeight / 2 + 1);
+      ctx.lineTo(x - arrowWidth / 2 + 1, y + arrowHeight / 2 + 1);
       ctx.closePath();
     }
-    
     ctx.fill();
     
-    // 绘制箭头高光（上半部分）
-    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.3);
+    // 箭头主体（渐变）
+    const arrowGradient = ctx.createLinearGradient(
+      x, y - arrowHeight / 2, 
+      x, y + arrowHeight / 2
+    );
+    arrowGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 0.95));
+    arrowGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.UI_BORDER, 1.0));
+    arrowGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.8));
+    ctx.fillStyle = arrowGradient;
     ctx.beginPath();
     if (left) {
       ctx.moveTo(x - arrowWidth / 2, y);
       ctx.lineTo(x + arrowWidth / 2, y - arrowHeight / 2);
-      ctx.lineTo(x + arrowWidth / 4, y - arrowHeight / 4);
+      ctx.lineTo(x + arrowWidth / 2, y + arrowHeight / 2);
       ctx.closePath();
     } else {
       ctx.moveTo(x + arrowWidth / 2, y);
       ctx.lineTo(x - arrowWidth / 2, y - arrowHeight / 2);
+      ctx.lineTo(x - arrowWidth / 2, y + arrowHeight / 2);
+      ctx.closePath();
+    }
+    ctx.fill();
+    
+    // 8. 箭头边缘高光
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.5);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (left) {
+      ctx.moveTo(x - arrowWidth / 2, y);
+      ctx.lineTo(x + arrowWidth / 2, y - arrowHeight / 2);
+    } else {
+      ctx.moveTo(x + arrowWidth / 2, y);
+      ctx.lineTo(x - arrowWidth / 2, y - arrowHeight / 2);
+    }
+    ctx.stroke();
+    
+    // 9. 箭头内部高光（小三角形）
+    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.4);
+    ctx.beginPath();
+    if (left) {
+      ctx.moveTo(x - arrowWidth / 2, y);
+      ctx.lineTo(x + arrowWidth / 4, y - arrowHeight / 4);
+      ctx.lineTo(x + arrowWidth / 4, y);
+      ctx.closePath();
+    } else {
+      ctx.moveTo(x + arrowWidth / 2, y);
       ctx.lineTo(x - arrowWidth / 4, y - arrowHeight / 4);
+      ctx.lineTo(x - arrowWidth / 4, y);
       ctx.closePath();
     }
     ctx.fill();

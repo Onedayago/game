@@ -58,31 +58,25 @@ export class HomingRocketRenderer {
   }
   
   /**
-   * 从缓存渲染火箭主体
+   * 从缓存渲染火箭主体（固定朝向，向右）
    */
-  static renderBodyFromCache(ctx, x, y, radius, angle) {
+  static renderBodyFromCache(ctx, x, y, radius) {
     if (!this._cachedCanvas) return;
     
     const canvasSize = this._cachedCanvas.width;
     const halfSize = canvasSize * 0.5;
     
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    
     ctx.drawImage(
       this._cachedCanvas,
-      -halfSize,
-      -halfSize,
+      x - halfSize,
+      y - halfSize,
       canvasSize,
       canvasSize
     );
-    
-    ctx.restore();
   }
   
   /**
-   * 渲染尾迹（动态绘制，不缓存）
+   * 渲染尾迹（动态绘制，不缓存，暂时禁用旋转）
    */
   static renderTrail(ctx, lastX, lastY, currentX, currentY, radius) {
     const dx = currentX - lastX;
@@ -90,14 +84,8 @@ export class HomingRocketRenderer {
     const dist = Math.sqrt(dx * dx + dy * dy);
     
     if (dist > 0.1) {
-      const trailAngle = Math.atan2(dy, dx);
-      
-      ctx.save();
-      ctx.translate(lastX, lastY);
-      ctx.rotate(trailAngle);
-      
-      // 简洁尾迹
-      const trailGradient = ctx.createLinearGradient(0, 0, Math.min(dist, radius * 1.5), 0);
+      // 简单水平尾迹（固定朝向）
+      const trailGradient = ctx.createLinearGradient(lastX, lastY, currentX, currentY);
       trailGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ROCKET_BULLET, 0.4));
       trailGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ROCKET_BULLET, 0));
       
@@ -105,16 +93,14 @@ export class HomingRocketRenderer {
       ctx.lineWidth = radius * 0.8;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.min(dist, radius * 1.5), 0);
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(currentX, currentY);
       ctx.stroke();
-      
-      ctx.restore();
     }
   }
   
   /**
-   * 渲染追踪火箭（主体+尾迹）
+   * 渲染追踪火箭（主体+尾迹，固定朝向）
    */
   static render(ctx, x, y, radius, angle, lastX, lastY) {
     // 渲染尾迹（动态）
@@ -122,11 +108,11 @@ export class HomingRocketRenderer {
       this.renderTrail(ctx, lastX, lastY, x, y, radius);
     }
     
-    // 渲染主体（从缓存）
+    // 渲染主体（从缓存，固定朝向）
     if (!this._initialized || this._cacheRadius !== radius) {
       this.initCache(radius);
     }
-    this.renderBodyFromCache(ctx, x, y, radius, angle);
+    this.renderBodyFromCache(ctx, x, y, radius);
   }
 }
 

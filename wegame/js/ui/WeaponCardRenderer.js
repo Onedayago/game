@@ -190,7 +190,7 @@ export class WeaponCardRenderer {
   
   
   /**
-   * 绘制选中状态的覆盖层
+   * 绘制选中状态的覆盖层（简化版：移除动态shadowBlur）
    */
   static drawSelectedOverlay(ctx, x, y, size, weaponType) {
     const config = WeaponConfigs.getConfig(weaponType);
@@ -208,14 +208,11 @@ export class WeaponCardRenderer {
     WeaponCardRenderer.roundRect(ctx, x, y, size, size, radius);
     ctx.fill();
     
-    // 绘制选中边框（更亮更粗）
+    // 绘制选中边框
     ctx.strokeStyle = ColorUtils.hexToCanvas(config.colorHex, 0.9);
     ctx.lineWidth = UIConfig.CARD_BORDER_WIDTH * 2;
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = ColorUtils.hexToCanvas(config.colorHex, 0.8);
     WeaponCardRenderer.roundRect(ctx, x, y, size, size, radius);
     ctx.stroke();
-    ctx.shadowBlur = 0;
     
     // 绘制内部高亮边框
     ctx.strokeStyle = ColorUtils.hexToCanvas(config.colorHex, 0.6);
