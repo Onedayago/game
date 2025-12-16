@@ -20,21 +20,9 @@ export class GameConfig {
       return; // 已经初始化过
     }
     
-    try {
-      // 微信小游戏：使用 wx.getWindowInfo() 获取窗口信息
-      const windowInfo = wx.getWindowInfo();
-      this._cachedDesignWidth = windowInfo.windowWidth || 1000;
-      this._cachedDesignHeight = windowInfo.windowHeight || 480;
-      
-      console.log('GameConfig 初始化完成', {
-        width: this._cachedDesignWidth,
-        height: this._cachedDesignHeight
-      });
-    } catch (e) {
-      console.warn('GameConfig.init 失败，使用默认值:', e);
-      this._cachedDesignWidth = 1000;
-      this._cachedDesignHeight = 480;
-    }
+    const windowInfo = wx.getWindowInfo();
+    this._cachedDesignWidth = windowInfo.windowWidth || 1000;
+    this._cachedDesignHeight = windowInfo.windowHeight || 480;
   }
   
   /**
@@ -43,7 +31,6 @@ export class GameConfig {
    */
   static get DESIGN_WIDTH() {
     if (this._cachedDesignWidth === null) {
-      // 如果未初始化，尝试初始化（向后兼容）
       this.init();
     }
     return this._cachedDesignWidth || 1000;
@@ -55,7 +42,6 @@ export class GameConfig {
    */
   static get DESIGN_HEIGHT() {
     if (this._cachedDesignHeight === null) {
-      // 如果未初始化，尝试初始化（向后兼容）
       this.init();
     }
     return this._cachedDesignHeight || 480;

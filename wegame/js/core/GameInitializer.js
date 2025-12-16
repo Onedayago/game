@@ -22,6 +22,7 @@ import { ObstacleManager } from '../managers/ObstacleManager';
 import { initCanvasUtils } from '../utils/CanvasUtils';
 import { GameRenderer } from './GameRenderer';
 import { UIRenderer } from '../ui/UIRenderer';
+import { EffectManager } from '../effects/EffectManager';
 
 export class GameInitializer {
   /**
@@ -85,6 +86,9 @@ export class GameInitializer {
     const obstacleManager = new ObstacleManager(ctx);
     obstacleManager.init(); // 初始化障碍物
     
+    // 特效管理器
+    const effectManager = new EffectManager(ctx);
+    
     // 初始化UI缓存
     UIRenderer.initCaches();
     
@@ -105,7 +109,8 @@ export class GameInitializer {
       enemyManager,
       goldManager,
       particleManager,
-      obstacleManager
+      obstacleManager,
+      effectManager
     };
   }
   

@@ -49,27 +49,20 @@ export class HomingRocket {
       return;
     }
     
-    try {
-      const canvasSize = Math.ceil(radius * 3);
-      
-      this._cachedCanvas = wx.createCanvas();
-      this._cachedCanvas.width = canvasSize;
-      this._cachedCanvas.height = canvasSize;
-      
-      this._cachedCtx = this._cachedCanvas.getContext('2d');
-      this._cacheRadius = radius;
-      
-      // 清空缓存Canvas
-      this._cachedCtx.clearRect(0, 0, canvasSize, canvasSize);
-      
-      // 绘制火箭主体到缓存（居中，角度=0）
-      this.drawRocketBodyToCache(this._cachedCtx, radius, canvasSize / 2, canvasSize / 2);
-      
-      this._initialized = true;
-    } catch (e) {
-      console.warn('火箭渲染缓存初始化失败:', e);
-      this._initialized = false;
-    }
+    const canvasSize = Math.ceil(radius * 3);
+    
+    this._cachedCanvas = wx.createCanvas();
+    this._cachedCanvas.width = canvasSize;
+    this._cachedCanvas.height = canvasSize;
+    
+    this._cachedCtx = this._cachedCanvas.getContext('2d');
+    this._cacheRadius = radius;
+    
+    this._cachedCtx.clearRect(0, 0, canvasSize, canvasSize);
+    
+    this.drawRocketBodyToCache(this._cachedCtx, radius, canvasSize / 2, canvasSize / 2);
+    
+    this._initialized = true;
   }
   
   /**

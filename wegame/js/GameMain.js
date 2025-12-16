@@ -25,6 +25,7 @@ export default class GameMain {
     this.goldManager = null;
     this.particleManager = null;
     this.obstacleManager = null;
+    this.effectManager = null;
     
     // UI
     this.loadingScreen = null;
@@ -67,6 +68,15 @@ export default class GameMain {
     this.goldManager = managers.goldManager;
     this.particleManager = managers.particleManager;
     this.obstacleManager = managers.obstacleManager;
+    this.effectManager = managers.effectManager;
+    
+    // 设置特效管理器引用
+    if (this.weaponManager) {
+      this.weaponManager.setEffectManager(this.effectManager);
+    }
+    if (this.enemyManager) {
+      this.enemyManager.setEffectManager(this.effectManager);
+    }
     
     // 初始化 UI
     const uiComponents = GameInitializer.initUI(
@@ -309,6 +319,11 @@ export default class GameMain {
       this.particleManager.particles = [];
     }
     
+    // 清空特效
+    if (this.effectManager) {
+      this.effectManager.clear();
+    }
+    
     // 显示开始界面
     this.showStartScreen();
   }
@@ -392,6 +407,11 @@ export default class GameMain {
       this.particleManager.update(deltaTime);
     }
     
+    // 更新特效管理器
+    if (this.effectManager) {
+      this.effectManager.update(deltaTime, deltaMS);
+    }
+    
     // 更新 UI
     if (this.weaponContainerUI) {
       this.weaponContainerUI.update(deltaTime);
@@ -421,6 +441,7 @@ export default class GameMain {
         enemyManager: this.enemyManager,
         particleManager: this.particleManager,
         obstacleManager: this.obstacleManager,
+        effectManager: this.effectManager,
         weaponContainerUI: this.weaponContainerUI,
         loadingScreen: this.loadingScreen,
         startScreen: this.startScreen,

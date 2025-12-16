@@ -85,12 +85,13 @@ export class SniperBullet {
   render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
     if (this.destroyed) return;
     
-    const screenX = this.x - offsetX;
-    const screenY = this.y - offsetY;
+    // 应用战场偏移
+    const renderX = this.x + offsetX;
+    const renderY = this.y + offsetY;
     
     // 视锥剔除
-    if (screenX < viewLeft - this.radius || screenX > viewRight + this.radius ||
-        screenY < viewTop - this.radius || screenY > viewBottom + this.radius) {
+    if (renderX + this.radius < viewLeft || renderX - this.radius > viewRight ||
+        renderY + this.radius < viewTop || renderY - this.radius > viewBottom) {
       return;
     }
     
@@ -98,26 +99,26 @@ export class SniperBullet {
     
     // 绘制尾迹（细长）
     const trailGradient = this.ctx.createLinearGradient(
-      screenX - this.vx * 0.1, screenY - this.vy * 0.1,
-      screenX, screenY
+      renderX - this.vx * 0.1, renderY - this.vy * 0.1,
+      renderX, renderY
     );
     trailGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.SNIPER_BULLET, 0));
     trailGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.SNIPER_BULLET, 0.8));
     this.ctx.strokeStyle = trailGradient;
     this.ctx.lineWidth = this.radius * 0.5;
     this.ctx.beginPath();
-    this.ctx.moveTo(screenX - this.vx * 0.1, screenY - this.vy * 0.1);
-    this.ctx.lineTo(screenX, screenY);
+    this.ctx.moveTo(renderX - this.vx * 0.1, renderY - this.vy * 0.1);
+    this.ctx.lineTo(renderX, renderY);
     this.ctx.stroke();
     
     // 绘制子弹主体（高亮）
-    const bodyGradient = this.ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, this.radius);
+    const bodyGradient = this.ctx.createRadialGradient(renderX, renderY, 0, renderX, renderY, this.radius);
     bodyGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 1));
     bodyGradient.addColorStop(0.3, ColorUtils.hexToCanvas(GameColors.SNIPER_BULLET, 1));
     bodyGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.9));
     this.ctx.fillStyle = bodyGradient;
     this.ctx.beginPath();
-    this.ctx.arc(screenX, screenY, this.radius, 0, Math.PI * 2);
+    this.ctx.arc(renderX, renderY, this.radius, 0, Math.PI * 2);
     this.ctx.fill();
     
     this.ctx.restore();

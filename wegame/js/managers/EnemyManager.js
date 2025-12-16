@@ -41,6 +41,14 @@ export class EnemyManager {
     this.showWaveNotification = false; // 是否显示波次提示
     this.obstacleManager = null; // 障碍物管理器引用
     this.currentWaveEnemyTypes = []; // 当前波次可用的敌人类型池
+    this.effectManager = null; // 特效管理器引用
+  }
+  
+  /**
+   * 设置特效管理器
+   */
+  setEffectManager(effectManager) {
+    this.effectManager = effectManager;
   }
   
   /**
@@ -186,23 +194,42 @@ export class EnemyManager {
       return; // 已达到本波上限，不再生成
     }
     
-    // 随机选择一行（避免在障碍物位置生成）
+    // 随机选择一行（只在前三行生成）
     let row;
     let attempts = 0;
-    const maxAttempts = 20; // 最多尝试20次
+    const maxAttempts = 50; // 最多尝试50次
+    
+    // 计算实际的行号范围（只在前三行）
+    const battleStartRow = GameConfig.BATTLE_START_ROW;
+    const rowRange = 3; // 只在前三行生成
     
     do {
-      row = Math.floor(Math.random() * (GameConfig.BATTLE_END_ROW - GameConfig.BATTLE_START_ROW));
+      row = Math.floor(Math.random() * rowRange);
       attempts++;
       
-      // 检查起始位置（第一列）是否有障碍物
-      if (!this.obstacleManager || !this.obstacleManager.hasObstacle(0, row)) {
+      // 检查起始位置（第一列）和第二列是否有障碍物
+      const gridY = battleStartRow + row;
+      const hasObstacleAtStart = this.obstacleManager && this.obstacleManager.hasObstacle(0, gridY);
+      const hasObstacleAtNext = this.obstacleManager && this.obstacleManager.hasObstacle(1, gridY);
+      
+      // 确保起点和下一个格子都没有障碍物
+      if (!hasObstacleAtStart && !hasObstacleAtNext) {
         break; // 找到没有障碍物的位置
       }
     } while (attempts < maxAttempts);
     
-    // 如果尝试多次都找不到，仍然生成（避免无限循环）
-    // 但这种情况应该很少见，因为第一列不应该有障碍物
+    // 如果尝试多次都找不到，选择第一个没有障碍物的行
+    if (attempts >= maxAttempts) {
+      for (let r = 0; r < rowRange; r++) {
+        const gridY = battleStartRow + r;
+        const hasObstacleAtStart = this.obstacleManager && this.obstacleManager.hasObstacle(0, gridY);
+        const hasObstacleAtNext = this.obstacleManager && this.obstacleManager.hasObstacle(1, gridY);
+        if (!hasObstacleAtStart && !hasObstacleAtNext) {
+          row = r;
+          break;
+        }
+      }
+    }
     
     // 从当前波次的敌人类型池中随机选择（如果池为空，则使用默认随机）
     let enemyType;
@@ -252,6 +279,11 @@ export class EnemyManager {
     
     enemy.initPosition(row);
     enemy.setHpBonus(this.hpBonus);
+    
+    // 创建敌人生成特效
+    if (this.effectManager) {
+      this.effectManager.createEnemySpawnEffect(enemy.x, enemy.y, enemyType);
+    }
     
     this.enemies.push(enemy);
     this.waveEnemyCount++;

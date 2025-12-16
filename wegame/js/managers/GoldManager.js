@@ -26,29 +26,22 @@ export class GoldManager {
       return;
     }
     
-    try {
-      const panelWidth = UIConfig.GOLD_PANEL_WIDTH;
-      const panelHeight = UIConfig.GOLD_PANEL_HEIGHT;
-      
-      const canvas = wx.createCanvas();
-      canvas.width = panelWidth;
-      canvas.height = panelHeight;
-      
-      const ctx = canvas.getContext('2d');
-      this._cachedCanvas = canvas;
-      this._cachedCtx = ctx;
-      
-      // 清空缓存Canvas
-      ctx.clearRect(0, 0, panelWidth, panelHeight);
-      
-      // 绘制静态部分到缓存
-      this.drawStaticToCache(ctx, panelWidth, panelHeight);
-      
-      this._initialized = true;
-    } catch (e) {
-      console.warn('金币管理器静态缓存初始化失败:', e);
-      this._initialized = false;
-    }
+    const panelWidth = UIConfig.GOLD_PANEL_WIDTH;
+    const panelHeight = UIConfig.GOLD_PANEL_HEIGHT;
+    
+    const canvas = wx.createCanvas();
+    canvas.width = panelWidth;
+    canvas.height = panelHeight;
+    
+    const ctx = canvas.getContext('2d');
+    this._cachedCanvas = canvas;
+    this._cachedCtx = ctx;
+    
+    ctx.clearRect(0, 0, panelWidth, panelHeight);
+    
+    this.drawStaticToCache(ctx, panelWidth, panelHeight);
+    
+    this._initialized = true;
   }
   
   /**

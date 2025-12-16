@@ -18,6 +18,7 @@ export class WeaponManager {
     this.weapons = [];
     this.selectedWeapon = null;
     this.obstacleManager = null; // 障碍物管理器引用
+    this.effectManager = null; // 特效管理器引用
   }
   
   /**
@@ -25,6 +26,13 @@ export class WeaponManager {
    */
   setObstacleManager(obstacleManager) {
     this.obstacleManager = obstacleManager;
+  }
+  
+  /**
+   * 设置特效管理器
+   */
+  setEffectManager(effectManager) {
+    this.effectManager = effectManager;
   }
   
   /**
@@ -142,7 +150,13 @@ export class WeaponManager {
     gameContext.gold -= upgradeCost;
     
     // 升级武器
+    const oldLevel = weapon.level;
     weapon.upgrade();
+    
+    // 创建武器升级特效
+    if (this.effectManager && weapon.level > oldLevel) {
+      this.effectManager.createWeaponUpgradeEffect(weapon.x, weapon.y, weapon.weaponType, weapon.level);
+    }
     
     return true;
   }

@@ -24,27 +24,20 @@ export class BackgroundRenderer {
       return;
     }
     
-    try {
-      const width = GameConfig.BATTLE_WIDTH;
-      const height = GameConfig.BATTLE_HEIGHT;
-      
-      this._cachedCanvas = wx.createCanvas();
-      this._cachedCanvas.width = width;
-      this._cachedCanvas.height = height;
-      
-      this._cachedCtx = this._cachedCanvas.getContext('2d');
-      
-      // 清空缓存Canvas
-      this._cachedCtx.clearRect(0, 0, width, height);
-      
-      // 绘制网格到缓存
-      this.drawGridToCache(this._cachedCtx);
-      
-      this._initialized = true;
-    } catch (e) {
-      console.warn('背景渲染缓存初始化失败:', e);
-      this._initialized = false;
-    }
+    const width = GameConfig.BATTLE_WIDTH;
+    const height = GameConfig.BATTLE_HEIGHT;
+    
+    this._cachedCanvas = wx.createCanvas();
+    this._cachedCanvas.width = width;
+    this._cachedCanvas.height = height;
+    
+    this._cachedCtx = this._cachedCanvas.getContext('2d');
+    
+    this._cachedCtx.clearRect(0, 0, width, height);
+    
+    this.drawGridToCache(this._cachedCtx);
+    
+    this._initialized = true;
   }
   
   /**
@@ -101,31 +94,5 @@ export class BackgroundRenderer {
     BackgroundRenderer.renderFromCache(this.ctx, offsetX, offsetY);
   }
   
-  /**
-   * 绘制网格（已废弃，仅用于缓存初始化）
-   * 直接使用 Canvas 坐标系（Y 轴从上往下）
-   */
-  drawGrid(offsetX = 0, offsetY = 0) {
-    this.ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.GRID_LINE, GameConfig.GRID_LINE_ALPHA);
-    this.ctx.lineWidth = 1;
-    
-    // 绘制垂直线（应用战场偏移）
-    for (let x = 0; x <= GameConfig.BATTLE_COLS; x++) {
-      const px = x * GameConfig.CELL_SIZE + offsetX;
-      this.ctx.beginPath();
-      this.ctx.moveTo(px, 0 + offsetY);
-      this.ctx.lineTo(px, GameConfig.BATTLE_HEIGHT + offsetY);
-      this.ctx.stroke();
-    }
-    
-    // 绘制水平线（应用战场偏移，只绘制到战斗区域结束，不包括UI区域）
-    for (let row = GameConfig.BATTLE_START_ROW; row <= GameConfig.BATTLE_END_ROW; row++) {
-      const y = row * GameConfig.CELL_SIZE + offsetY;
-      this.ctx.beginPath();
-      this.ctx.moveTo(0 + offsetX, y);
-      this.ctx.lineTo(GameConfig.BATTLE_WIDTH + offsetX, y);
-      this.ctx.stroke();
-    }
-  }
 }
 

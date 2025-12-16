@@ -23,7 +23,8 @@ export class EnemyPathMovement {
         pathIndex: 0, // 当前路径索引
         pathUpdateTimer: 0, // 路径更新计时器
         pathUpdateInterval: 500, // 每500ms更新一次路径
-        retryDirection: 0 // 重试方向：0=默认，1=上，2=下，3=左
+        retryDirection: 0, // 重试方向：0=默认，1=上，2=下，3=左
+        noPathCount: 0 // 连续无路径次数
       };
     }
     
@@ -56,13 +57,42 @@ export class EnemyPathMovement {
       if (enemy.finished) return;
     }
     
-    // 如果没有路径，直接返回
+    // 如果没有路径，尝试重新计算路径
     if (moveState.path.length === 0 || moveState.pathIndex >= moveState.path.length) {
       // 检查是否到达边界
       if (enemy.gridX >= GameConfig.BATTLE_COLS - 1) {
         enemy.finished = true;
+        return;
       }
-      return;
+      
+      // 如果未到达边界但没有路径，强制重新计算路径
+      // 如果长时间卡住，增加卡住时间以触发绕过逻辑
+      if (moveState.stuckTime < 100) {
+        moveState.stuckTime = 100; // 触发立即重新计算路径
+      }
+      
+      // 立即重新计算路径
+      this.updatePath(enemy, moveState, obstacleManager, canFlyOverObstacles);
+      if (enemy.finished) return;
+      
+      // 如果仍然没有路径，增加无路径计数
+      if (moveState.path.length === 0) {
+        moveState.noPathCount++;
+        // 如果连续多次无路径，尝试强制移动
+        if (moveState.noPathCount > 10) {
+          // 尝试直接向右移动（即使可能有障碍物）
+          if (enemy.gridX < GameConfig.BATTLE_COLS - 1) {
+            moveState.path = [{ x: enemy.gridX + 1, y: enemy.gridY }];
+            moveState.pathIndex = 0;
+            moveState.pathUpdateTimer = 0;
+            moveState.noPathCount = 0;
+          }
+        }
+        return;
+      } else {
+        // 有路径了，重置无路径计数
+        moveState.noPathCount = 0;
+      }
     }
     
     // 执行移动
@@ -105,9 +135,84 @@ export class EnemyPathMovement {
       } else {
         // 没有找到路径，尝试简单的前进
         if (enemy.gridX < GameConfig.BATTLE_COLS - 1) {
-          moveState.path = [{ x: enemy.gridX + 1, y: enemy.gridY }];
-          moveState.pathIndex = 0;
-          moveState.pathUpdateTimer = 0;
+          // 检查下一个格子是否有障碍物
+          const nextX = enemy.gridX + 1;
+          const nextY = enemy.gridY;
+          const hasObstacle = obstacleManager && !canFlyOverObstacles && obstacleManager.hasObstacle(nextX, nextY);
+          
+          if (!hasObstacle) {
+            // 下一个格子没有障碍物，可以前进
+            moveState.path = [{ x: nextX, y: nextY }];
+            moveState.pathIndex = 0;
+            moveState.pathUpdateTimer = 0;
+          } else {
+            // 下一个格子有障碍物，尝试上下移动绕过
+            const battleStartRow = GameConfig.BATTLE_START_ROW;
+            const battleEndRow = GameConfig.BATTLE_END_ROW - 1;
+            let foundAlternate = false;
+            
+            // 尝试向上
+            if (nextY > battleStartRow) {
+              const upY = nextY - 1;
+              if (!obstacleManager || canFlyOverObstacles || !obstacleManager.hasObstacle(nextX, upY)) {
+                moveState.path = [{ x: nextX, y: upY }];
+                moveState.pathIndex = 0;
+                moveState.pathUpdateTimer = 0;
+                foundAlternate = true;
+              }
+            }
+            
+            // 如果向上不行，尝试向下
+            if (!foundAlternate && nextY < battleEndRow) {
+              const downY = nextY + 1;
+              if (!obstacleManager || canFlyOverObstacles || !obstacleManager.hasObstacle(nextX, downY)) {
+                moveState.path = [{ x: nextX, y: downY }];
+                moveState.pathIndex = 0;
+                moveState.pathUpdateTimer = 0;
+                foundAlternate = true;
+              }
+            }
+            
+            // 如果上下都不行，尝试先向上或向下移动，然后再向右
+            if (!foundAlternate) {
+              // 尝试先向上移动
+              if (enemy.gridY > battleStartRow) {
+                const upY = enemy.gridY - 1;
+                if (!obstacleManager || canFlyOverObstacles || !obstacleManager.hasObstacle(enemy.gridX, upY)) {
+                  moveState.path = [
+                    { x: enemy.gridX, y: upY },
+                    { x: nextX, y: upY }
+                  ];
+                  moveState.pathIndex = 0;
+                  moveState.pathUpdateTimer = 0;
+                  foundAlternate = true;
+                }
+              }
+              
+              // 如果向上不行，尝试向下
+              if (!foundAlternate && enemy.gridY < battleEndRow) {
+                const downY = enemy.gridY + 1;
+                if (!obstacleManager || canFlyOverObstacles || !obstacleManager.hasObstacle(enemy.gridX, downY)) {
+                  moveState.path = [
+                    { x: enemy.gridX, y: downY },
+                    { x: nextX, y: downY }
+                  ];
+                  moveState.pathIndex = 0;
+                  moveState.pathUpdateTimer = 0;
+                  foundAlternate = true;
+                }
+              }
+            }
+            
+            // 如果所有方向都不行，标记为卡住，等待下一帧处理
+            if (!foundAlternate) {
+              moveState.path = [];
+              moveState.pathIndex = 0;
+              moveState.pathUpdateTimer = 0;
+              // 增加卡住时间，触发绕过逻辑
+              moveState.stuckTime = Math.max(moveState.stuckTime, 300);
+            }
+          }
         } else {
           // 已经到达边界
           enemy.finished = true;
@@ -251,130 +356,30 @@ export class EnemyPathMovement {
       return; // X方向不能继续前进，等待下一帧处理
     }
     
-    // 计算分离力（避免敌人聚集，但不允许斜向移动）
-    const separation = EnemyCollision.calculateSeparationForce(enemy, allEnemies);
-    
-    // 应用分离力到移动方向（严格禁止斜向移动）
-    let finalDirX = dirX;
-    let finalDirY = dirY;
-    
-    // 分离力只在当前移动方向完成后才考虑，且不能导致斜向移动
-    if (separation.forceX !== 0 || separation.forceY !== 0) {
-      // 如果当前移动方向是X方向，完全忽略分离力（保持X方向移动）
-      if (dirX !== 0 && dirY === 0) {
-        // X方向移动时，不应用任何分离力，保持纯X方向移动
-        finalDirX = dirX;
-        finalDirY = 0;
-      }
-      // 如果当前移动方向是Y方向，完全忽略分离力（保持Y方向移动）
-      else if (dirX === 0 && dirY !== 0) {
-        // Y方向移动时，不应用任何分离力，保持纯Y方向移动
-        finalDirX = 0;
-        finalDirY = dirY;
-      }
-      // 如果两个方向都为0（已到达目标），可以考虑应用分离力，但只能选择一个方向
-      else if (dirX === 0 && dirY === 0) {
-        // 已到达目标格子，可以考虑分离力，但只能选择一个方向（优先Y方向，因为通常需要上下避让）
-        const absSepX = Math.abs(separation.forceX);
-        const absSepY = Math.abs(separation.forceY);
-        if (absSepY > absSepX && absSepY > 0.3) {
-          finalDirY = separation.forceY > 0 ? 1 : -1;
-          finalDirX = 0;
-        } else if (absSepX > 0.3) {
-          finalDirX = separation.forceX > 0 ? 1 : -1;
-          finalDirY = 0;
-        }
-      }
-    }
-    
-    // 严格确保最终方向只有一个方向（禁止斜向移动）
-    if (finalDirX !== 0 && finalDirY !== 0) {
-      // 如果两个方向都有值，优先X方向（向右移动）
-      finalDirY = 0;
-    }
-    
+    // 允许敌人互相穿过，直接移动，不计算分离力
     // 计算最终新位置
-    const finalNewX = enemy.x + finalDirX * actualMove;
-    const finalNewY = enemy.y + finalDirY * actualMove;
+    const finalNewX = enemy.x + dirX * actualMove;
+    const finalNewY = enemy.y + dirY * actualMove;
     
-    // 检查是否会与其他敌人碰撞
-    if (!EnemyCollision.wouldCollide(enemy, finalNewX, finalNewY, allEnemies)) {
-      // 没有碰撞，可以移动
-      enemy.x = finalNewX;
-      enemy.y = finalNewY;
-    } else {
-      // 有碰撞，尝试多种策略
-      this.handleCollision(enemy, finalDirX, finalDirY, actualMove, moveState, allEnemies, obstacleManager, canFlyOverObstacles);
-    }
+    // 直接移动，不检查与其他敌人的碰撞
+    enemy.x = finalNewX;
+    enemy.y = finalNewY;
   }
   
   /**
-   * 处理碰撞
+   * 处理碰撞（已废弃：敌人现在可以互相穿过）
+   * 保留此方法以防将来需要，但不再使用碰撞检测
    */
   static handleCollision(enemy, dirX, dirY, actualMove, moveState, allEnemies, obstacleManager, canFlyOverObstacles) {
-    // 策略1：尝试只移动一小部分距离
-    let moved = false;
-    for (let factor = 0.5; factor >= 0.1; factor -= 0.1) {
-      const smallMove = actualMove * factor;
-      const smallNewX = enemy.x + dirX * smallMove;
-      const smallNewY = enemy.y + dirY * smallMove;
-      
-      // 检查小移动是否在障碍物格子上
-      const smallNewCol = Math.floor(smallNewX / GameConfig.CELL_SIZE);
-      const smallNewRow = Math.floor(smallNewY / GameConfig.CELL_SIZE);
-      if (obstacleManager && !canFlyOverObstacles && obstacleManager.hasObstacle(smallNewCol, smallNewRow)) {
-        continue; // 跳过这个移动
-      }
-      
-      if (!EnemyCollision.wouldCollide(enemy, smallNewX, smallNewY, allEnemies)) {
-        enemy.x = smallNewX;
-        enemy.y = smallNewY;
-        moved = true;
-        break;
-      }
-    }
-    
-    // 策略2：如果仍然无法移动，尝试垂直方向移动（推开）
-    if (!moved && moveState.stuckTime > 200) {
-      // 尝试向上或向下移动来推开其他敌人
-      const pushDistance = actualMove * 0.3;
-      const directions = [
-        { x: 0, y: -pushDistance }, // 上
-        { x: 0, y: pushDistance },  // 下
-        { x: -pushDistance, y: 0 }  // 左（后退）
-      ];
-      
-      for (const dir of directions) {
-        const pushX = enemy.x + dir.x;
-        const pushY = enemy.y + dir.y;
-        
-        // 检查是否在障碍物格子上
-        const pushCol = Math.floor(pushX / GameConfig.CELL_SIZE);
-        const pushRow = Math.floor(pushY / GameConfig.CELL_SIZE);
-        if (obstacleManager && !canFlyOverObstacles && obstacleManager.hasObstacle(pushCol, pushRow)) {
-          continue;
-        }
-        
-        if (!EnemyCollision.wouldCollide(enemy, pushX, pushY, allEnemies)) {
-          enemy.x = pushX;
-          enemy.y = pushY;
-          moved = true;
-          break;
-        }
-      }
-    }
-    
-    // 策略3：如果长时间卡住，尝试绕过（改变目标格子）
-    if (!moved && moveState.stuckTime > moveState.stuckThreshold) {
-      // 尝试改变目标格子来绕过障碍
+    // 敌人现在可以互相穿过，此方法不再需要
+    // 如果长时间卡住，尝试绕过障碍物（改变目标格子）
+    if (moveState.stuckTime > moveState.stuckThreshold) {
       const currentRow = enemy.gridY;
       const battleStartRow = GameConfig.BATTLE_START_ROW;
       const battleEndRow = GameConfig.BATTLE_END_ROW - 1;
       
-      // 根据重试方向尝试不同的路径
       let foundAlternatePath = false;
       if (moveState.retryDirection === 0 && currentRow > battleStartRow) {
-        // 尝试向上
         const upRow = currentRow - 1;
         if (canFlyOverObstacles || !obstacleManager || !obstacleManager.hasObstacle(enemy.gridX, upRow)) {
           enemy.gridY = upRow;
@@ -382,7 +387,6 @@ export class EnemyPathMovement {
           foundAlternatePath = true;
         }
       } else if (moveState.retryDirection <= 1 && currentRow < battleEndRow) {
-        // 尝试向下
         const downRow = currentRow + 1;
         if (canFlyOverObstacles || !obstacleManager || !obstacleManager.hasObstacle(enemy.gridX, downRow)) {
           enemy.gridY = downRow;
@@ -390,20 +394,17 @@ export class EnemyPathMovement {
           foundAlternatePath = true;
         }
       } else if (moveState.retryDirection <= 2 && enemy.gridX > 0) {
-        // 尝试后退（左移）
         enemy.gridX = Math.max(0, enemy.gridX - 1);
         moveState.retryDirection = 3;
         foundAlternatePath = true;
       }
       
       if (foundAlternatePath) {
-        moveState.stuckTime = 0; // 重置卡住时间
-        // 重新计算路径
+        moveState.stuckTime = 0;
         moveState.path = [];
         moveState.pathIndex = 0;
         moveState.pathUpdateTimer = moveState.pathUpdateInterval;
       } else {
-        // 所有方向都尝试过了，重置重试方向
         moveState.retryDirection = 0;
       }
     }

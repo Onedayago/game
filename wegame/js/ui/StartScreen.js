@@ -50,26 +50,19 @@ export class StartScreen {
       return;
     }
     
-    try {
-      StartScreen._cachedCanvas = wx.createCanvas();
-      StartScreen._cachedCanvas.width = windowWidth;
-      StartScreen._cachedCanvas.height = windowHeight;
-      
-      StartScreen._cachedCtx = StartScreen._cachedCanvas.getContext('2d');
-      StartScreen._cacheWidth = windowWidth;
-      StartScreen._cacheHeight = windowHeight;
-      
-      // 清空缓存Canvas
-      StartScreen._cachedCtx.clearRect(0, 0, windowWidth, windowHeight);
-      
-      // 绘制静态部分到缓存
-      this.drawStaticToCache(StartScreen._cachedCtx, windowWidth, windowHeight);
-      
-      StartScreen._initialized = true;
-    } catch (e) {
-      console.warn('开始界面静态缓存初始化失败:', e);
-      StartScreen._initialized = false;
-    }
+    StartScreen._cachedCanvas = wx.createCanvas();
+    StartScreen._cachedCanvas.width = windowWidth;
+    StartScreen._cachedCanvas.height = windowHeight;
+    
+    StartScreen._cachedCtx = StartScreen._cachedCanvas.getContext('2d');
+    StartScreen._cacheWidth = windowWidth;
+    StartScreen._cacheHeight = windowHeight;
+    
+    StartScreen._cachedCtx.clearRect(0, 0, windowWidth, windowHeight);
+    
+    this.drawStaticToCache(StartScreen._cachedCtx, windowWidth, windowHeight);
+    
+    StartScreen._initialized = true;
   }
   
   /**

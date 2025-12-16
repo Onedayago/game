@@ -71,45 +71,36 @@ export class ParticleManager {
       return; // 已经初始化
     }
     
-    try {
-      // 缓存不同大小的粒子（2-8像素）
-      const sizes = [2, 3, 4, 5, 6, 7, 8];
-      
-      // 为每种颜色和大小组合创建缓存
-      for (const size of sizes) {
-        for (let colorIndex = 0; colorIndex < this.PARTICLE_COLORS.length; colorIndex++) {
-          const color = this.PARTICLE_COLORS[colorIndex];
-          const cacheKey = this.getCacheKey(size, colorIndex);
-          const canvasSize = Math.ceil(size * 2.5); // 包含一些边距
-          
-          const canvas = wx.createCanvas();
-          canvas.width = canvasSize;
-          canvas.height = canvasSize;
-          const ctx = canvas.getContext('2d');
-          
-          this._cachedCanvases[cacheKey] = canvas;
-          this._cachedCtxs[cacheKey] = ctx;
-          
-          // 清空缓存Canvas
-          ctx.clearRect(0, 0, canvasSize, canvasSize);
-          
-          // 绘制粒子到缓存（居中，使用固定颜色和固定透明度）
-          const centerX = canvasSize / 2;
-          const centerY = canvasSize / 2;
-          const { r, g, b } = ParticleManager.hexToRgb(color);
-          const fixedAlpha = 0.9; // 固定透明度
-          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${fixedAlpha})`;
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, size, 0, Math.PI * 2);
-          ctx.fill();
-        }
+    const sizes = [2, 3, 4, 5, 6, 7, 8];
+    
+    for (const size of sizes) {
+      for (let colorIndex = 0; colorIndex < this.PARTICLE_COLORS.length; colorIndex++) {
+        const color = this.PARTICLE_COLORS[colorIndex];
+        const cacheKey = this.getCacheKey(size, colorIndex);
+        const canvasSize = Math.ceil(size * 2.5);
+        
+        const canvas = wx.createCanvas();
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+        const ctx = canvas.getContext('2d');
+        
+        this._cachedCanvases[cacheKey] = canvas;
+        this._cachedCtxs[cacheKey] = ctx;
+        
+        ctx.clearRect(0, 0, canvasSize, canvasSize);
+        
+        const centerX = canvasSize / 2;
+        const centerY = canvasSize / 2;
+        const { r, g, b } = ParticleManager.hexToRgb(color);
+        const fixedAlpha = 0.9;
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${fixedAlpha})`;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, size, 0, Math.PI * 2);
+        ctx.fill();
       }
-      
-      this._initialized = true;
-    } catch (e) {
-      console.warn('粒子缓存初始化失败:', e);
-      this._initialized = false;
     }
+    
+    this._initialized = true;
   }
   
   /**
@@ -319,11 +310,5 @@ export class ParticleManager {
     } : { r: 255, g: 255, b: 255 };
   }
   
-  /**
-   * 将十六进制颜色转换为 RGB（实例方法，兼容旧代码）
-   */
-  hexToRgb(hex) {
-    return ParticleManager.hexToRgb(hex);
-  }
 }
 

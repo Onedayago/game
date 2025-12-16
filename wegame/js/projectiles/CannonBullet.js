@@ -85,34 +85,35 @@ export class CannonBullet {
   render(viewLeft = -Infinity, viewRight = Infinity, viewTop = -Infinity, viewBottom = Infinity, offsetX = 0, offsetY = 0) {
     if (this.destroyed) return;
     
-    const screenX = this.x - offsetX;
-    const screenY = this.y - offsetY;
+    // 应用战场偏移
+    const renderX = this.x + offsetX;
+    const renderY = this.y + offsetY;
     
     // 视锥剔除
-    if (screenX < viewLeft - this.radius || screenX > viewRight + this.radius ||
-        screenY < viewTop - this.radius || screenY > viewBottom + this.radius) {
+    if (renderX + this.radius < viewLeft || renderX - this.radius > viewRight ||
+        renderY + this.radius < viewTop || renderY - this.radius > viewBottom) {
       return;
     }
     
     this.ctx.save();
     
     // 绘制尾迹
-    const trailGradient = this.ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, this.radius * 2);
+    const trailGradient = this.ctx.createRadialGradient(renderX, renderY, 0, renderX, renderY, this.radius * 2);
     trailGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.CANNON_BULLET, 0.4));
     trailGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.CANNON_BULLET, 0));
     this.ctx.fillStyle = trailGradient;
     this.ctx.beginPath();
-    this.ctx.arc(screenX, screenY, this.radius * 2, 0, Math.PI * 2);
+    this.ctx.arc(renderX, renderY, this.radius * 2, 0, Math.PI * 2);
     this.ctx.fill();
     
     // 绘制炮弹主体
-    const bodyGradient = this.ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, this.radius);
+    const bodyGradient = this.ctx.createRadialGradient(renderX, renderY, 0, renderX, renderY, this.radius);
     bodyGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 0.9));
     bodyGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.CANNON_BULLET, 1));
     bodyGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.CANNON_DETAIL, 0.8));
     this.ctx.fillStyle = bodyGradient;
     this.ctx.beginPath();
-    this.ctx.arc(screenX, screenY, this.radius, 0, Math.PI * 2);
+    this.ctx.arc(renderX, renderY, this.radius, 0, Math.PI * 2);
     this.ctx.fill();
     
     this.ctx.restore();

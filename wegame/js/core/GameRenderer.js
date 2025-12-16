@@ -27,7 +27,8 @@ export class GameRenderer {
       startScreen,
       goldManager,
       obstacleManager,
-      loadingScreen
+      loadingScreen,
+      effectManager
     } = managers;
     
     
@@ -85,6 +86,11 @@ export class GameRenderer {
     // 渲染粒子（需要应用战场偏移）
     if (particleManager) {
       particleManager.render(offsetX, offsetY);
+    }
+    
+    // 渲染特效（需要应用战场偏移）
+    if (effectManager) {
+      effectManager.render(offsetX, offsetY);
     }
     
     // 渲染拖拽预览（在战场区域内）

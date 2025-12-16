@@ -31,66 +31,54 @@ export class LaserBeam {
       return; // 已经初始化
     }
     
-    try {
-      const radius = this._cacheRadius;
-      const canvasSize = Math.ceil(radius * 6); // 包含尾迹和发光效果
-      
-      this._cachedCanvas = wx.createCanvas();
-      this._cachedCanvas.width = canvasSize;
-      this._cachedCanvas.height = canvasSize;
-      
-      this._cachedCtx = this._cachedCanvas.getContext('2d');
-      
-      // 清空缓存Canvas
-      this._cachedCtx.clearRect(0, 0, canvasSize, canvasSize);
-      
-      // 绘制能量球到缓存（居中，参考敌人子弹样式）
-      const centerX = canvasSize / 2;
-      const centerY = canvasSize / 2;
-      
-      // 绘制尾迹（多层发光效果）
-      const trailGradient = this._cachedCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius * 2.5);
-      trailGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.4));
-      trailGradient.addColorStop(0.6, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.2));
-      trailGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0));
-      this._cachedCtx.fillStyle = trailGradient;
-      this._cachedCtx.beginPath();
-      this._cachedCtx.arc(centerX, centerY, radius * 2.5, 0, Math.PI * 2);
-      this._cachedCtx.fill();
-      
-      // 绘制外层发光
-      this._cachedCtx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.5);
-      this._cachedCtx.beginPath();
-      this._cachedCtx.arc(centerX, centerY, radius * 1.8, 0, Math.PI * 2);
-      this._cachedCtx.fill();
-      
-      // 绘制中层发光
-      this._cachedCtx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.7);
-      this._cachedCtx.beginPath();
-      this._cachedCtx.arc(centerX, centerY, radius * 1.3, 0, Math.PI * 2);
-      this._cachedCtx.fill();
-      
-      // 绘制能量球主体（渐变）
-      const bodyGradient = this._cachedCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
-      bodyGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 0.8));
-      bodyGradient.addColorStop(0.4, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 1));
-      bodyGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.9));
-      this._cachedCtx.fillStyle = bodyGradient;
-      this._cachedCtx.beginPath();
-      this._cachedCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      this._cachedCtx.fill();
-      
-      // 绘制高光
-      this._cachedCtx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.7);
-      this._cachedCtx.beginPath();
-      this._cachedCtx.arc(centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.5, 0, Math.PI * 2);
-      this._cachedCtx.fill();
-      
-      this._initialized = true;
-    } catch (e) {
-      console.warn('激光束缓存初始化失败:', e);
-      this._initialized = false;
-    }
+    const radius = this._cacheRadius;
+    const canvasSize = Math.ceil(radius * 6);
+    
+    this._cachedCanvas = wx.createCanvas();
+    this._cachedCanvas.width = canvasSize;
+    this._cachedCanvas.height = canvasSize;
+    
+    this._cachedCtx = this._cachedCanvas.getContext('2d');
+    
+    this._cachedCtx.clearRect(0, 0, canvasSize, canvasSize);
+    
+    const centerX = canvasSize / 2;
+    const centerY = canvasSize / 2;
+    
+    const trailGradient = this._cachedCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius * 2.5);
+    trailGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.4));
+    trailGradient.addColorStop(0.6, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.2));
+    trailGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0));
+    this._cachedCtx.fillStyle = trailGradient;
+    this._cachedCtx.beginPath();
+    this._cachedCtx.arc(centerX, centerY, radius * 2.5, 0, Math.PI * 2);
+    this._cachedCtx.fill();
+    
+    this._cachedCtx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.5);
+    this._cachedCtx.beginPath();
+    this._cachedCtx.arc(centerX, centerY, radius * 1.8, 0, Math.PI * 2);
+    this._cachedCtx.fill();
+    
+    this._cachedCtx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.7);
+    this._cachedCtx.beginPath();
+    this._cachedCtx.arc(centerX, centerY, radius * 1.3, 0, Math.PI * 2);
+    this._cachedCtx.fill();
+    
+    const bodyGradient = this._cachedCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+    bodyGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 0.8));
+    bodyGradient.addColorStop(0.4, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 1));
+    bodyGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.9));
+    this._cachedCtx.fillStyle = bodyGradient;
+    this._cachedCtx.beginPath();
+    this._cachedCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    this._cachedCtx.fill();
+    
+    this._cachedCtx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.7);
+    this._cachedCtx.beginPath();
+    this._cachedCtx.arc(centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.5, 0, Math.PI * 2);
+    this._cachedCtx.fill();
+    
+    this._initialized = true;
   }
   
   /**

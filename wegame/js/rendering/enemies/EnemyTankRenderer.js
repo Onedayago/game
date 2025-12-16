@@ -21,29 +21,21 @@ export class EnemyTankRenderer {
       return; // 已经初始化且尺寸相同
     }
     
-    try {
-      // 创建离屏Canvas（尺寸稍大，包含阴影）
-      const canvasSize = Math.ceil(size * 1.2);
-      
-      this._cachedCanvas = wx.createCanvas();
-      this._cachedCanvas.width = canvasSize;
-      this._cachedCanvas.height = canvasSize;
-      
-      this._cachedCtx = this._cachedCanvas.getContext('2d');
-      this._cacheSize = size;
-      
-      // 清空缓存Canvas
-      this._cachedCtx.clearRect(0, 0, canvasSize, canvasSize);
-      
-      // 绘制敌人基础外观到缓存（angle=0，居中绘制）
-      polyfillRoundRect(this._cachedCtx);
-      this.drawEnemyToCache(this._cachedCtx, size, canvasSize / 2, canvasSize / 2);
-      
-      this._initialized = true;
-    } catch (e) {
-      console.warn('敌人坦克渲染缓存初始化失败:', e);
-      this._initialized = false;
-    }
+    const canvasSize = Math.ceil(size * 1.2);
+    
+    this._cachedCanvas = wx.createCanvas();
+    this._cachedCanvas.width = canvasSize;
+    this._cachedCanvas.height = canvasSize;
+    
+    this._cachedCtx = this._cachedCanvas.getContext('2d');
+    this._cacheSize = size;
+    
+    this._cachedCtx.clearRect(0, 0, canvasSize, canvasSize);
+    
+    polyfillRoundRect(this._cachedCtx);
+    this.drawEnemyToCache(this._cachedCtx, size, canvasSize / 2, canvasSize / 2);
+    
+    this._initialized = true;
   }
   
   /**

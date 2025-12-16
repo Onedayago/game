@@ -31,52 +31,43 @@ class WeaponRenderer {
       return; // 已经初始化
     }
     
-    try {
-      const barWidth = maxEntitySize * UIConfig.HP_BAR_WIDTH_RATIO;
-      const barHeight = UIConfig.HP_BAR_HEIGHT;
+    const barWidth = maxEntitySize * UIConfig.HP_BAR_WIDTH_RATIO;
+    const barHeight = UIConfig.HP_BAR_HEIGHT;
+    
+    this._healthBarCacheWidth = Math.ceil(barWidth);
+    this._healthBarCacheHeight = Math.ceil(barHeight);
+    
+    this._healthBarBackgroundCache = wx.createCanvas();
+    this._healthBarBackgroundCache.width = this._healthBarCacheWidth;
+    this._healthBarBackgroundCache.height = this._healthBarCacheHeight;
+    const bgCtx = this._healthBarBackgroundCache.getContext('2d');
+    
+    polyfillRoundRect(bgCtx);
+    bgCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    bgCtx.beginPath();
+    bgCtx.roundRect(0, 0, this._healthBarCacheWidth, this._healthBarCacheHeight, 3);
+    bgCtx.fill();
+    
+    const colors = {
+      healthy: GameColors.ENEMY_DETAIL || 0x00ff00,
+      warning: 0xfbbf24,
+      critical: GameColors.DANGER || 0xff0000
+    };
+    
+    for (const [key, color] of Object.entries(colors)) {
+      this._healthBarForegroundCaches[key] = wx.createCanvas();
+      this._healthBarForegroundCaches[key].width = this._healthBarCacheWidth;
+      this._healthBarForegroundCaches[key].height = this._healthBarCacheHeight;
+      const fgCtx = this._healthBarForegroundCaches[key].getContext('2d');
       
-      this._healthBarCacheWidth = Math.ceil(barWidth);
-      this._healthBarCacheHeight = Math.ceil(barHeight);
-      
-      // 创建背景缓存
-      this._healthBarBackgroundCache = wx.createCanvas();
-      this._healthBarBackgroundCache.width = this._healthBarCacheWidth;
-      this._healthBarBackgroundCache.height = this._healthBarCacheHeight;
-      const bgCtx = this._healthBarBackgroundCache.getContext('2d');
-      
-      // 绘制背景到缓存
-      polyfillRoundRect(bgCtx);
-      bgCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      bgCtx.beginPath();
-      bgCtx.roundRect(0, 0, this._healthBarCacheWidth, this._healthBarCacheHeight, 3);
-      bgCtx.fill();
-      
-      // 创建不同颜色的前景缓存（满长度）
-      const colors = {
-        healthy: GameColors.ENEMY_DETAIL || 0x00ff00, // 绿色
-        warning: 0xfbbf24, // 琥珀色
-        critical: GameColors.DANGER || 0xff0000 // 红色
-      };
-      
-      for (const [key, color] of Object.entries(colors)) {
-        this._healthBarForegroundCaches[key] = wx.createCanvas();
-        this._healthBarForegroundCaches[key].width = this._healthBarCacheWidth;
-        this._healthBarForegroundCaches[key].height = this._healthBarCacheHeight;
-        const fgCtx = this._healthBarForegroundCaches[key].getContext('2d');
-        
-        // 绘制前景到缓存
-        polyfillRoundRect(fgCtx);
-        fgCtx.fillStyle = ColorUtils.hexToCanvas(color, 0.95);
-        fgCtx.beginPath();
-        fgCtx.roundRect(0, 0, this._healthBarCacheWidth, this._healthBarCacheHeight, 3);
-        fgCtx.fill();
-      }
-      
-      this._healthBarInitialized = true;
-    } catch (e) {
-      console.warn('血条缓存初始化失败:', e);
-      this._healthBarInitialized = false;
+      polyfillRoundRect(fgCtx);
+      fgCtx.fillStyle = ColorUtils.hexToCanvas(color, 0.95);
+      fgCtx.beginPath();
+      fgCtx.roundRect(0, 0, this._healthBarCacheWidth, this._healthBarCacheHeight, 3);
+      fgCtx.fill();
     }
+    
+    this._healthBarInitialized = true;
   }
   
   /**

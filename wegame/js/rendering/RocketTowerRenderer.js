@@ -29,29 +29,23 @@ export class RocketTowerRenderer {
       return; // 已经初始化
     }
     
-    try {
-      const canvasSize = Math.ceil(size * 1.2);
-      
-      const canvas = wx.createCanvas();
-      canvas.width = canvasSize;
-      canvas.height = canvasSize;
-      
-      const ctx = canvas.getContext('2d');
-      this._cachedCanvases[cacheKey] = canvas;
-      this._cachedCtxs[cacheKey] = ctx;
-      
-      // 清空缓存Canvas
-      ctx.clearRect(0, 0, canvasSize, canvasSize);
-      
-      // 绘制火箭塔到缓存（居中）
-      polyfillRoundRect(ctx);
-      ctx.save();
-      ctx.translate(canvasSize / 2, canvasSize / 2);
-      this.drawRocketTowerToCache(ctx, size, level);
-      ctx.restore();
-    } catch (e) {
-      console.warn('火箭塔渲染缓存初始化失败:', e);
-    }
+    const canvasSize = Math.ceil(size * 1.2);
+    
+    const canvas = wx.createCanvas();
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    
+    const ctx = canvas.getContext('2d');
+    this._cachedCanvases[cacheKey] = canvas;
+    this._cachedCtxs[cacheKey] = ctx;
+    
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+    
+    polyfillRoundRect(ctx);
+    ctx.save();
+    ctx.translate(canvasSize / 2, canvasSize / 2);
+    this.drawRocketTowerToCache(ctx, size, level);
+    ctx.restore();
   }
   
   /**

@@ -48,26 +48,19 @@ class HelpScreen {
       return;
     }
     
-    try {
-      this._cachedCanvas = wx.createCanvas();
-      this._cachedCanvas.width = windowWidth;
-      this._cachedCanvas.height = windowHeight;
-      
-      this._cachedCtx = this._cachedCanvas.getContext('2d');
-      this._cacheWidth = windowWidth;
-      this._cacheHeight = windowHeight;
-      
-      // 清空缓存Canvas
-      this._cachedCtx.clearRect(0, 0, windowWidth, windowHeight);
-      
-      // 绘制静态部分到缓存
-      this.drawStaticToCache(this._cachedCtx, windowWidth, windowHeight);
-      
-      this._initialized = true;
-    } catch (e) {
-      console.warn('帮助界面静态缓存初始化失败:', e);
-      this._initialized = false;
-    }
+    this._cachedCanvas = wx.createCanvas();
+    this._cachedCanvas.width = windowWidth;
+    this._cachedCanvas.height = windowHeight;
+    
+    this._cachedCtx = this._cachedCanvas.getContext('2d');
+    this._cacheWidth = windowWidth;
+    this._cacheHeight = windowHeight;
+    
+    this._cachedCtx.clearRect(0, 0, windowWidth, windowHeight);
+    
+    this.drawStaticToCache(this._cachedCtx, windowWidth, windowHeight);
+    
+    this._initialized = true;
   }
   
   /**
@@ -147,27 +140,20 @@ class HelpScreen {
       return;
     }
     
-    try {
-      const btnWidth = UIConfig.HELP_BTN_WIDTH * 0.8;
-      const btnHeight = UIConfig.HELP_BTN_HEIGHT * 0.9;
-      const btnRadius = UIConfig.HELP_BTN_RADIUS;
-      
-      this._buttonCache = wx.createCanvas();
-      this._buttonCache.width = Math.ceil(btnWidth);
-      this._buttonCache.height = Math.ceil(btnHeight);
-      this._buttonCtx = this._buttonCache.getContext('2d');
-      
-      // 清空缓存Canvas
-      this._buttonCtx.clearRect(0, 0, btnWidth, btnHeight);
-      
-      // 绘制按钮到缓存
-      this.drawButtonToCache(this._buttonCtx, btnWidth / 2, btnHeight / 2, btnWidth, btnHeight, btnRadius, '关闭', GameColors.ROCKET_TOWER);
-      
-      this._buttonInitialized = true;
-    } catch (e) {
-      console.warn('帮助界面按钮缓存初始化失败:', e);
-      this._buttonInitialized = false;
-    }
+    const btnWidth = UIConfig.HELP_BTN_WIDTH * 0.8;
+    const btnHeight = UIConfig.HELP_BTN_HEIGHT * 0.9;
+    const btnRadius = UIConfig.HELP_BTN_RADIUS;
+    
+    this._buttonCache = wx.createCanvas();
+    this._buttonCache.width = Math.ceil(btnWidth);
+    this._buttonCache.height = Math.ceil(btnHeight);
+    this._buttonCtx = this._buttonCache.getContext('2d');
+    
+    this._buttonCtx.clearRect(0, 0, btnWidth, btnHeight);
+    
+    this.drawButtonToCache(this._buttonCtx, btnWidth / 2, btnHeight / 2, btnWidth, btnHeight, btnRadius, '关闭', GameColors.ROCKET_TOWER);
+    
+    this._buttonInitialized = true;
   }
   
   /**

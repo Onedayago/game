@@ -21,7 +21,7 @@ export class WaveInfo {
     return UIConfig.WAVE_PANEL_HEIGHT;
   }
   static get PANEL_X_OFFSET() {
-    return UIConfig.MARGIN_MEDIUM; // 距离右边的距离（已废弃，保留用于兼容）
+    return UIConfig.MARGIN_MEDIUM;
   }
   static get PANEL_Y_OFFSET() {
     return UIConfig.MARGIN_MEDIUM; // 距离顶部的距离
@@ -38,75 +38,70 @@ export class WaveInfo {
       return;
     }
     
-    try {
-      const panelWidth = this.PANEL_WIDTH;
-      const panelHeight = this.PANEL_HEIGHT;
-      const canvasWidth = panelWidth + UIConfig.CACHE_PADDING * 2;
-      const canvasHeight = panelHeight + UIConfig.CACHE_PADDING * 2;
-      
-      const canvas = wx.createCanvas();
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-      
-      const ctx = canvas.getContext('2d');
-      this._bgCache = canvas;
-      this._bgCtx = ctx;
-      
-      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-      
-      polyfillRoundRect(ctx);
-      const offsetX = UIConfig.CACHE_OFFSET;
-      const offsetY = UIConfig.CACHE_OFFSET;
-      const radius = this.PANEL_RADIUS;
-      
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-      ctx.shadowBlur = 15;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 5;
-      
-      const bgGradient = ctx.createLinearGradient(offsetX, offsetY, offsetX, offsetY + panelHeight);
-      bgGradient.addColorStop(0, ColorUtils.hexToCanvas(0x9d00ff, 0.25));
-      bgGradient.addColorStop(0.5, ColorUtils.hexToCanvas(0x7d00cc, 0.2));
-      bgGradient.addColorStop(1, ColorUtils.hexToCanvas(0x5d0099, 0.25));
-      
-      const mainBgGradient = ctx.createLinearGradient(offsetX, offsetY, offsetX, offsetY + panelHeight);
-      mainBgGradient.addColorStop(0, 'rgba(30, 35, 45, 0.95)');
-      mainBgGradient.addColorStop(0.3, 'rgba(20, 25, 35, 0.93)');
-      mainBgGradient.addColorStop(0.7, 'rgba(15, 20, 30, 0.92)');
-      mainBgGradient.addColorStop(1, 'rgba(10, 15, 25, 0.9)');
-      ctx.fillStyle = mainBgGradient;
-      ctx.beginPath();
-      ctx.roundRect(offsetX, offsetY, panelWidth, panelHeight, radius);
-      ctx.fill();
-      
-      ctx.fillStyle = bgGradient;
-      ctx.fill();
-      
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-      
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = ColorUtils.hexToCanvas(0x9d00ff, 0.6);
-      ctx.strokeStyle = ColorUtils.hexToCanvas(0x9d00ff, 0.9);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(offsetX, offsetY, panelWidth, panelHeight, radius);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      
-      ctx.strokeStyle = ColorUtils.hexToCanvas(0x9d00ff, 0.4);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(offsetX + 1, offsetY + 1, panelWidth - 2, panelHeight - 2, radius - 1);
-      ctx.stroke();
-      
-      this._bgInitialized = true;
-    } catch (e) {
-      console.warn('波次信息背景缓存初始化失败:', e);
-      this._bgInitialized = false;
-    }
+    const panelWidth = this.PANEL_WIDTH;
+    const panelHeight = this.PANEL_HEIGHT;
+    const canvasWidth = panelWidth + UIConfig.CACHE_PADDING * 2;
+    const canvasHeight = panelHeight + UIConfig.CACHE_PADDING * 2;
+    
+    const canvas = wx.createCanvas();
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    
+    const ctx = canvas.getContext('2d');
+    this._bgCache = canvas;
+    this._bgCtx = ctx;
+    
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    
+    polyfillRoundRect(ctx);
+    const offsetX = UIConfig.CACHE_OFFSET;
+    const offsetY = UIConfig.CACHE_OFFSET;
+    const radius = this.PANEL_RADIUS;
+    
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 5;
+    
+    const bgGradient = ctx.createLinearGradient(offsetX, offsetY, offsetX, offsetY + panelHeight);
+    bgGradient.addColorStop(0, ColorUtils.hexToCanvas(0x9d00ff, 0.25));
+    bgGradient.addColorStop(0.5, ColorUtils.hexToCanvas(0x7d00cc, 0.2));
+    bgGradient.addColorStop(1, ColorUtils.hexToCanvas(0x5d0099, 0.25));
+    
+    const mainBgGradient = ctx.createLinearGradient(offsetX, offsetY, offsetX, offsetY + panelHeight);
+    mainBgGradient.addColorStop(0, 'rgba(30, 35, 45, 0.95)');
+    mainBgGradient.addColorStop(0.3, 'rgba(20, 25, 35, 0.93)');
+    mainBgGradient.addColorStop(0.7, 'rgba(15, 20, 30, 0.92)');
+    mainBgGradient.addColorStop(1, 'rgba(10, 15, 25, 0.9)');
+    ctx.fillStyle = mainBgGradient;
+    ctx.beginPath();
+    ctx.roundRect(offsetX, offsetY, panelWidth, panelHeight, radius);
+    ctx.fill();
+    
+    ctx.fillStyle = bgGradient;
+    ctx.fill();
+    
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = ColorUtils.hexToCanvas(0x9d00ff, 0.6);
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0x9d00ff, 0.9);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(offsetX, offsetY, panelWidth, panelHeight, radius);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0x9d00ff, 0.4);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(offsetX + 1, offsetY + 1, panelWidth - 2, panelHeight - 2, radius - 1);
+    ctx.stroke();
+    
+    this._bgInitialized = true;
   }
   
   /**
@@ -152,61 +147,5 @@ export class WaveInfo {
     ctx.shadowOffsetY = 0;
   }
   
-  /**
-   * 直接绘制背景（已废弃，仅用于缓存初始化）
-   */
-  static renderBackgroundDirect(ctx, panelX, panelY) {
-    polyfillRoundRect(ctx);
-    ctx.save();
-    
-    const panelWidth = this.PANEL_WIDTH;
-    const panelHeight = this.PANEL_HEIGHT;
-    const radius = this.PANEL_RADIUS;
-    
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 5;
-    
-    const bgGradient = ctx.createLinearGradient(panelX, panelY, panelX, panelY + panelHeight);
-    bgGradient.addColorStop(0, ColorUtils.hexToCanvas(0x9d00ff, 0.25));
-    bgGradient.addColorStop(0.5, ColorUtils.hexToCanvas(0x7d00cc, 0.2));
-    bgGradient.addColorStop(1, ColorUtils.hexToCanvas(0x5d0099, 0.25));
-    
-    const mainBgGradient = ctx.createLinearGradient(panelX, panelY, panelX, panelY + panelHeight);
-    mainBgGradient.addColorStop(0, 'rgba(30, 35, 45, 0.95)');
-    mainBgGradient.addColorStop(0.3, 'rgba(20, 25, 35, 0.93)');
-    mainBgGradient.addColorStop(0.7, 'rgba(15, 20, 30, 0.92)');
-    mainBgGradient.addColorStop(1, 'rgba(10, 15, 25, 0.9)');
-    ctx.fillStyle = mainBgGradient;
-    ctx.beginPath();
-    ctx.roundRect(panelX, panelY, panelWidth, panelHeight, radius);
-    ctx.fill();
-    
-    ctx.fillStyle = bgGradient;
-    ctx.fill();
-    
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = ColorUtils.hexToCanvas(0x9d00ff, 0.6);
-    ctx.strokeStyle = ColorUtils.hexToCanvas(0x9d00ff, 0.9);
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(panelX, panelY, panelWidth, panelHeight, radius);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-    
-    ctx.strokeStyle = ColorUtils.hexToCanvas(0x9d00ff, 0.4);
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(panelX + 1, panelY + 1, panelWidth - 2, panelHeight - 2, radius - 1);
-    ctx.stroke();
-    
-    ctx.restore();
-  }
 }
 

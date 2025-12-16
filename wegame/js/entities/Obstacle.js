@@ -51,44 +51,36 @@ export class Obstacle {
       return; // 已经初始化
     }
     
-    try {
-      const canvasSize = Math.ceil(size * 1.2); // 留出边距
-      
-      const canvas = wx.createCanvas();
-      canvas.width = canvasSize;
-      canvas.height = canvasSize;
-      
-      const ctx = canvas.getContext('2d');
-      this._cachedCanvases[cacheKey] = canvas;
-      this._cachedCtxs[cacheKey] = ctx;
-      
-      // 清空缓存Canvas
-      ctx.clearRect(0, 0, canvasSize, canvasSize);
-      
-      // 绘制障碍物到缓存（居中）
-      polyfillRoundRect(ctx);
-      ctx.save();
-      ctx.translate(canvasSize / 2, canvasSize / 2);
-      
-      // 根据类型绘制
-      switch (type) {
-        case 0:
-          this.drawRockToCache(ctx, size);
-          break;
-        case 1:
-          this.drawBarrelToCache(ctx, size);
-          break;
-        case 2:
-          this.drawCrateToCache(ctx, size);
-          break;
-      }
-      
-      ctx.restore();
-      this._initialized[cacheKey] = true;
-    } catch (e) {
-      console.warn('障碍物渲染缓存初始化失败:', e);
-      this._initialized[cacheKey] = false;
+    const canvasSize = Math.ceil(size * 1.2);
+    
+    const canvas = wx.createCanvas();
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    
+    const ctx = canvas.getContext('2d');
+    this._cachedCanvases[cacheKey] = canvas;
+    this._cachedCtxs[cacheKey] = ctx;
+    
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+    
+    polyfillRoundRect(ctx);
+    ctx.save();
+    ctx.translate(canvasSize / 2, canvasSize / 2);
+    
+    switch (type) {
+      case 0:
+        this.drawRockToCache(ctx, size);
+        break;
+      case 1:
+        this.drawBarrelToCache(ctx, size);
+        break;
+      case 2:
+        this.drawCrateToCache(ctx, size);
+        break;
     }
+    
+    ctx.restore();
+    this._initialized[cacheKey] = true;
   }
   
   /**

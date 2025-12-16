@@ -21,24 +21,19 @@ export class FastEnemyRenderer {
       return;
     }
     
-    try {
-      const canvasSize = Math.ceil(size * 1.2);
-      
-      this._cachedCanvas = wx.createCanvas();
-      this._cachedCanvas.width = canvasSize;
-      this._cachedCanvas.height = canvasSize;
-      
-      this._cachedCtx = this._cachedCanvas.getContext('2d');
-      this._cacheSize = size;
-      
-      polyfillRoundRect(this._cachedCtx);
-      this.drawToCache(this._cachedCtx, size, canvasSize / 2, canvasSize / 2);
-      
-      this._initialized = true;
-    } catch (e) {
-      console.warn('快速敌人渲染缓存初始化失败:', e);
-      this._initialized = false;
-    }
+    const canvasSize = Math.ceil(size * 1.2);
+    
+    this._cachedCanvas = wx.createCanvas();
+    this._cachedCanvas.width = canvasSize;
+    this._cachedCanvas.height = canvasSize;
+    
+    this._cachedCtx = this._cachedCanvas.getContext('2d');
+    this._cacheSize = size;
+    
+    polyfillRoundRect(this._cachedCtx);
+    this.drawToCache(this._cachedCtx, size, canvasSize / 2, canvasSize / 2);
+    
+    this._initialized = true;
   }
   
   /**

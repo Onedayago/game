@@ -23,16 +23,13 @@ export class ObstacleManager {
     // 遍历所有战斗区域的格子（排除底部UI区域）
     for (let row = GameConfig.BATTLE_START_ROW; row < GameConfig.BATTLE_END_ROW; row++) {
       for (let col = 0; col < GameConfig.BATTLE_COLS; col++) {
+        // 避免在前三列生成障碍物（敌人出生区域）
+        if (col < 3) {
+          continue;
+        }
+        
         // 随机决定是否生成障碍物
         if (Math.random() < obstacleDensity) {
-          // 避免在敌人起始位置生成障碍物（第一列）
-          if (col === 0) {
-            continue;
-          }
-          
-          // 避免在敌人路径的关键位置生成（可以调整）
-          // 这里我们允许在任何位置生成，但可以后续优化
-          
           // 创建障碍物
           const obstacle = new Obstacle(this.ctx, col, row);
           this.obstacles.push(obstacle);

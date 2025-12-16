@@ -20,27 +20,20 @@ export class EnemyBulletRenderer {
       return;
     }
     
-    try {
-      const canvasSize = Math.ceil(radius * 6); // 包含尾迹和发光效果
-      
-      this._cachedCanvas = wx.createCanvas();
-      this._cachedCanvas.width = canvasSize;
-      this._cachedCanvas.height = canvasSize;
-      
-      this._cachedCtx = this._cachedCanvas.getContext('2d');
-      this._cacheRadius = radius;
-      
-      // 清空缓存Canvas
-      this._cachedCtx.clearRect(0, 0, canvasSize, canvasSize);
-      
-      // 绘制子弹到缓存（居中）
-      this.drawBulletToCache(this._cachedCtx, radius, canvasSize / 2, canvasSize / 2);
-      
-      this._initialized = true;
-    } catch (e) {
-      console.warn('敌人子弹渲染缓存初始化失败:', e);
-      this._initialized = false;
-    }
+    const canvasSize = Math.ceil(radius * 6);
+    
+    this._cachedCanvas = wx.createCanvas();
+    this._cachedCanvas.width = canvasSize;
+    this._cachedCanvas.height = canvasSize;
+    
+    this._cachedCtx = this._cachedCanvas.getContext('2d');
+    this._cacheRadius = radius;
+    
+    this._cachedCtx.clearRect(0, 0, canvasSize, canvasSize);
+    
+    this.drawBulletToCache(this._cachedCtx, radius, canvasSize / 2, canvasSize / 2);
+    
+    this._initialized = true;
   }
   
   /**

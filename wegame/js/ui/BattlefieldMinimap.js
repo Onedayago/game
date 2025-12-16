@@ -73,26 +73,19 @@ export class BattlefieldMinimap {
       return;
     }
     
-    try {
-      BattlefieldMinimap._cachedCanvas = wx.createCanvas();
-      BattlefieldMinimap._cachedCanvas.width = this.width;
-      BattlefieldMinimap._cachedCanvas.height = this.height;
-      
-      BattlefieldMinimap._cachedCtx = BattlefieldMinimap._cachedCanvas.getContext('2d');
-      BattlefieldMinimap._cacheWidth = this.width;
-      BattlefieldMinimap._cacheHeight = this.height;
-      
-      // 清空缓存Canvas
-      BattlefieldMinimap._cachedCtx.clearRect(0, 0, this.width, this.height);
-      
-      // 绘制静态部分到缓存
-      this.drawStaticToCache(BattlefieldMinimap._cachedCtx, this.width, this.height);
-      
-      BattlefieldMinimap._initialized = true;
-    } catch (e) {
-      console.warn('小地图静态缓存初始化失败:', e);
-      BattlefieldMinimap._initialized = false;
-    }
+    BattlefieldMinimap._cachedCanvas = wx.createCanvas();
+    BattlefieldMinimap._cachedCanvas.width = this.width;
+    BattlefieldMinimap._cachedCanvas.height = this.height;
+    
+    BattlefieldMinimap._cachedCtx = BattlefieldMinimap._cachedCanvas.getContext('2d');
+    BattlefieldMinimap._cacheWidth = this.width;
+    BattlefieldMinimap._cacheHeight = this.height;
+    
+    BattlefieldMinimap._cachedCtx.clearRect(0, 0, this.width, this.height);
+    
+    this.drawStaticToCache(BattlefieldMinimap._cachedCtx, this.width, this.height);
+    
+    BattlefieldMinimap._initialized = true;
   }
   
   /**
@@ -200,7 +193,7 @@ export class BattlefieldMinimap {
   }
   
   /**
-   * 处理点击（兼容旧接口）
+   * 处理点击
    */
   handleClick(x, y) {
     return this.onTouchStart({ x, y });
