@@ -21,15 +21,15 @@ export class GameConfig {
     }
     
     try {
-      if (typeof wx !== 'undefined' && wx.getSystemInfoSync) {
-        this._cachedSystemInfo = wx.getSystemInfoSync();
-        this._cachedDesignWidth = this._cachedSystemInfo.windowWidth || 1000;
-        this._cachedDesignHeight = this._cachedSystemInfo.windowHeight || 480;
-      } else {
-        // 非微信环境，使用默认值
-        this._cachedDesignWidth = 1000;
-        this._cachedDesignHeight = 480;
-      }
+      // 微信小游戏：使用 wx.getWindowInfo() 获取窗口信息
+      const windowInfo = wx.getWindowInfo();
+      this._cachedDesignWidth = windowInfo.windowWidth || 1000;
+      this._cachedDesignHeight = windowInfo.windowHeight || 480;
+      
+      console.log('GameConfig 初始化完成', {
+        width: this._cachedDesignWidth,
+        height: this._cachedDesignHeight
+      });
     } catch (e) {
       console.warn('GameConfig.init 失败，使用默认值:', e);
       this._cachedDesignWidth = 1000;

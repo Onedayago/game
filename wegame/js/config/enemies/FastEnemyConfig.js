@@ -9,7 +9,7 @@ export class FastEnemyConfig {
   static MAX_HP = 5;
   
   /** 快速敌人移动速度（像素/秒） */
-  static MOVE_SPEED = 80;
+  static MOVE_SPEED = 50;
   
   /** 快速敌人攻击范围（格子数） */
   static ATTACK_RANGE = 2;

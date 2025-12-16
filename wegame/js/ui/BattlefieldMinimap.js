@@ -53,10 +53,10 @@ export class BattlefieldMinimap {
     // 小视图高度固定为 1.5 个格子的高度
     this.height = GameConfig.CELL_SIZE * 1.5;
     
-    // 位置：右下角，留出边距
-    const margin = 10;
-    this.x = windowWidth - this.width - margin;
-    this.y = windowHeight - this.height - margin;
+    // 位置：左下角，留出边距
+    const margin = 50;
+    this.x = margin;
+    this.y = windowHeight - this.height-20;
     
     // 初始化静态部分缓存
     this.initStaticCache();
@@ -74,15 +74,9 @@ export class BattlefieldMinimap {
     }
     
     try {
-      if (typeof wx !== 'undefined') {
-        BattlefieldMinimap._cachedCanvas = wx.createCanvas();
-        BattlefieldMinimap._cachedCanvas.width = this.width;
-        BattlefieldMinimap._cachedCanvas.height = this.height;
-      } else {
-        BattlefieldMinimap._cachedCanvas = document.createElement('canvas');
-        BattlefieldMinimap._cachedCanvas.width = this.width;
-        BattlefieldMinimap._cachedCanvas.height = this.height;
-      }
+      BattlefieldMinimap._cachedCanvas = wx.createCanvas();
+      BattlefieldMinimap._cachedCanvas.width = this.width;
+      BattlefieldMinimap._cachedCanvas.height = this.height;
       
       BattlefieldMinimap._cachedCtx = BattlefieldMinimap._cachedCanvas.getContext('2d');
       BattlefieldMinimap._cacheWidth = this.width;

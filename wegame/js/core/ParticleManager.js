@@ -74,12 +74,7 @@ export class ParticleManager {
           const cacheKey = this.getCacheKey(size, colorIndex);
           const canvasSize = Math.ceil(size * 2.5); // 包含一些边距
           
-          let canvas;
-          if (typeof wx !== 'undefined') {
-            canvas = wx.createCanvas();
-          } else {
-            canvas = document.createElement('canvas');
-          }
+          const canvas = wx.createCanvas();
           canvas.width = canvasSize;
           canvas.height = canvasSize;
           const ctx = canvas.getContext('2d');

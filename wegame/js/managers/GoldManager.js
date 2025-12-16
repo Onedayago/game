@@ -30,16 +30,9 @@ export class GoldManager {
       const panelWidth = 140;
       const panelHeight = 40;
       
-      let canvas;
-      if (typeof wx !== 'undefined') {
-        canvas = wx.createCanvas();
-        canvas.width = panelWidth;
-        canvas.height = panelHeight;
-      } else {
-        canvas = document.createElement('canvas');
-        canvas.width = panelWidth;
-        canvas.height = panelHeight;
-      }
+      const canvas = wx.createCanvas();
+      canvas.width = panelWidth;
+      canvas.height = panelHeight;
       
       const ctx = canvas.getContext('2d');
       this._cachedCanvas = canvas;
@@ -220,13 +213,14 @@ export class GoldManager {
     }
     
     // 获取实际 Canvas 尺寸
+    const windowWidth = GameConfig.DESIGN_WIDTH;
     const windowHeight = GameConfig.DESIGN_HEIGHT;
     
-    // 金币面板尺寸和位置
+    // 金币面板尺寸和位置（顶部中间偏左）
     const panelWidth = 140;
     const panelHeight = 40;
-    const panelX = 20;
-    const panelY = windowHeight - panelHeight - 20;
+    const panelX = windowWidth / 2 - panelWidth - 10; // 中间偏左，留10px间距
+    const panelY = 20; // 顶部
     
     // 使用缓存渲染静态部分（背景、图标）
     GoldManager.renderStaticFromCache(ctx, panelX, panelY);

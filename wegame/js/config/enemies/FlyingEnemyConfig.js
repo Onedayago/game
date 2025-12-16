@@ -9,7 +9,7 @@ export class FlyingEnemyConfig {
   static MAX_HP = 8;
   
   /** 飞行敌人移动速度（像素/秒） */
-  static MOVE_SPEED = 60;
+  static MOVE_SPEED = 30;
   
   /** 飞行敌人攻击范围（格子数） */
   static ATTACK_RANGE = 3;

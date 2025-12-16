@@ -44,15 +44,9 @@ export class EnemyBullet {
     try {
       const canvasSize = Math.ceil(radius * 6); // 包含尾迹和发光效果
       
-      if (typeof wx !== 'undefined') {
-        this._cachedCanvas = wx.createCanvas();
-        this._cachedCanvas.width = canvasSize;
-        this._cachedCanvas.height = canvasSize;
-      } else {
-        this._cachedCanvas = document.createElement('canvas');
-        this._cachedCanvas.width = canvasSize;
-        this._cachedCanvas.height = canvasSize;
-      }
+      this._cachedCanvas = wx.createCanvas();
+      this._cachedCanvas.width = canvasSize;
+      this._cachedCanvas.height = canvasSize;
       
       this._cachedCtx = this._cachedCanvas.getContext('2d');
       this._cacheRadius = radius;

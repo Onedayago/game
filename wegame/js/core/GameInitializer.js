@@ -13,9 +13,9 @@ import { EnemyManager } from '../managers/EnemyManager';
 import { GoldManager } from '../managers/GoldManager';
 import { ParticleManager } from '../core/ParticleManager';
 import { LaserBeam } from '../projectiles/LaserBeam';
-import { SoundManager } from '../core/SoundManager';
 import { StartScreen } from '../ui/StartScreen';
 import { HelpScreen } from '../ui/HelpScreen';
+import { LoadingScreen } from '../ui/LoadingScreen';
 import { WeaponContainerUI } from '../ui/WeaponContainerUI';
 import { BattlefieldMinimap } from '../ui/BattlefieldMinimap';
 import { ObstacleManager } from '../managers/ObstacleManager';
@@ -26,38 +26,16 @@ import { UIRenderer } from '../ui/UIRenderer';
 export class GameInitializer {
   /**
    * 设置 Canvas
-   * @param {HTMLCanvasElement|wx.Canvas} canvas
+   * @param {wx.Canvas} canvas
    * @param {CanvasRenderingContext2D} ctx
    */
   static setupCanvas(canvas, ctx) {
     // 微信小游戏的 Canvas 已经由 wx.createCanvas() 创建
-    // 获取系统信息
-    const systemInfo = wx.getSystemInfoSync();
-    const dpr = systemInfo.pixelRatio || 1;
-    
-    // 设置 Canvas 尺寸（微信小游戏 Canvas 尺寸由系统决定）
-    // 注意：GameConfig.DESIGN_WIDTH 和 DESIGN_HEIGHT 现在会自动从系统信息获取
-    const windowWidth = GameConfig.DESIGN_WIDTH;
-    const windowHeight = GameConfig.DESIGN_HEIGHT;
-    
-    // 设置 Canvas 实际尺寸（考虑设备像素比）
-    canvas.width = windowWidth * dpr;
-    canvas.height = windowHeight * dpr;
-    
-    ctx.scale(dpr, dpr);
-    
-    // 设置 Canvas 显示尺寸
-    if (canvas.style) {
-      canvas.style.width = `${windowWidth}px`;
-      canvas.style.height = `${windowHeight}px`;
-    }
+    // Canvas 尺寸已在 game.js 中通过 wx.getWindowInfo() 设置
     
     console.log('Canvas 设置完成', {
       width: canvas.width,
-      height: canvas.height,
-      dpr,
-      windowWidth,
-      windowHeight
+      height: canvas.height
     });
     
     // 初始化 Canvas 工具（添加 roundRect 等方法）
@@ -113,10 +91,6 @@ export class GameInitializer {
     // 初始化金币管理器缓存
     GoldManager.initCache();
     
-    // 音效管理器
-    const soundManager = new SoundManager();
-    gameContext.soundManager = soundManager;
-    
     // 更新游戏上下文
     gameContext.weaponManager = weaponManager;
     gameContext.obstacleManager = obstacleManager; // 保存障碍物管理器引用
@@ -131,8 +105,7 @@ export class GameInitializer {
       enemyManager,
       goldManager,
       particleManager,
-      obstacleManager,
-      soundManager
+      obstacleManager
     };
   }
   
@@ -155,6 +128,9 @@ export class GameInitializer {
     weaponContainerUI.init(); // 初始化武器卡片缓存
     gameContext.weaponContainerUI = weaponContainerUI;
     
+    // 加载界面
+    const loadingScreen = new LoadingScreen(ctx);
+    
     // 开始界面
     const startScreen = new StartScreen(ctx);
     
@@ -173,6 +149,7 @@ export class GameInitializer {
     battlefieldMinimap.init();
     
     return {
+      loadingScreen,
       weaponContainerUI,
       startScreen,
       helpScreen,

@@ -9,7 +9,7 @@ export class BomberEnemyConfig {
   static MAX_HP = 6;
   
   /** 自爆敌人移动速度（像素/秒） */
-  static MOVE_SPEED = 55;
+  static MOVE_SPEED = 25;
   
   /** 自爆敌人爆炸范围（格子数） */
   static EXPLOSION_RANGE = 2;

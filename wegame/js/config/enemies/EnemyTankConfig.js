@@ -9,7 +9,7 @@ export class EnemyTankConfig {
   static MAX_HP = 10;
   
   /** 敌方坦克移动速度（像素/秒） */
-  static MOVE_SPEED = 50;
+  static MOVE_SPEED = 20;
   
   /** 敌方坦克攻击范围（格子数） */
   static ATTACK_RANGE = 3;

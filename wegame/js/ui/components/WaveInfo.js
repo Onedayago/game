@@ -16,7 +16,7 @@ export class WaveInfo {
   
   static PANEL_WIDTH = 120;
   static PANEL_HEIGHT = 40;
-  static PANEL_X_OFFSET = 20; // 距离右边的距离
+  static PANEL_X_OFFSET = 20; // 距离右边的距离（已废弃，保留用于兼容）
   static PANEL_Y_OFFSET = 20; // 距离顶部的距离
   static PANEL_RADIUS = 8;
   
@@ -34,16 +34,9 @@ export class WaveInfo {
       const canvasWidth = panelWidth + 40;
       const canvasHeight = panelHeight + 40;
       
-      let canvas;
-      if (typeof wx !== 'undefined') {
-        canvas = wx.createCanvas();
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-      } else {
-        canvas = document.createElement('canvas');
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-      }
+      const canvas = wx.createCanvas();
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
       
       const ctx = canvas.getContext('2d');
       this._bgCache = canvas;
@@ -112,7 +105,8 @@ export class WaveInfo {
   static render(ctx, waveLevel, progress) {
     const panelWidth = this.PANEL_WIDTH;
     const panelHeight = this.PANEL_HEIGHT;
-    const panelX = GameConfig.DESIGN_WIDTH - panelWidth - this.PANEL_X_OFFSET;
+    // 顶部中间偏右（金币面板在左侧，波次面板在右侧）
+    const panelX = GameConfig.DESIGN_WIDTH / 2 + 10; // 中间偏右，留10px间距
     const panelY = this.PANEL_Y_OFFSET;
     
     // 使用缓存绘制背景

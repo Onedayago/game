@@ -5,9 +5,10 @@
 import { GameConfig } from '../config/GameConfig';
 import { UIConfig } from '../config/UIConfig';
 import { WeaponType, WeaponConfigs } from '../config/WeaponConfig';
-import { ColorUtils } from '../config/Colors';
+import { ColorUtils, GameColors } from '../config/Colors';
 import { WeaponCardRenderer } from './WeaponCardRenderer';
 import { WeaponDragHandler } from './WeaponDragHandler';
+import { polyfillRoundRect } from '../utils/CanvasUtils';
 
 export class WeaponContainerUI {
   constructor(ctx, goldManager, weaponManager) {
@@ -53,11 +54,15 @@ export class WeaponContainerUI {
     
     // 计算容器位置（用于定位武器卡片）
     const containerHeight = UIConfig.WEAPON_CONTAINER_HEIGHT;
-    const containerY = GameConfig.DESIGN_HEIGHT - containerHeight;
-    const containerWidth = GameConfig.DESIGN_WIDTH * 0.5;
+    const containerY = GameConfig.DESIGN_HEIGHT - containerHeight-20;
+    const containerWidth = UIConfig.WEAPON_CONTAINER_WIDTH;
+    const containerX = (GameConfig.DESIGN_WIDTH - containerWidth) / 2 + 100; // 居中
     
-    // 不绘制背景和边框，只绘制武器卡片
-    this.renderWeaponCards(containerY, containerHeight);
+    // 绘制背景
+    this.renderBackground(containerX, containerY, containerWidth, containerHeight);
+    
+    // 绘制武器卡片
+    this.renderWeaponCards(containerX, containerY, containerWidth, containerHeight);
     
     this.ctx.restore();
     
@@ -75,12 +80,63 @@ export class WeaponContainerUI {
   }
   
   /**
+   * 渲染背景
+   */
+  renderBackground(containerX, containerY, containerWidth, containerHeight) {
+    polyfillRoundRect(this.ctx);
+    
+    const radius = 8; // 使用圆角
+    
+    // 绘制阴影
+    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    this.ctx.shadowBlur = 15;
+    this.ctx.shadowOffsetX = 0;
+    this.ctx.shadowOffsetY = -5; // 向上投影
+    
+    // 绘制背景渐变
+    const bgGradient = this.ctx.createLinearGradient(containerX, containerY, containerX, containerY + containerHeight);
+    bgGradient.addColorStop(0, 'rgba(20, 25, 35, 0.95)');
+    bgGradient.addColorStop(0.3, 'rgba(15, 20, 30, 0.93)');
+    bgGradient.addColorStop(0.7, 'rgba(10, 15, 25, 0.92)');
+    bgGradient.addColorStop(1, 'rgba(5, 10, 20, 0.9)');
+    
+    this.ctx.fillStyle = bgGradient;
+    this.ctx.beginPath();
+    this.ctx.roundRect(containerX, containerY, containerWidth, containerHeight, radius);
+    this.ctx.fill();
+    
+    // 重置阴影
+    this.ctx.shadowColor = 'transparent';
+    this.ctx.shadowBlur = 0;
+    this.ctx.shadowOffsetX = 0;
+    this.ctx.shadowOffsetY = 0;
+    
+    // 绘制边框（发光效果）
+    this.ctx.shadowBlur = 8;
+    this.ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.5);
+    this.ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.UI_BORDER, 0.6);
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.roundRect(containerX, containerY, containerWidth, containerHeight, radius);
+    this.ctx.stroke();
+    this.ctx.shadowBlur = 0;
+    
+    // 绘制内边框（高光）
+    this.ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.1);
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    this.ctx.roundRect(containerX + 1, containerY + 1, containerWidth - 2, containerHeight - 2, radius - 1);
+    this.ctx.stroke();
+  }
+  
+  /**
    * 渲染武器卡片
    */
-  renderWeaponCards(containerY, containerHeight) {
+  renderWeaponCards(containerX, containerY, containerWidth, containerHeight) {
     const cardSize = GameConfig.CELL_SIZE;
     const spacing = UIConfig.WEAPON_CARD_SPACING;
-    const startX = (GameConfig.DESIGN_WIDTH - (cardSize * 2 + spacing)) / 2;
+    const totalCardsWidth = cardSize * 2 + spacing;
+    const startX = containerX + (containerWidth - totalCardsWidth) / 2; // 在容器内居中
     const cardY = containerY + (containerHeight - cardSize) / 2;
     
     const weaponTypes = [WeaponType.ROCKET, WeaponType.LASER];
@@ -156,7 +212,10 @@ export class WeaponContainerUI {
     const spacing = UIConfig.WEAPON_CARD_SPACING;
     const containerHeight = UIConfig.WEAPON_CONTAINER_HEIGHT;
     const containerY = GameConfig.DESIGN_HEIGHT - containerHeight;
-    const startX = (GameConfig.DESIGN_WIDTH - (cardSize * 2 + spacing)) / 2;
+    const containerWidth = UIConfig.WEAPON_CONTAINER_WIDTH;
+    const containerX = (GameConfig.DESIGN_WIDTH - containerWidth) / 2; // 居中
+    const totalCardsWidth = cardSize * 2 + spacing;
+    const startX = containerX + (containerWidth - totalCardsWidth) / 2; // 在容器内居中
     const cardY = containerY + (containerHeight - cardSize) / 2;
     
     console.log('卡片位置', { 

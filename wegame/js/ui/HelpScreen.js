@@ -49,15 +49,9 @@ class HelpScreen {
     }
     
     try {
-      if (typeof wx !== 'undefined') {
-        this._cachedCanvas = wx.createCanvas();
-        this._cachedCanvas.width = windowWidth;
-        this._cachedCanvas.height = windowHeight;
-      } else {
-        this._cachedCanvas = document.createElement('canvas');
-        this._cachedCanvas.width = windowWidth;
-        this._cachedCanvas.height = windowHeight;
-      }
+      this._cachedCanvas = wx.createCanvas();
+      this._cachedCanvas.width = windowWidth;
+      this._cachedCanvas.height = windowHeight;
       
       this._cachedCtx = this._cachedCanvas.getContext('2d');
       this._cacheWidth = windowWidth;
@@ -158,11 +152,7 @@ class HelpScreen {
       const btnHeight = UIConfig.HELP_BTN_HEIGHT * 0.9;
       const btnRadius = UIConfig.HELP_BTN_RADIUS;
       
-      if (typeof wx !== 'undefined') {
-        this._buttonCache = wx.createCanvas();
-      } else {
-        this._buttonCache = document.createElement('canvas');
-      }
+      this._buttonCache = wx.createCanvas();
       this._buttonCache.width = Math.ceil(btnWidth);
       this._buttonCache.height = Math.ceil(btnHeight);
       this._buttonCtx = this._buttonCache.getContext('2d');

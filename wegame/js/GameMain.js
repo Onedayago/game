@@ -25,13 +25,16 @@ export default class GameMain {
     this.goldManager = null;
     this.particleManager = null;
     this.obstacleManager = null;
-    this.soundManager = null;
     
     // UI
+    this.loadingScreen = null;
     this.startScreen = null;
     this.helpScreen = null;
     this.weaponContainerUI = null;
     this.battlefieldMinimap = null;
+    
+    // 加载状态
+    this.isLoading = false;
     
     // 游戏循环和渲染
     this.gameLoop = new GameLoop();
@@ -52,7 +55,7 @@ export default class GameMain {
     
     // 初始化游戏配置（获取屏幕尺寸并缓存）
     GameConfig.init();
-    
+  
     // 初始化 Canvas
     GameInitializer.setupCanvas(this.canvas, this.ctx);
     
@@ -64,7 +67,6 @@ export default class GameMain {
     this.goldManager = managers.goldManager;
     this.particleManager = managers.particleManager;
     this.obstacleManager = managers.obstacleManager;
-    this.soundManager = managers.soundManager;
     
     // 初始化 UI
     const uiComponents = GameInitializer.initUI(
@@ -74,6 +76,7 @@ export default class GameMain {
       this.weaponManager,
       this.enemyManager
     );
+    this.loadingScreen = uiComponents.loadingScreen;
     this.weaponContainerUI = uiComponents.weaponContainerUI;
     this.startScreen = uiComponents.startScreen;
     this.helpScreen = uiComponents.helpScreen;
@@ -88,11 +91,82 @@ export default class GameMain {
     // 创建游戏渲染器
     this.gameRenderer = GameInitializer.createRenderer(this.ctx, this.gameContext);
     
-    // 显示开始界面
-    this.showStartScreen();
+    // 开始加载流程
+    this.startLoading();
     
     // 开始游戏循环
     this.start();
+  }
+  
+  /**
+   * 开始加载流程
+   */
+  startLoading() {
+    this.isLoading = true;
+    if (this.loadingScreen) {
+      this.loadingScreen.show();
+    }
+    
+    // 异步加载资源
+    this.loadResources();
+  }
+  
+  /**
+   * 加载游戏资源
+   */
+  async loadResources() {
+    const totalSteps = 5;
+    let currentStep = 0;
+    
+    const updateProgress = (step, text) => {
+      currentStep = step;
+      const progress = currentStep / totalSteps;
+      if (this.loadingScreen) {
+        this.loadingScreen.setProgress(progress, text);
+      }
+    };
+    
+    try {
+      // 步骤 1: 初始化配置
+      updateProgress(1, '初始化配置...');
+      await this.delay(100);
+      
+      // 步骤 2: 初始化渲染缓存
+      updateProgress(2, '初始化渲染缓存...');
+      await this.delay(200);
+      
+      // 步骤 3: 初始化UI缓存
+      updateProgress(3, '初始化UI界面...');
+      await this.delay(200);
+      
+      // 步骤 4: 初始化游戏资源
+      updateProgress(4, '加载游戏资源...');
+      await this.delay(200);
+      
+      // 步骤 5: 完成
+      updateProgress(5, '加载完成！');
+      await this.delay(300);
+      
+      // 隐藏加载界面，显示开始界面
+      this.isLoading = false;
+      if (this.loadingScreen) {
+        this.loadingScreen.hide();
+      }
+      this.showStartScreen();
+      
+    } catch (error) {
+      console.error('资源加载失败:', error);
+      if (this.loadingScreen) {
+        this.loadingScreen.setProgress(1, '加载失败，请重试');
+      }
+    }
+  }
+  
+  /**
+   * 延迟函数
+   */
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
   
   /**
@@ -149,11 +223,6 @@ export default class GameMain {
     // 重置障碍物管理器（重新生成障碍物）
     if (this.obstacleManager) {
       this.obstacleManager.reset();
-    }
-    
-    // 播放背景音乐
-    if (this.soundManager) {
-      this.soundManager.playBgMusic();
     }
   }
   
@@ -332,6 +401,11 @@ export default class GameMain {
     if (this.startScreen) {
       this.startScreen.update(deltaMS);
     }
+    
+    // 更新加载界面动画
+    if (this.loadingScreen) {
+      this.loadingScreen.update(deltaMS);
+    }
   }
   
   /**
@@ -348,6 +422,7 @@ export default class GameMain {
         particleManager: this.particleManager,
         obstacleManager: this.obstacleManager,
         weaponContainerUI: this.weaponContainerUI,
+        loadingScreen: this.loadingScreen,
         startScreen: this.startScreen,
         helpScreen: this.helpScreen,
         goldManager: this.goldManager,

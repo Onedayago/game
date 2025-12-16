@@ -13,11 +13,30 @@ let gameMain = null;
 function initGame() {
   console.log('初始化游戏');
   
+  // 获取窗口信息
+  const windowInfo = wx.getWindowInfo();
+  const windowWidth = windowInfo.windowWidth;
+  const windowHeight = windowInfo.windowHeight;
+  
+  console.log('窗口信息', {
+    windowWidth,
+    windowHeight,
+    pixelRatio: windowInfo.pixelRatio
+  });
+  
   // 创建 Canvas
   const canvas = wx.createCanvas();
+  
+  // 设置 Canvas 尺寸
+  canvas.width = windowWidth;
+  canvas.height = windowHeight;
+  
   const ctx = canvas.getContext('2d');
   
-  console.log('Canvas 创建成功', canvas.width, canvas.height);
+  console.log('Canvas 创建成功', {
+    width: canvas.width,
+    height: canvas.height
+  });
   
   // 初始化游戏
   gameMain = new GameMain(canvas, ctx);

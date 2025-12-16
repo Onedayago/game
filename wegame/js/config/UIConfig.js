@@ -8,8 +8,13 @@ export class UIConfig {
   // ==================== UI 设计常量 ====================
   /** 武器容器高度 */
   static get WEAPON_CONTAINER_HEIGHT() {
-    return GameConfig.CELL_SIZE * 2;
+    return GameConfig.CELL_SIZE * 1.5;
   }
+
+  static get WEAPON_CONTAINER_WIDTH() {
+    return GameConfig.CELL_SIZE * 3;
+  }
+
   /** 武器卡片间距 */
   static get WEAPON_CARD_SPACING() {
     return GameConfig.CELL_SIZE * 0.375;

@@ -26,7 +26,8 @@ export class GameRenderer {
       weaponContainerUI,
       startScreen,
       goldManager,
-      obstacleManager
+      obstacleManager,
+      loadingScreen
     } = managers;
     
     
@@ -106,27 +107,34 @@ export class GameRenderer {
       }
     }
     
-    // 渲染 UI（不受战场偏移影响）
-    if (weaponContainerUI) {
-      weaponContainerUI.render();
+    // 渲染加载界面（优先级最高）
+    if (managers.loadingScreen && managers.loadingScreen.visible) {
+      managers.loadingScreen.render();
+      return; // 加载时只渲染加载界面
     }
     
+    // 开始界面：只渲染背景和开始界面，不渲染其他UI
     if (startScreen && !this.gameContext.gameStarted) {
       startScreen.render();
+      // 渲染帮助界面（在开始界面之上）
+      if (managers.helpScreen) {
+        managers.helpScreen.render();
+      }
+      return; // 开始界面时只渲染开始界面和帮助界面
     }
     
-    // 渲染帮助界面（在开始界面之上）
-    if (managers.helpScreen) {
-      managers.helpScreen.render();
-    }
-    
-    // 渲染金币显示
-    if (goldManager) {
-      goldManager.render(this.ctx);
-    }
-    
-    // 渲染UI（使用UIRenderer）
+    // 游戏进行中：渲染游戏UI
     if (this.gameContext.gameStarted) {
+      // 渲染 UI（不受战场偏移影响）
+      if (weaponContainerUI) {
+        weaponContainerUI.render();
+      }
+      
+      // 渲染金币显示
+      if (goldManager) {
+        goldManager.render(this.ctx);
+      }
+      
       // 渲染波次信息
       if (enemyManager) {
         UIRenderer.renderWaveInfo(this.ctx, enemyManager);
@@ -139,19 +147,21 @@ export class GameRenderer {
       // 渲染暂停按钮
       UIRenderer.renderPauseButton(this.ctx);
       
-      // 渲染游戏结束界面（优先级最高）
+      // 渲染战场小视图
+      if (managers.battlefieldMinimap) {
+        managers.battlefieldMinimap.render();
+      }
+      
+      // 渲染游戏结束界面（优先级最高，覆盖其他UI）
       if (this.gameContext.gameOver) {
         UIRenderer.renderGameOverScreen(this.ctx);
+        return; // 结束界面时只渲染结束界面，不渲染其他UI
       }
+      
       // 渲染暂停界面（如果游戏已暂停且未结束）
-      else if (this.gameContext.gamePaused) {
+      if (this.gameContext.gamePaused) {
         UIRenderer.renderPauseScreen(this.ctx);
       }
-    }
-    
-    // 渲染战场小视图
-    if (managers.battlefieldMinimap) {
-      managers.battlefieldMinimap.render();
     }
   }
 }

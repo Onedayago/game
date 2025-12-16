@@ -37,11 +37,7 @@ class WeaponRenderer {
       this._healthBarCacheHeight = Math.ceil(barHeight);
       
       // 创建背景缓存
-      if (typeof wx !== 'undefined') {
-        this._healthBarBackgroundCache = wx.createCanvas();
-      } else {
-        this._healthBarBackgroundCache = document.createElement('canvas');
-      }
+      this._healthBarBackgroundCache = wx.createCanvas();
       this._healthBarBackgroundCache.width = this._healthBarCacheWidth;
       this._healthBarBackgroundCache.height = this._healthBarCacheHeight;
       const bgCtx = this._healthBarBackgroundCache.getContext('2d');
@@ -61,11 +57,7 @@ class WeaponRenderer {
       };
       
       for (const [key, color] of Object.entries(colors)) {
-        if (typeof wx !== 'undefined') {
-          this._healthBarForegroundCaches[key] = wx.createCanvas();
-        } else {
-          this._healthBarForegroundCaches[key] = document.createElement('canvas');
-        }
+        this._healthBarForegroundCaches[key] = wx.createCanvas();
         this._healthBarForegroundCaches[key].width = this._healthBarCacheWidth;
         this._healthBarForegroundCaches[key].height = this._healthBarCacheHeight;
         const fgCtx = this._healthBarForegroundCaches[key].getContext('2d');

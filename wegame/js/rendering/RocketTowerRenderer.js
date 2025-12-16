@@ -32,16 +32,9 @@ export class RocketTowerRenderer {
     try {
       const canvasSize = Math.ceil(size * 1.2);
       
-      let canvas;
-      if (typeof wx !== 'undefined') {
-        canvas = wx.createCanvas();
-        canvas.width = canvasSize;
-        canvas.height = canvasSize;
-      } else {
-        canvas = document.createElement('canvas');
-        canvas.width = canvasSize;
-        canvas.height = canvasSize;
-      }
+      const canvas = wx.createCanvas();
+      canvas.width = canvasSize;
+      canvas.height = canvasSize;
       
       const ctx = canvas.getContext('2d');
       this._cachedCanvases[cacheKey] = canvas;

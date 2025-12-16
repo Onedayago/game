@@ -52,15 +52,9 @@ export class HomingRocket {
     try {
       const canvasSize = Math.ceil(radius * 3);
       
-      if (typeof wx !== 'undefined') {
-        this._cachedCanvas = wx.createCanvas();
-        this._cachedCanvas.width = canvasSize;
-        this._cachedCanvas.height = canvasSize;
-      } else {
-        this._cachedCanvas = document.createElement('canvas');
-        this._cachedCanvas.width = canvasSize;
-        this._cachedCanvas.height = canvasSize;
-      }
+      this._cachedCanvas = wx.createCanvas();
+      this._cachedCanvas.width = canvasSize;
+      this._cachedCanvas.height = canvasSize;
       
       this._cachedCtx = this._cachedCanvas.getContext('2d');
       this._cacheRadius = radius;

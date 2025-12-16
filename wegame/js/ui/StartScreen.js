@@ -51,15 +51,9 @@ export class StartScreen {
     }
     
     try {
-      if (typeof wx !== 'undefined') {
-        StartScreen._cachedCanvas = wx.createCanvas();
-        StartScreen._cachedCanvas.width = windowWidth;
-        StartScreen._cachedCanvas.height = windowHeight;
-      } else {
-        StartScreen._cachedCanvas = document.createElement('canvas');
-        StartScreen._cachedCanvas.width = windowWidth;
-        StartScreen._cachedCanvas.height = windowHeight;
-      }
+      StartScreen._cachedCanvas = wx.createCanvas();
+      StartScreen._cachedCanvas.width = windowWidth;
+      StartScreen._cachedCanvas.height = windowHeight;
       
       StartScreen._cachedCtx = StartScreen._cachedCanvas.getContext('2d');
       StartScreen._cacheWidth = windowWidth;

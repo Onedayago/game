@@ -30,16 +30,9 @@ export class PauseButton {
       const buttonSize = this.BUTTON_SIZE;
       const canvasSize = buttonSize + 20; // 包含阴影
       
-      let canvas;
-      if (typeof wx !== 'undefined') {
-        canvas = wx.createCanvas();
-        canvas.width = canvasSize;
-        canvas.height = canvasSize;
-      } else {
-        canvas = document.createElement('canvas');
-        canvas.width = canvasSize;
-        canvas.height = canvasSize;
-      }
+      const canvas = wx.createCanvas();
+      canvas.width = canvasSize;
+      canvas.height = canvasSize;
       
       const ctx = canvas.getContext('2d');
       this._cachedCanvas = canvas;

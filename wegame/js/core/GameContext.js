@@ -18,7 +18,6 @@ export class GameContext {
   gold = 1000;
   
   // 管理器引用
-  soundManager = null;
   particleManager = null;
   weaponManager = null;
   weaponContainerUI = null;

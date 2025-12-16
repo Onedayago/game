@@ -35,16 +35,9 @@ export class PauseScreen {
       const canvasWidth = panelWidth + 40;
       const canvasHeight = panelHeight + 40;
       
-      let canvas;
-      if (typeof wx !== 'undefined') {
-        canvas = wx.createCanvas();
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-      } else {
-        canvas = document.createElement('canvas');
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-      }
+      const canvas = wx.createCanvas();
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
       
       const ctx = canvas.getContext('2d');
       this._cachedCanvas = canvas;

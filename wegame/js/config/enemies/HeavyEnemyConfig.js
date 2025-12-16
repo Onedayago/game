@@ -9,7 +9,7 @@ export class HeavyEnemyConfig {
   static MAX_HP = 30;
   
   /** 重型敌人移动速度（像素/秒） */
-  static MOVE_SPEED = 30;
+  static MOVE_SPEED = 5;
   
   /** 重型敌人攻击范围（格子数） */
   static ATTACK_RANGE = 4;

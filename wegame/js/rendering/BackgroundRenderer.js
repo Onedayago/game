@@ -28,15 +28,9 @@ export class BackgroundRenderer {
       const width = GameConfig.BATTLE_WIDTH;
       const height = GameConfig.BATTLE_HEIGHT;
       
-      if (typeof wx !== 'undefined') {
-        this._cachedCanvas = wx.createCanvas();
-        this._cachedCanvas.width = width;
-        this._cachedCanvas.height = height;
-      } else {
-        this._cachedCanvas = document.createElement('canvas');
-        this._cachedCanvas.width = width;
-        this._cachedCanvas.height = height;
-      }
+      this._cachedCanvas = wx.createCanvas();
+      this._cachedCanvas.width = width;
+      this._cachedCanvas.height = height;
       
       this._cachedCtx = this._cachedCanvas.getContext('2d');
       
