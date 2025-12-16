@@ -236,12 +236,27 @@ export class EnemyTankRenderer {
    * 绘制主车体
    */
   static drawHull(ctx, size, trackHeight, hullRadius, enemyColor, enemyDarkColor) {
-    ctx.fillStyle = enemyColor;
+    // 使用渐变增强金属质感
+    const hullGradient = ctx.createLinearGradient(-size / 2, -size / 2 + trackHeight * 0.65, -size / 2, size / 2 - trackHeight * 0.65);
+    hullGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ENEMY_BODY_DARK, 0.95));
+    hullGradient.addColorStop(0.3, ColorUtils.hexToCanvas(GameColors.ENEMY_TANK, 0.95));
+    hullGradient.addColorStop(0.7, ColorUtils.hexToCanvas(GameColors.ENEMY_TANK, 0.95));
+    hullGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ENEMY_BODY_DARK, 0.9));
+    ctx.fillStyle = hullGradient;
     ctx.beginPath();
     ctx.roundRect(-size / 2 + 6, -size / 2 + trackHeight * 0.65, size - 12, size - trackHeight * 1.3, hullRadius);
     ctx.fill();
-    ctx.strokeStyle = enemyDarkColor;
-    ctx.lineWidth = 2.5;
+    
+    // 边框（增强对比度）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_BODY_DARK, 1);
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    // 内部装饰线条
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.3);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(-size / 2 + 8, -size / 2 + trackHeight * 0.7, size - 16, size - trackHeight * 1.4, hullRadius * 0.8);
     ctx.stroke();
   }
   
@@ -249,9 +264,14 @@ export class EnemyTankRenderer {
    * 绘制车体高光
    */
   static drawHullHighlight(ctx, size, trackHeight, hullRadius, detailColor) {
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.1);
+    // 使用渐变增强高光效果
+    const highlightGradient = ctx.createLinearGradient(-size / 2, -size / 2 + trackHeight * 0.7, -size / 2, -size / 2 + trackHeight * 0.7 + (size - trackHeight * 1.3) * 0.4);
+    highlightGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.25));
+    highlightGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.15));
+    highlightGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = highlightGradient;
     ctx.beginPath();
-    ctx.roundRect(-size / 2 + 8, -size / 2 + trackHeight * 0.7, size - 16, (size - trackHeight * 1.3) * 0.25, hullRadius * 0.6);
+    ctx.roundRect(-size / 2 + 8, -size / 2 + trackHeight * 0.7, size - 16, (size - trackHeight * 1.3) * 0.35, hullRadius * 0.6);
     ctx.fill();
   }
   
@@ -288,26 +308,42 @@ export class EnemyTankRenderer {
     const indicatorY = -size * 0.02;
     const indicatorRadius = size * 0.09;
     
+    // 最外层光晕（增强）
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.4);
+    ctx.beginPath();
+    ctx.arc(indicatorX, indicatorY, indicatorRadius * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    
     // 外层辉光
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.3);
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.35);
     ctx.beginPath();
     ctx.arc(indicatorX, indicatorY, indicatorRadius, 0, Math.PI * 2);
     ctx.fill();
     
-    // 中层
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.95);
+    // 中层（使用径向渐变）
+    const midGradient = ctx.createRadialGradient(indicatorX, indicatorY, 0, indicatorX, indicatorY, indicatorRadius * 0.78);
+    midGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 1));
+    midGradient.addColorStop(0.7, ColorUtils.hexToCanvas(0xff6666, 0.95));
+    midGradient.addColorStop(1, ColorUtils.hexToCanvas(0xff4444, 0.9));
+    ctx.fillStyle = midGradient;
     ctx.beginPath();
     ctx.arc(indicatorX, indicatorY, indicatorRadius * 0.78, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = ColorUtils.hexToCanvas(0xfb7185, 0.8);
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0xfb7185, 1);
+    ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.ENEMY_DETAIL, 0.6);
     ctx.stroke();
+    ctx.shadowBlur = 0;
     
-    // 内层高光
-    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.7);
+    // 内层高光（增强）
+    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.9);
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = ColorUtils.hexToCanvas(0xffffff, 0.5);
     ctx.beginPath();
     ctx.arc(indicatorX, indicatorY, indicatorRadius * 0.44, 0, Math.PI * 2);
     ctx.fill();
+    ctx.shadowBlur = 0;
   }
   
   /**

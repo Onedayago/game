@@ -51,13 +51,16 @@ export class CannonBullet {
     }
     
     // 检查碰撞敌人
+    if (!enemies || enemies.length === 0) return;
+    
     for (const enemy of enemies) {
-      if (enemy.destroyed) continue;
+      if (!enemy || enemy.destroyed) continue;
       
       const dx = this.x - enemy.x;
       const dy = this.y - enemy.y;
       const distanceSq = dx * dx + dy * dy;
-      const collisionRadius = this.radius + enemy.radius;
+      const enemyRadius = (enemy.size || 20) / 2; // 敌人使用 size，需要除以2得到半径
+      const collisionRadius = this.radius + enemyRadius;
       
       if (distanceSq <= collisionRadius * collisionRadius) {
         // 命中敌人

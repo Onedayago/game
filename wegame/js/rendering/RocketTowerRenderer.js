@@ -186,28 +186,64 @@ export class RocketTowerRenderer {
    * 绘制火箭塔身
    */
   static drawRocketTower(ctx, towerColor, detailColor, towerWidth, towerHeight, size, allyBodyColor, allyDetailColor) {
-    // 外层光晕
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.15);
+    // 多层光晕效果（增强霓虹感）
+    // 最外层光晕
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.25);
+    ctx.beginPath();
+    ctx.roundRect(-towerWidth / 2 - 4 * (size / 64), -towerHeight / 2 - 4 * (size / 64), towerWidth + 8 * (size / 64), towerHeight + 8 * (size / 64), towerWidth * 0.5);
+    ctx.fill();
+    
+    // 中层光晕
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.18);
     ctx.beginPath();
     ctx.roundRect(-towerWidth / 2 - 2 * (size / 64), -towerHeight / 2 - 2 * (size / 64), towerWidth + 4 * (size / 64), towerHeight + 4 * (size / 64), towerWidth * 0.5);
     ctx.fill();
     
-    // 主塔身
-    ctx.fillStyle = ColorUtils.hexToCanvas(0x334155);
+    // 内层光晕
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.12);
+    ctx.beginPath();
+    ctx.roundRect(-towerWidth / 2 - 1 * (size / 64), -towerHeight / 2 - 1 * (size / 64), towerWidth + 2 * (size / 64), towerHeight + 2 * (size / 64), towerWidth * 0.5);
+    ctx.fill();
+    
+    // 主塔身（使用渐变增强金属质感）
+    const towerGradient = ctx.createLinearGradient(-towerWidth / 2, -towerHeight / 2, -towerWidth / 2, towerHeight / 2);
+    towerGradient.addColorStop(0, ColorUtils.hexToCanvas(0x1e293b, 0.95));
+    towerGradient.addColorStop(0.3, ColorUtils.hexToCanvas(0x334155, 0.95));
+    towerGradient.addColorStop(0.7, ColorUtils.hexToCanvas(0x475569, 0.95));
+    towerGradient.addColorStop(1, ColorUtils.hexToCanvas(0x334155, 0.95));
+    ctx.fillStyle = towerGradient;
     ctx.beginPath();
     ctx.roundRect(-towerWidth / 2, -towerHeight / 2, towerWidth, towerHeight, towerWidth * 0.5);
     ctx.fill();
     
-    // 边框
-    ctx.strokeStyle = allyBodyColor;
-    ctx.lineWidth = 2.5;
+    // 边框（增强发光效果）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.9);
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.6);
     ctx.stroke();
+    ctx.shadowBlur = 0;
     
-    // 塔身高光
-    ctx.fillStyle = ColorUtils.hexToCanvas(0x475569, 0.3);
+    // 塔身高光（增强渐变效果）
+    const highlightGradient = ctx.createLinearGradient(-towerWidth / 2, -towerHeight / 2, -towerWidth / 2, -towerHeight / 2 + towerHeight * 0.4);
+    highlightGradient.addColorStop(0, ColorUtils.hexToCanvas(0x64748b, 0.5));
+    highlightGradient.addColorStop(0.5, ColorUtils.hexToCanvas(0x475569, 0.3));
+    highlightGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = highlightGradient;
     ctx.beginPath();
-    ctx.roundRect(-towerWidth / 2 + 3 * (size / 64), -towerHeight / 2 + 3 * (size / 64), towerWidth - 6 * (size / 64), towerHeight * 0.25, towerWidth * 0.4);
+    ctx.roundRect(-towerWidth / 2 + 3 * (size / 64), -towerHeight / 2 + 3 * (size / 64), towerWidth - 6 * (size / 64), towerHeight * 0.35, towerWidth * 0.4);
     ctx.fill();
+    
+    // 添加装饰线条（增强科技感）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.4);
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 2; i++) {
+      const lineY = -towerHeight / 2 + towerHeight * (0.35 + i * 0.25);
+      ctx.beginPath();
+      ctx.moveTo(-towerWidth / 2 + 4 * (size / 64), lineY);
+      ctx.lineTo(towerWidth / 2 - 4 * (size / 64), lineY);
+      ctx.stroke();
+    }
     
     // 观察窗（3个，带辉光）
     const windowWidth = towerWidth * 0.28;
@@ -216,22 +252,41 @@ export class RocketTowerRenderer {
     for (let i = 0; i < 3; i++) {
       const wy = -towerHeight * 0.3 + i * windowHeight * 1.25;
       
-      // 外层辉光
-      ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ALLY_DETAIL, 0.2);
+      // 外层辉光（增强发光效果）
+      ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ALLY_DETAIL, 0.35);
+      ctx.beginPath();
+      ctx.roundRect(-windowWidth / 2 - 2, wy - 2, windowWidth + 4, windowHeight + 4, windowHeight * 0.5);
+      ctx.fill();
+      
+      // 中层辉光
+      ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ALLY_DETAIL, 0.25);
       ctx.beginPath();
       ctx.roundRect(-windowWidth / 2 - 1, wy - 1, windowWidth + 2, windowHeight + 2, windowHeight * 0.5);
       ctx.fill();
       
-      // 窗口主体
-      ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ALLY_DETAIL, 0.95);
+      // 窗口主体（使用渐变）
+      const windowGradient = ctx.createRadialGradient(0, wy, 0, 0, wy, windowWidth / 2);
+      windowGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ALLY_DETAIL, 1));
+      windowGradient.addColorStop(0.7, ColorUtils.hexToCanvas(GameColors.ALLY_DETAIL, 0.9));
+      windowGradient.addColorStop(1, ColorUtils.hexToCanvas(0x0ea5e9, 0.7));
+      ctx.fillStyle = windowGradient;
       ctx.beginPath();
       ctx.roundRect(-windowWidth / 2, wy, windowWidth, windowHeight, windowHeight * 0.4);
       ctx.fill();
       
-      // 窗口边框
-      ctx.strokeStyle = ColorUtils.hexToCanvas(0x0ea5e9, 0.8);
-      ctx.lineWidth = 1;
+      // 窗口边框（增强发光）
+      ctx.strokeStyle = ColorUtils.hexToCanvas(0x0ea5e9, 1);
+      ctx.lineWidth = 1.5;
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = ColorUtils.hexToCanvas(0x0ea5e9, 0.6);
       ctx.stroke();
+      ctx.shadowBlur = 0;
+      
+      // 内部高光点
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.beginPath();
+      ctx.arc(0, wy, windowWidth * 0.15, 0, Math.PI * 2);
+      ctx.fill();
     }
     
     // 侧翼装甲（左右尾翼）
@@ -239,23 +294,33 @@ export class RocketTowerRenderer {
     const finHeight = towerHeight * 0.45;
     const finOffsetX = towerWidth * 0.75;
     
-    // 左尾翼
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.95);
+    // 左尾翼（增强渐变和发光）
+    const finGradient = ctx.createLinearGradient(-finOffsetX - finWidth / 2, -finHeight / 2, -finOffsetX + finWidth / 2, finHeight / 2);
+    finGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.9));
+    finGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 1));
+    finGradient.addColorStop(1, ColorUtils.hexToCanvas(0xff00ff, 0.85));
+    ctx.fillStyle = finGradient;
     ctx.beginPath();
     ctx.roundRect(-finOffsetX - finWidth / 2, -finHeight / 2, finWidth, finHeight, finWidth * 0.5);
     ctx.fill();
-    ctx.strokeStyle = ColorUtils.hexToCanvas(0x7c2d12, 0.8);
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 1);
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.5);
     ctx.stroke();
+    ctx.shadowBlur = 0;
     
-    // 右尾翼
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.95);
+    // 右尾翼（增强渐变和发光）
+    ctx.fillStyle = finGradient;
     ctx.beginPath();
     ctx.roundRect(finOffsetX - finWidth / 2, -finHeight / 2, finWidth, finHeight, finWidth * 0.5);
     ctx.fill();
-    ctx.strokeStyle = ColorUtils.hexToCanvas(0x7c2d12, 0.8);
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 1);
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.5);
     ctx.stroke();
+    ctx.shadowBlur = 0;
   }
   
   /**
@@ -296,40 +361,61 @@ export class RocketTowerRenderer {
     ctx.fillRect(-towerWidth * 0.22, -towerHeight * 0.35, towerWidth * 0.44, 2 * (size / 64));
     ctx.fillRect(-towerWidth * 0.22, -towerHeight * 0.25, towerWidth * 0.44, 2 * (size / 64));
     
-    // 顶部雷达/天线（多层光环）
+    // 顶部雷达/天线（增强发光和脉冲效果）
     const radarY = -towerHeight * 0.52;
     const radarY2 = -towerHeight * 0.6;
     
+    // 最外层光晕（增强）
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.25);
+    ctx.beginPath();
+    ctx.arc(0, radarY, towerWidth * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+    
     // 第一层光环
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.15);
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.2);
     ctx.beginPath();
     ctx.arc(0, radarY, towerWidth * 0.28, 0, Math.PI * 2);
     ctx.fill();
     
-    // 第二层光环
-    ctx.fillStyle = ColorUtils.hexToCanvas(0xfef3c7, 0.95);
+    // 第二层光环（使用径向渐变）
+    const radarGradient = ctx.createRadialGradient(0, radarY, 0, 0, radarY, towerWidth * 0.22);
+    radarGradient.addColorStop(0, ColorUtils.hexToCanvas(0xfef3c7, 1));
+    radarGradient.addColorStop(0.5, ColorUtils.hexToCanvas(0xfbbf24, 0.95));
+    radarGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.8));
+    ctx.fillStyle = radarGradient;
     ctx.beginPath();
     ctx.arc(0, radarY, towerWidth * 0.22, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_TOWER, 0.6);
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.9);
+    ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.5);
     ctx.stroke();
+    ctx.shadowBlur = 0;
     
-    // 第三层光环
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.3);
+    // 第三层光环（增强）
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.4);
     ctx.beginPath();
-    ctx.arc(0, radarY2, towerWidth * 0.14, 0, Math.PI * 2);
+    ctx.arc(0, radarY2, towerWidth * 0.16, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = ColorUtils.hexToCanvas(0xfef08a, 0.95);
+    
+    const innerRadarGradient = ctx.createRadialGradient(0, radarY2, 0, 0, radarY2, towerWidth * 0.12);
+    innerRadarGradient.addColorStop(0, ColorUtils.hexToCanvas(0xfef3c7, 1));
+    innerRadarGradient.addColorStop(0.7, ColorUtils.hexToCanvas(0xfbbf24, 0.9));
+    innerRadarGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.7));
+    ctx.fillStyle = innerRadarGradient;
     ctx.beginPath();
     ctx.arc(0, radarY2, towerWidth * 0.12, 0, Math.PI * 2);
     ctx.fill();
     
-    // 核心点
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    // 核心点（增强发光）
+    ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.ROCKET_DETAIL, 0.8);
     ctx.beginPath();
     ctx.arc(0, radarY2, towerWidth * 0.06, 0, Math.PI * 2);
     ctx.fill();
+    ctx.shadowBlur = 0;
   }
 }
 

@@ -52,8 +52,8 @@ export class SniperTowerRenderer {
    * 绘制狙击塔到缓存Canvas
    */
   static drawSniperTowerToCache(ctx, size, level) {
-    const baseWidth = size * 0.65;
-    const baseHeight = size * 0.35;
+    const baseWidth = size * 0.9; // 增大圆盘
+    const baseHeight = size * 0.32;
     const barrelLength = size * 0.65;
     const barrelWidth = size * 0.14;
     const scopeRadius = size * 0.16;
@@ -63,107 +63,235 @@ export class SniperTowerRenderer {
     const towerColor = ColorUtils.hexToCanvas(GameColors.SNIPER_TOWER);
     const detailColor = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL);
     
-    // 1. 绘制阴影
+    // 计算圆盘底座位置（圆盘在中心）
+    const baseRadius = baseWidth / 2;
+    const baseY = 0; // 圆盘中心在画布中心
+    
+    // 1. 绘制圆盘底座阴影
+    
+    // 第一层阴影
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.beginPath();
-    ctx.roundRect(-baseWidth / 2 + 2, -baseHeight / 2 + 3, baseWidth, baseHeight, 3);
+    ctx.arc(0, baseY + 4, baseRadius + 2, 0, Math.PI * 2);
     ctx.fill();
     
-    // 2. 绘制底座（低矮隐蔽）
-    const baseGradient = ctx.createLinearGradient(-baseWidth / 2, -baseHeight / 2, -baseWidth / 2, baseHeight / 2);
+    // 第二层阴影
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+    ctx.beginPath();
+    ctx.arc(0, baseY + 6, baseRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 2. 绘制圆盘底座（使用径向渐变增强立体感）
+    const baseGradient = ctx.createRadialGradient(0, baseY, 0, 0, baseY, baseRadius);
     baseGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.SNIPER_BASE, 0.95));
     baseGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.SNIPER_BASE, 0.85));
-    baseGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.SNIPER_BASE, 0.7));
+    baseGradient.addColorStop(0.8, ColorUtils.hexToCanvas(GameColors.SNIPER_BASE, 0.75));
+    baseGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.SNIPER_BASE, 0.65));
     ctx.fillStyle = baseGradient;
     ctx.beginPath();
-    ctx.roundRect(-baseWidth / 2, -baseHeight / 2, baseWidth, baseHeight, 4);
+    ctx.arc(0, baseY, baseRadius, 0, Math.PI * 2);
     ctx.fill();
     
-    // 底座边框（细线）
-    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.5);
-    ctx.lineWidth = 1;
+    // 底座外边框（增强）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0x0f172a, 1);
+    ctx.lineWidth = 2.5;
     ctx.stroke();
     
-    // 3. 绘制炮管（细长）
-    const barrelGradient = ctx.createLinearGradient(0, -barrelWidth / 2, barrelLength, -barrelWidth / 2);
-    barrelGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.SNIPER_TOWER, 0.9));
-    barrelGradient.addColorStop(0.4, ColorUtils.hexToCanvas(GameColors.SNIPER_TOWER, 0.85));
-    barrelGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.8));
+    // 底座内部装饰环
+    const innerRadius = baseRadius * 0.75;
+    ctx.fillStyle = ColorUtils.hexToCanvas(0x475569, 0.95);
+    ctx.beginPath();
+    ctx.arc(0, baseY, innerRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.5);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    
+    // 底座装饰圆环（3个同心圆）
+    for (let i = 0; i < 3; i++) {
+      const ringRadius = baseRadius * (0.5 + i * 0.15);
+      ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.3 - i * 0.1);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(0, baseY, ringRadius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    
+    // 中心点装饰
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.6);
+    ctx.beginPath();
+    ctx.arc(0, baseY, baseRadius * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 3. 绘制炮管（细长，增强发光效果，位于圆盘中心，对称设计）
+    const barrelY = baseY; // 位于圆盘中心
+    const barrelStartX = 0; // 炮管从圆盘中心开始，保持对称
+    
+    // 炮管外层光晕
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.15);
+    ctx.beginPath();
+    ctx.roundRect(barrelStartX - 1, barrelY - barrelWidth / 2 - 1, barrelLength + 2, barrelWidth + 2, barrelWidth / 2);
+    ctx.fill();
+    
+    const barrelGradient = ctx.createLinearGradient(barrelStartX, barrelY - barrelWidth / 2, barrelStartX + barrelLength, barrelY - barrelWidth / 2);
+    barrelGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.SNIPER_TOWER, 0.95));
+    barrelGradient.addColorStop(0.2, ColorUtils.hexToCanvas(GameColors.SNIPER_TOWER, 0.9));
+    barrelGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.SNIPER_TOWER, 0.9));
+    barrelGradient.addColorStop(0.8, ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.9));
+    barrelGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.85));
     ctx.fillStyle = barrelGradient;
-    ctx.fillRect(0, -barrelWidth / 2, barrelLength, barrelWidth);
+    ctx.beginPath();
+    ctx.roundRect(barrelStartX, barrelY - barrelWidth / 2, barrelLength, barrelWidth, barrelWidth / 2);
+    ctx.fill();
     
-    // 炮管高光
-    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.4);
-    ctx.fillRect(0, -barrelWidth / 2, barrelLength * 0.25, barrelWidth * 0.25);
+    // 炮管高光（增强，对称）
+    const barrelHighlightGradient = ctx.createLinearGradient(barrelStartX, barrelY - barrelWidth / 2, barrelStartX + barrelLength * 0.3, barrelY - barrelWidth / 2);
+    barrelHighlightGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 0.6));
+    barrelHighlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = barrelHighlightGradient;
+    ctx.fillRect(barrelStartX, barrelY - barrelWidth / 2, barrelLength * 0.3, barrelWidth * 0.3);
     
-    // 4. 绘制瞄准镜（在炮管上方）
-    const scopeY = -barrelWidth * 0.8;
-    const scopeGradient = ctx.createRadialGradient(barrelLength * 0.5, scopeY, 0, barrelLength * 0.5, scopeY, scopeRadius);
-    scopeGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.95));
-    scopeGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.SNIPER_TOWER, 0.9));
-    scopeGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.SNIPER_BASE, 0.8));
+    // 炮管边框（发光效果）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.7);
+    ctx.lineWidth = 1;
+    ctx.shadowBlur = 3;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.4);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    // 炮管与圆盘连接处装饰（对称）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.7);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(barrelStartX, barrelY, barrelWidth * 0.7, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // 炮管对称装饰点（左右各一个）
+    const sideMarkerRadius = barrelWidth * 0.2;
+    const sideMarkerDist = barrelLength * 0.3;
+    
+    // 左侧装饰点
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.6);
+    ctx.beginPath();
+    ctx.arc(barrelStartX + sideMarkerDist, barrelY - barrelWidth * 0.6, sideMarkerRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 右侧装饰点
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.6);
+    ctx.beginPath();
+    ctx.arc(barrelStartX + sideMarkerDist, barrelY + barrelWidth * 0.6, sideMarkerRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 4. 绘制瞄准镜（在炮管上方，增强发光效果，对称位置）
+    const scopeY = barrelY - barrelWidth * 0.8;
+    const scopeX = barrelStartX + barrelLength * 0.5; // 基于炮管起始位置计算
+    
+    // 外层光晕
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.3);
+    ctx.beginPath();
+    ctx.arc(scopeX, scopeY, scopeRadius * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    const scopeGradient = ctx.createRadialGradient(scopeX, scopeY, 0, scopeX, scopeY, scopeRadius);
+    scopeGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 1));
+    scopeGradient.addColorStop(0.4, ColorUtils.hexToCanvas(GameColors.SNIPER_TOWER, 0.95));
+    scopeGradient.addColorStop(0.8, ColorUtils.hexToCanvas(GameColors.SNIPER_TOWER, 0.9));
+    scopeGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.SNIPER_BASE, 0.85));
     ctx.fillStyle = scopeGradient;
     ctx.beginPath();
-    ctx.arc(barrelLength * 0.5, scopeY, scopeRadius, 0, Math.PI * 2);
+    ctx.arc(scopeX, scopeY, scopeRadius, 0, Math.PI * 2);
     ctx.fill();
     
-    // 瞄准镜边框
-    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.9);
-    ctx.lineWidth = 2;
+    // 瞄准镜边框（增强发光）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 1);
+    ctx.lineWidth = 2.5;
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.6);
     ctx.stroke();
+    ctx.shadowBlur = 0;
     
-    // 瞄准镜中心十字
-    ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.6);
-    ctx.lineWidth = 1;
+    // 瞄准镜中心十字（增强发光）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.9);
+    ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.5);
     ctx.beginPath();
-    ctx.moveTo(barrelLength * 0.5 - scopeRadius * 0.4, scopeY);
-    ctx.lineTo(barrelLength * 0.5 + scopeRadius * 0.4, scopeY);
-    ctx.moveTo(barrelLength * 0.5, scopeY - scopeRadius * 0.4);
-    ctx.lineTo(barrelLength * 0.5, scopeY + scopeRadius * 0.4);
+    ctx.moveTo(scopeX - scopeRadius * 0.4, scopeY);
+    ctx.lineTo(scopeX + scopeRadius * 0.4, scopeY);
+    ctx.moveTo(scopeX, scopeY - scopeRadius * 0.4);
+    ctx.lineTo(scopeX, scopeY + scopeRadius * 0.4);
     ctx.stroke();
+    ctx.shadowBlur = 0;
     
-    // 5. 等级装饰
+    // 中心点高光
+    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 0.8);
+    ctx.beginPath();
+    ctx.arc(scopeX, scopeY, scopeRadius * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 5. 等级装饰（对称设计）
     if (level >= 2) {
-      // 二级：添加炮管消音器
+      // 二级：添加炮管消音器（对称）
       ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_BASE, 0.9);
-      ctx.fillRect(barrelLength * 0.8, -barrelWidth * 0.7, barrelLength * 0.2, barrelWidth * 1.4);
+      ctx.beginPath();
+      ctx.roundRect(barrelStartX + barrelLength * 0.8, barrelY - barrelWidth * 0.7, barrelLength * 0.2, barrelWidth * 1.4, barrelWidth * 0.3);
+      ctx.fill();
       
-      // 消音器细节
+      // 消音器细节（对称）
       ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.7);
       ctx.lineWidth = 1;
       for (let i = 0; i < 3; i++) {
-        const x = barrelLength * (0.85 + i * 0.05);
+        const x = barrelStartX + barrelLength * (0.85 + i * 0.05);
         ctx.beginPath();
-        ctx.moveTo(x, -barrelWidth * 0.7);
-        ctx.lineTo(x, barrelWidth * 0.7);
+        ctx.moveTo(x, barrelY - barrelWidth * 0.7);
+        ctx.lineTo(x, barrelY + barrelWidth * 0.7);
         ctx.stroke();
       }
+      
+      // 消音器边框（对称）
+      ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.8);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
     }
     
     if (level >= 3) {
-      // 三级：添加双瞄准镜和更多细节
-      // 第二个瞄准镜
-      const scope2Y = barrelWidth * 0.8;
-      const scope2Gradient = ctx.createRadialGradient(barrelLength * 0.3, scope2Y, 0, barrelLength * 0.3, scope2Y, scopeRadius * 0.8);
+      // 三级：添加双瞄准镜和更多细节（对称）
+      // 第二个瞄准镜（在炮管下方，对称）
+      const scope2Y = barrelY + barrelWidth * 0.8;
+      const scope2X = barrelStartX + barrelLength * 0.3;
+      const scope2Gradient = ctx.createRadialGradient(scope2X, scope2Y, 0, scope2X, scope2Y, scopeRadius * 0.8);
       scope2Gradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.9));
       scope2Gradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.SNIPER_TOWER, 0.8));
       ctx.fillStyle = scope2Gradient;
       ctx.beginPath();
-      ctx.arc(barrelLength * 0.3, scope2Y, scopeRadius * 0.8, 0, Math.PI * 2);
+      ctx.arc(scope2X, scope2Y, scopeRadius * 0.8, 0, Math.PI * 2);
       ctx.fill();
       
       ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.8);
       ctx.lineWidth = 1.5;
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.4);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      
+      // 第二个瞄准镜的十字（对称）
+      ctx.strokeStyle = ColorUtils.hexToCanvas(0xffffff, 0.7);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(scope2X - scopeRadius * 0.3, scope2Y);
+      ctx.lineTo(scope2X + scopeRadius * 0.3, scope2Y);
+      ctx.moveTo(scope2X, scope2Y - scopeRadius * 0.3);
+      ctx.lineTo(scope2X, scope2Y + scopeRadius * 0.3);
       ctx.stroke();
       
-      // 炮管细节线条
+      // 炮管细节线条（对称）
       ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.SNIPER_DETAIL, 0.5);
       ctx.lineWidth = 0.5;
       for (let i = 0; i < 4; i++) {
-        const x = barrelLength * (0.15 + i * 0.15);
+        const x = barrelStartX + barrelLength * (0.15 + i * 0.15);
         ctx.beginPath();
-        ctx.moveTo(x, -barrelWidth / 2);
-        ctx.lineTo(x, barrelWidth / 2);
+        ctx.moveTo(x, barrelY - barrelWidth / 2);
+        ctx.lineTo(x, barrelY + barrelWidth / 2);
         ctx.stroke();
       }
     }

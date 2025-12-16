@@ -136,34 +136,68 @@ export class LaserTowerRenderer {
    * 绘制能量核心
    */
   static drawEnergyCore(ctx, beamColor, detailColor, coreRadius, size) {
+    // 最外层光晕（增强）
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.4);
+    ctx.beginPath();
+    ctx.arc(0, 0, coreRadius * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    
     // 外层发光
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.3);
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.35);
     ctx.beginPath();
     ctx.arc(0, 0, coreRadius * 1.6, 0, Math.PI * 2);
     ctx.fill();
     
-    // 中层发光
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.5);
+    // 中层发光（使用径向渐变）
+    const midGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius * 1.2);
+    midGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.8));
+    midGradient.addColorStop(0.5, ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.6));
+    midGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.3));
+    ctx.fillStyle = midGradient;
     ctx.beginPath();
     ctx.arc(0, 0, coreRadius * 1.2, 0, Math.PI * 2);
     ctx.fill();
     
-    // 核心
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.95);
+    // 核心（使用径向渐变增强发光）
+    const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
+    coreGradient.addColorStop(0, ColorUtils.hexToCanvas(0xffffff, 1));
+    coreGradient.addColorStop(0.3, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 1));
+    coreGradient.addColorStop(0.7, ColorUtils.hexToCanvas(GameColors.LASER_BEAM, 0.95));
+    coreGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.8));
+    ctx.fillStyle = coreGradient;
     ctx.beginPath();
     ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
     ctx.fill();
     
-    // 顶部霓虹细节点（6个小光点）
+    // 核心边框（发光效果）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 1);
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.7);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    // 顶部霓虹细节点（6个小光点，增强发光）
     const baseSize = size * 0.5;
     for (let i = 0; i < 6; i++) {
       const angle = (Math.PI / 3) * i;
       const dotX = Math.cos(angle) * baseSize * 0.75;
       const dotY = Math.sin(angle) * baseSize * 0.75;
-      ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.8);
+      
+      // 外层光晕
+      ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.4);
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, 5 * (size / 64), 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 光点主体
+      ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 1);
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.8);
       ctx.beginPath();
       ctx.arc(dotX, dotY, 3 * (size / 64), 0, Math.PI * 2);
       ctx.fill();
+      ctx.shadowBlur = 0;
     }
   }
   
@@ -171,18 +205,24 @@ export class LaserTowerRenderer {
    * 绘制外圈装饰
    */
   static drawOuterRing(ctx, laserColor, size) {
-    // 底盘装饰线（两个圆环）
-    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.LASER_BASE, 0.4);
-    ctx.lineWidth = 1;
+    // 底盘装饰线（增强发光效果）
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.6);
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.4);
     ctx.beginPath();
     ctx.arc(0, 0, size * 0.48, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.shadowBlur = 0;
     
-    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.LASER_BASE, 0.3);
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.5);
+    ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 3;
+    ctx.shadowColor = ColorUtils.hexToCanvas(GameColors.LASER_DETAIL, 0.3);
     ctx.beginPath();
     ctx.arc(0, 0, size * 0.42, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.shadowBlur = 0;
   }
 }
 
