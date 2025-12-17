@@ -1,0 +1,12 @@
+{
+  "engine": "cocos-creator",
+  "version": "3.8.3",
+  "id": "towergame-cocos",
+  "name": "TowerGame",
+  "designResolutionWidth": 1600,
+  "designResolutionHeight": 640,
+  "fitWidth": true,
+  "fitHeight": true,
+  "orientation": "landscape"
+}
+

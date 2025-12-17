@@ -1,0 +1,20 @@
+{
+  "name": "towergame-cocos",
+  "version": "1.0.0",
+  "description": "塔防游戏 - Cocos Creator 版本",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'Please use Cocos Creator to build this project'"
+  },
+  "keywords": [
+    "tower-defense",
+    "game",
+    "cocos-creator"
+  ],
+  "author": "",
+  "license": "MIT",
+  "creator": {
+    "version": "3.8.7"
+  },
+  "uuid": "9185fca2-94b1-4942-80ab-3efd48d81ab6"
+}
