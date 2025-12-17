@@ -40,6 +40,7 @@ export class GameColors {
   
   // UI 颜色
   static UI_BORDER = 0x00ffff;
+  static UI_BACKGROUND = 0x2a3a4a;
   static TEXT_MAIN = 0xffffff;
   static TEXT_LIGHT = 0xcccccc;
   
@@ -95,6 +96,34 @@ export class ColorUtils {
     const rgba = `rgba(${r}, ${g}, ${b}, ${alpha})`;
     this.rgbaCache.set(cacheKey, rgba);
     return rgba;
+  }
+  
+  /**
+   * 使颜色变暗
+   * @param {number} hex - 十六进制颜色值
+   * @param {number} factor - 变暗因子（0-1，0 不变，1 完全变黑）
+   * @returns {number} 变暗后的十六进制颜色值
+   */
+  static darkenColor(hex, factor) {
+    const { r, g, b } = this.hexToRgb(hex);
+    const newR = Math.max(0, Math.floor(r * (1 - factor)));
+    const newG = Math.max(0, Math.floor(g * (1 - factor)));
+    const newB = Math.max(0, Math.floor(b * (1 - factor)));
+    return (newR << 16) | (newG << 8) | newB;
+  }
+  
+  /**
+   * 使颜色变亮
+   * @param {number} hex - 十六进制颜色值
+   * @param {number} factor - 变亮因子（0-1，0 不变，1 完全变白）
+   * @returns {number} 变亮后的十六进制颜色值
+   */
+  static lightenColor(hex, factor) {
+    const { r, g, b } = this.hexToRgb(hex);
+    const newR = Math.min(255, Math.floor(r + (255 - r) * factor));
+    const newG = Math.min(255, Math.floor(g + (255 - g) * factor));
+    const newB = Math.min(255, Math.floor(b + (255 - b) * factor));
+    return (newR << 16) | (newG << 8) | newB;
   }
   
   /**

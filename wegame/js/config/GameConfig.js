@@ -14,15 +14,25 @@ export class GameConfig {
   
   /**
    * 初始化配置（在游戏加载时调用一次）
+   * @param {boolean} force 是否强制重新初始化（用于窗口尺寸变化时）
    */
-  static init() {
-    if (this._cachedDesignWidth !== null && this._cachedDesignHeight !== null) {
-      return; // 已经初始化过
+  static init(force = false) {
+    if (!force && this._cachedDesignWidth !== null && this._cachedDesignHeight !== null) {
+      return; // 已经初始化过且不强制重新初始化
     }
     
     const windowInfo = wx.getWindowInfo();
     this._cachedDesignWidth = windowInfo.windowWidth || 1000;
     this._cachedDesignHeight = windowInfo.windowHeight || 480;
+  }
+  
+  /**
+   * 重置配置缓存（用于窗口尺寸变化时）
+   */
+  static reset() {
+    this._cachedDesignWidth = null;
+    this._cachedDesignHeight = null;
+    this.init(true);
   }
   
   /**

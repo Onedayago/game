@@ -14,14 +14,15 @@ export class GameContext {
   // 当前波次
   currentWave = 1;
   
-  // 金币
-  gold = 1000;
+  // 金币（降低初始金币，增加策略性）
+  gold = 500;
   
   // 管理器引用
   particleManager = null;
   weaponManager = null;
   weaponContainerUI = null;
   obstacleManager = null; // 障碍物管理器引用
+  audioManager = null; // 音频管理器引用
   
   // 敌人和武器数组
   enemies = [];
@@ -49,7 +50,7 @@ export class GameContext {
     this.gamePaused = false;
     this.gameOver = false;
     this.currentWave = 1;
-    this.gold = 1000;
+    this.gold = 500;
     this.enemies = [];
     this.weapons = [];
     this.worldOffsetX = 0;

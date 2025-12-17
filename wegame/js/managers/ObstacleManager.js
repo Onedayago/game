@@ -3,7 +3,7 @@
  */
 
 import { GameConfig } from '../config/GameConfig';
-import { Obstacle } from '../entities/Obstacle';
+import { Obstacle } from '../entities/obstacles/Obstacle';
 
 export class ObstacleManager {
   constructor(ctx) {

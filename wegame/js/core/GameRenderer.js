@@ -4,9 +4,9 @@
  */
 
 import { GameConfig } from '../config/GameConfig';
-import { WeaponDragPreview } from '../ui/WeaponDragPreview';
+import { WeaponDragPreview } from '../ui/widgets/WeaponDragPreview';
 import { ColorUtils, GameColors } from '../config/Colors';
-import { UIRenderer } from '../ui/UIRenderer';
+import { UIRenderer } from '../ui/renderers/UIRenderer';
 
 export class GameRenderer {
   constructor(ctx, gameContext) {

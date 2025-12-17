@@ -7,16 +7,16 @@ import { GameConfig } from '../config/GameConfig';
 import { EnemyConfig } from '../config/EnemyConfig';
 import { EnemyTankConfig } from '../config/enemies/EnemyTankConfig';
 import { WaveConfig } from '../config/WaveConfig';
-import { EnemyTank } from '../entities/EnemyTank';
-import { FastEnemy } from '../entities/FastEnemy';
-import { HeavyEnemy } from '../entities/HeavyEnemy';
-import { FlyingEnemy } from '../entities/FlyingEnemy';
-import { BomberEnemy } from '../entities/BomberEnemy';
+import { EnemyTank } from '../entities/enemies/EnemyTank';
+import { FastEnemy } from '../entities/enemies/FastEnemy';
+import { HeavyEnemy } from '../entities/enemies/HeavyEnemy';
+import { FlyingEnemy } from '../entities/enemies/FlyingEnemy';
+import { BomberEnemy } from '../entities/enemies/BomberEnemy';
 import { FastEnemyConfig } from '../config/enemies/FastEnemyConfig';
 import { HeavyEnemyConfig } from '../config/enemies/HeavyEnemyConfig';
 import { FlyingEnemyConfig } from '../config/enemies/FlyingEnemyConfig';
 import { BomberEnemyConfig } from '../config/enemies/BomberEnemyConfig';
-import { WeaponRenderer } from '../rendering/WeaponRenderer';
+import { WeaponRenderer } from '../rendering/weapons/WeaponRenderer';
 import { EnemyTankRenderer } from '../rendering/enemies/EnemyTankRenderer';
 import { FastEnemyRenderer } from '../rendering/enemies/FastEnemyRenderer';
 import { HeavyEnemyRenderer } from '../rendering/enemies/HeavyEnemyRenderer';
@@ -42,6 +42,7 @@ export class EnemyManager {
     this.obstacleManager = null; // 障碍物管理器引用
     this.currentWaveEnemyTypes = []; // 当前波次可用的敌人类型池
     this.effectManager = null; // 特效管理器引用
+    this.audioManager = null; // 音频管理器引用
   }
   
   /**
@@ -56,6 +57,13 @@ export class EnemyManager {
    */
   setObstacleManager(obstacleManager) {
     this.obstacleManager = obstacleManager;
+  }
+  
+  /**
+   * 设置音频管理器
+   */
+  setAudioManager(audioManager) {
+    this.audioManager = audioManager;
   }
   
   /**
@@ -345,6 +353,11 @@ export class EnemyManager {
       
       // 处理已销毁或已完成的敌人
       if (enemy.destroyed) {
+        // 播放爆炸音效
+        if (this.audioManager) {
+          this.audioManager.playBoomSound();
+        }
+        
         // 奖励金币（根据敌人类型给予不同奖励）
         if (this.goldManager) {
           let reward = EnemyTankConfig.KILL_REWARD; // 默认奖励
@@ -374,7 +387,7 @@ export class EnemyManager {
         const gameContext = GameContext.getInstance();
         gameContext.gameOver = true;
         gameContext.gamePaused = true; // 暂停游戏
-        console.log('游戏结束：敌人到达终点');
+        // 游戏结束：敌人到达终点
         // 从 GameContext 移除
         gameContext.removeEnemy(enemy);
         this.enemies.splice(i, 1);

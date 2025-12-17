@@ -6,10 +6,10 @@ import { GameContext } from '../core/GameContext';
 import { GameConfig } from '../config/GameConfig';
 import { UIConfig } from '../config/UIConfig';
 import { WeaponType } from '../config/WeaponConfig';
-import { RocketTower } from '../entities/RocketTower';
-import { LaserTower } from '../entities/LaserTower';
-import { CannonTower } from '../entities/CannonTower';
-import { SniperTower } from '../entities/SniperTower';
+import { RocketTower } from '../entities/weapons/RocketTower';
+import { LaserTower } from '../entities/weapons/LaserTower';
+import { CannonTower } from '../entities/weapons/CannonTower';
+import { SniperTower } from '../entities/weapons/SniperTower';
 import { LogUtils } from '../utils/LogUtils';
 
 export class WeaponManager {
@@ -19,6 +19,7 @@ export class WeaponManager {
     this.selectedWeapon = null;
     this.obstacleManager = null; // 障碍物管理器引用
     this.effectManager = null; // 特效管理器引用
+    this.audioManager = null; // 音频管理器引用
   }
   
   /**
@@ -33,6 +34,13 @@ export class WeaponManager {
    */
   setEffectManager(effectManager) {
     this.effectManager = effectManager;
+  }
+  
+  /**
+   * 设置音频管理器
+   */
+  setAudioManager(audioManager) {
+    this.audioManager = audioManager;
   }
   
   /**

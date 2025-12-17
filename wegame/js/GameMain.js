@@ -4,18 +4,24 @@
  */
 
 import { GameConfig } from './config/GameConfig';
-import { EconomyConfig } from './config/EconomyConfig';
 import { GameContext } from './core/GameContext';
 import { GameInitializer } from './core/GameInitializer';
 import { GameInputHandler } from './core/GameInputHandler';
 import { GameLoop } from './core/GameLoop';
-import { BattlefieldMinimap } from './ui/BattlefieldMinimap';
-import { WeaponDragPreview } from './ui/WeaponDragPreview';
+import { GameStateManager } from './core/GameStateManager';
+import { ResourceLoader } from './core/ResourceLoader';
+import { UIComponentRegistry } from './core/UIComponentRegistry';
+import { WindowResizeHandler } from './core/WindowResizeHandler';
+import { BattlefieldMinimap } from './ui/widgets/BattlefieldMinimap';
+import { WeaponDragPreview } from './ui/widgets/WeaponDragPreview';
+import { UIEventManager } from './ui/handlers/UIEventManager';
+import { LogUtils } from './utils/LogUtils';
 
 export default class GameMain {
-  constructor(canvas, ctx) {
+  constructor(canvas, ctx, pixelRatio = 1) {
     this.canvas = canvas;
     this.ctx = ctx;
+    this.pixelRatio = pixelRatio;
     
     // 游戏上下文
     this.gameContext = GameContext.getInstance();
@@ -28,6 +34,7 @@ export default class GameMain {
     this.particleManager = null;
     this.obstacleManager = null;
     this.effectManager = null;
+    this.audioManager = null;
     
     // UI
     this.loadingScreen = null;
@@ -44,17 +51,29 @@ export default class GameMain {
     this.gameRenderer = null;
     this.inputHandler = new GameInputHandler(this.gameContext);
     
+    // UI 事件管理器
+    this.uiEventManager = new UIEventManager();
+    
+    // 子管理器
+    this.stateManager = null;
+    this.resourceLoader = null;
+    this.uiRegistry = null;
+    this.windowResizeHandler = null;
+    
     // FPS 监控
     this.fpsFrameCount = 0;
     this.fpsLastTime = Date.now();
     this.fps = 60;
+    
+    // 游戏状态跟踪
+    this._lastGameOverState = false;
   }
   
   /**
    * 初始化游戏
    */
   init() {
-    console.log('初始化游戏');
+    // 初始化游戏
     
     // 初始化游戏配置（获取屏幕尺寸并缓存）
     GameConfig.init();
@@ -71,14 +90,11 @@ export default class GameMain {
     this.particleManager = managers.particleManager;
     this.obstacleManager = managers.obstacleManager;
     this.effectManager = managers.effectManager;
+    this.audioManager = managers.audioManager;
     
     // 设置特效管理器引用
-    if (this.weaponManager) {
-      this.weaponManager.setEffectManager(this.effectManager);
-    }
-    if (this.enemyManager) {
-      this.enemyManager.setEffectManager(this.effectManager);
-    }
+    this.weaponManager?.setEffectManager(this.effectManager);
+    this.enemyManager?.setEffectManager(this.effectManager);
     
     // 初始化 UI
     const uiComponents = GameInitializer.initUI(
@@ -103,11 +119,49 @@ export default class GameMain {
     // 创建游戏渲染器
     this.gameRenderer = GameInitializer.createRenderer(this.ctx, this.gameContext);
     
+    // 初始化子管理器
+    this._initSubManagers();
+    
+    // 注册 UI 组件到事件管理器
+    this.registerUIComponents();
+    
     // 开始加载流程
     this.startLoading();
     
     // 开始游戏循环
     this.start();
+  }
+  
+  /**
+   * 初始化子管理器
+   */
+  _initSubManagers() {
+    // 游戏状态管理器
+    this.stateManager = new GameStateManager(this.gameContext, {
+      weaponManager: this.weaponManager,
+      enemyManager: this.enemyManager,
+      goldManager: this.goldManager,
+      obstacleManager: this.obstacleManager,
+      particleManager: this.particleManager,
+      effectManager: this.effectManager
+    });
+    
+    // 资源加载器
+    this.resourceLoader = new ResourceLoader(this.loadingScreen);
+    
+    // UI 组件注册器
+    this.uiRegistry = new UIComponentRegistry(this.uiEventManager, this.gameContext);
+    
+    // 窗口尺寸变化处理器
+    this.windowResizeHandler = new WindowResizeHandler(this.canvas, this.ctx, {
+      startScreen: this.startScreen,
+      helpScreen: this.helpScreen,
+      backgroundRenderer: this.backgroundRenderer,
+      weaponManager: this.weaponManager,
+      enemyManager: this.enemyManager,
+      weaponContainerUI: this.weaponContainerUI,
+      battlefieldMinimap: this.battlefieldMinimap
+    });
   }
   
   /**
@@ -127,58 +181,27 @@ export default class GameMain {
    * 加载游戏资源
    */
   async loadResources() {
-    const totalSteps = 5;
-    let currentStep = 0;
-    
-    const updateProgress = (step, text) => {
-      currentStep = step;
-      const progress = currentStep / totalSteps;
-      if (this.loadingScreen) {
-        this.loadingScreen.setProgress(progress, text);
-      }
-    };
-    
     try {
-      // 步骤 1: 初始化配置
-      updateProgress(1, '初始化配置...');
-      await this.delay(100);
+      await this.resourceLoader.loadResources();
       
-      // 步骤 2: 初始化渲染缓存
-      updateProgress(2, '初始化渲染缓存...');
-      await this.delay(200);
-      
-      // 步骤 3: 初始化UI缓存
-      updateProgress(3, '初始化UI界面...');
-      await this.delay(200);
-      
-      // 步骤 4: 初始化游戏资源
-      updateProgress(4, '加载游戏资源...');
-      await this.delay(200);
-      
-      // 步骤 5: 完成
-      updateProgress(5, '加载完成！');
-      await this.delay(300);
-      
-      // 隐藏加载界面，显示开始界面
+      // 隐藏加载界面
       this.isLoading = false;
       if (this.loadingScreen) {
         this.loadingScreen.hide();
       }
+      
+      // 显示开始界面
       this.showStartScreen();
       
+      // 注册 UI 组件（加载完成后）
+      this.registerUIComponents();
+      
     } catch (error) {
-      console.error('资源加载失败:', error);
+      LogUtils.error('GameMain', 0, '资源加载失败:', error);
       if (this.loadingScreen) {
         this.loadingScreen.setProgress(1, '加载失败，请重试');
       }
     }
-  }
-  
-  /**
-   * 延迟函数
-   */
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
   
   /**
@@ -207,35 +230,37 @@ export default class GameMain {
       });
     }
   }
-  
+
   /**
    * 开始按钮点击
    */
   onStartButtonClick() {
-    console.log('开始游戏');
+    this.stateManager.startGame();
+    this.registerUIComponents();
     
-    // 重置游戏状态
-    this.gameContext.reset();
-    this.gameContext.gameStarted = true;
-    
-    // 重置金币管理器
-    if (this.goldManager) {
-      this.goldManager.init(EconomyConfig.INITIAL_GOLD);
-      this.gameContext.gold = EconomyConfig.INITIAL_GOLD;
+    // 开始播放背景音乐
+    if (this.audioManager) {
+      this.audioManager.playBackgroundMusic();
     }
-    
-    // 清空武器和敌人
-    if (this.weaponManager) {
-      this.weaponManager.weapons = [];
-    }
-    if (this.enemyManager) {
-      this.enemyManager.reset();
-    }
-    
-    // 重置障碍物管理器（重新生成障碍物）
-    if (this.obstacleManager) {
-      this.obstacleManager.reset();
-    }
+  }
+  
+  /**
+   * 注册所有 UI 组件到事件管理器
+   */
+  registerUIComponents() {
+    this.uiRegistry.registerAll(
+      {
+        helpScreen: this.helpScreen,
+        startScreen: this.startScreen,
+        weaponContainerUI: this.weaponContainerUI,
+        battlefieldMinimap: this.battlefieldMinimap
+      },
+      {
+        restartGame: () => this.restartGame(),
+        resumeGame: () => this.resumeGame(),
+        pauseGame: () => this.pauseGame()
+      }
+    );
   }
   
   /**
@@ -269,9 +294,12 @@ export default class GameMain {
    * 暂停游戏（游戏逻辑）
    */
   pauseGame() {
-    if (this.gameContext.gameStarted && !this.gameContext.gamePaused) {
-      this.gameContext.gamePaused = true;
-      console.log('游戏已暂停');
+    this.stateManager.pauseGame();
+    this.registerUIComponents();
+    
+    // 暂停背景音乐
+    if (this.audioManager) {
+      this.audioManager.pauseBackgroundMusic();
     }
   }
   
@@ -279,9 +307,12 @@ export default class GameMain {
    * 恢复游戏（游戏逻辑）
    */
   resumeGame() {
-    if (this.gameContext.gameStarted && this.gameContext.gamePaused && !this.gameContext.gameOver) {
-      this.gameContext.gamePaused = false;
-      console.log('游戏已恢复');
+    this.stateManager.resumeGame();
+    this.registerUIComponents();
+    
+    // 恢复背景音乐
+    if (this.audioManager) {
+      this.audioManager.resumeBackgroundMusic();
     }
   }
   
@@ -289,45 +320,14 @@ export default class GameMain {
    * 重新开始游戏
    */
   restartGame() {
-    console.log('重新开始游戏');
-    
-    // 重置游戏状态
-    this.gameContext.reset();
-    
-    // 重置敌人管理器
-    if (this.enemyManager) {
-      this.enemyManager.reset();
-    }
-    
-    // 重置障碍物管理器（重新生成障碍物）
-    if (this.obstacleManager) {
-      this.obstacleManager.reset();
-    }
-    
-    // 清空武器
-    if (this.weaponManager) {
-      this.weaponManager.weapons = [];
-      this.weaponManager.selectedWeapon = null;
-    }
-    
-    // 重置金币管理器
-    if (this.goldManager) {
-      this.goldManager.init(EconomyConfig.INITIAL_GOLD);
-      this.gameContext.gold = EconomyConfig.INITIAL_GOLD;
-    }
-    
-    // 清空粒子
-    if (this.particleManager) {
-      this.particleManager.particles = [];
-    }
-    
-    // 清空特效
-    if (this.effectManager) {
-      this.effectManager.clear();
-    }
-    
-    // 显示开始界面
+    this.stateManager.restartGame();
     this.showStartScreen();
+    this.registerUIComponents();
+    
+    // 停止背景音乐
+    if (this.audioManager) {
+      this.audioManager.stopBackgroundMusic();
+    }
   }
   
   /**
@@ -344,17 +344,16 @@ export default class GameMain {
     // 计算FPS
     this.updateFPS();
     
-    // 更新UI动画（无论游戏是否开始）
-    if (this.loadingScreen) {
-      this.loadingScreen.update(deltaMS);
-    }
-    
-    // 更新静态动画时间
+    // 更新静态动画时间（始终更新）
     BattlefieldMinimap.updateAnimation(deltaTime);
     WeaponDragPreview.updateAnimation(deltaTime);
     
+    // 更新游戏逻辑（如果游戏已开始且未暂停）
     if (this.gameContext.gameStarted && !this.gameContext.gamePaused) {
       this.update(deltaTime, deltaMS);
+    } else if (this.loadingScreen) {
+      // 仅在加载中更新加载界面
+      this.loadingScreen.update(deltaMS);
     }
   }
   
@@ -369,7 +368,7 @@ export default class GameMain {
     // 每秒更新一次FPS
     if (elapsed >= 1000) {
       this.fps = Math.round((this.fpsFrameCount * 1000) / elapsed);
-      console.log(`FPS: ${this.fps}`);
+      LogUtils.log('FPS', 1000, `FPS: ${this.fps}`);
       this.fpsFrameCount = 0;
       this.fpsLastTime = currentTime;
     }
@@ -382,121 +381,91 @@ export default class GameMain {
     this.render(deltaTime, deltaMS);
   }
   
-  /**
-   * 清空画布
-   */
-  clearCanvas() {
-    this.ctx.clearRect(0, 0, GameConfig.DESIGN_WIDTH, GameConfig.DESIGN_HEIGHT);
-  }
-  
+
   /**
    * 更新游戏逻辑
    */
   update(deltaTime, deltaMS) {
-    // 如果游戏已暂停，只更新UI动画，不更新游戏逻辑
-    if (this.gameContext.gamePaused) {
-      // 更新 UI（允许UI动画继续）
-      if (this.weaponContainerUI) {
-        this.weaponContainerUI.update(deltaTime);
-      }
-      
-      // 更新开始界面动画
-      if (this.startScreen) {
-        this.startScreen.update(deltaMS);
-      }
-      return;
-    }
-
-    // 更新管理器（武器和敌人的更新在渲染时进行，因为需要相互引用）
+    // 更新金币管理器
+    this.goldManager?.update();
     
-    if (this.goldManager) {
-      this.goldManager.update();
+    // 检查游戏结束状态变化
+    if (this.gameContext.gameOver !== this._lastGameOverState) {
+      this._lastGameOverState = this.gameContext.gameOver;
+      this.registerUIComponents();
     }
     
-    // 更新粒子管理器
-    if (this.particleManager) {
-      this.particleManager.update(deltaTime);
-    }
+    // 更新粒子和特效
+    this.particleManager?.update(deltaTime);
+    this.effectManager?.update(deltaTime, deltaMS);
     
-    // 更新特效管理器
-    if (this.effectManager) {
-      this.effectManager.update(deltaTime, deltaMS);
-    }
-    
-    // 更新 UI
-    if (this.weaponContainerUI) {
-      this.weaponContainerUI.update(deltaTime);
-    }
-    
-    // 更新开始界面动画
-    if (this.startScreen) {
-      this.startScreen.update(deltaMS);
-    }
-    
-    // 更新加载界面动画
-    if (this.loadingScreen) {
-      this.loadingScreen.update(deltaMS);
-    }
+    // 更新UI组件
+    this.weaponContainerUI?.update(deltaTime);
+    this.startScreen?.update(deltaMS);
   }
   
   /**
    * 渲染游戏
    */
-  render(deltaTime, deltaMS) { 
-    
-    // 游戏已开始，正常渲染游戏场景
-    if (this.gameRenderer) {
-      this.gameRenderer.render(deltaTime, deltaMS, {
-        backgroundRenderer: this.backgroundRenderer,
-        weaponManager: this.weaponManager,
-        enemyManager: this.enemyManager,
-        particleManager: this.particleManager,
-        obstacleManager: this.obstacleManager,
-        effectManager: this.effectManager,
-        weaponContainerUI: this.weaponContainerUI,
-        loadingScreen: this.loadingScreen,
-        startScreen: this.startScreen,
-        helpScreen: this.helpScreen,
-        goldManager: this.goldManager,
-        battlefieldMinimap: this.battlefieldMinimap
-      });
-    }
+  render(deltaTime, deltaMS) {
+    this.gameRenderer?.render(deltaTime, deltaMS, {
+      backgroundRenderer: this.backgroundRenderer,
+      weaponManager: this.weaponManager,
+      enemyManager: this.enemyManager,
+      particleManager: this.particleManager,
+      obstacleManager: this.obstacleManager,
+      effectManager: this.effectManager,
+      weaponContainerUI: this.weaponContainerUI,
+      loadingScreen: this.loadingScreen,
+      startScreen: this.startScreen,
+      helpScreen: this.helpScreen,
+      goldManager: this.goldManager,
+      battlefieldMinimap: this.battlefieldMinimap
+    });
   }
   
   /**
    * 触摸开始
    */
   onTouchStart(e) {
-    console.log('GameMain.onTouchStart', e);
-    const result = this.inputHandler.onTouchStart(e, this.weaponContainerUI, this.startScreen, this.helpScreen, this.battlefieldMinimap, this.weaponManager, this.gameRenderer);
-    
-    // 处理暂停/恢复/重新开始
-    if (result === 'pause') {
-      this.pauseGame();
-      return true;
-    } else if (result === 'resume') {
-      this.resumeGame();
-      return true;
-    } else if (result === 'restart') {
-      this.restartGame();
-      return true;
-    }
-    
-    return result;
+    // UI事件优先级高于游戏事件
+    return this.uiEventManager.onTouchStart(e) || 
+           this.inputHandler.onTouchStart(e, this.weaponManager);
   }
   
   /**
    * 触摸移动
    */
   onTouchMove(e) {
-    this.inputHandler.onTouchMove(e, this.weaponContainerUI, this.helpScreen, this.battlefieldMinimap);
+    // UI事件优先级高于游戏事件
+    if (!this.uiEventManager.onTouchMove(e)) {
+      this.inputHandler.onTouchMove(e);
+    }
   }
   
   /**
    * 触摸结束
    */
   onTouchEnd(e) {
-    this.inputHandler.onTouchEnd(e, this.weaponContainerUI, this.startScreen, this.helpScreen, this.battlefieldMinimap, this.weaponManager);
+    // UI事件优先级高于游戏事件
+    if (!this.uiEventManager.onTouchEnd(e)) {
+      this.inputHandler.onTouchEnd(e, this.weaponManager);
+    }
   }
+  
+  /**
+   * 窗口尺寸变化回调
+   * @param {number} newWidth 新的窗口宽度
+   * @param {number} newHeight 新的窗口高度
+   * @param {number} newPixelRatio 新的像素比
+   */
+  onWindowResize(newWidth, newHeight, newPixelRatio) {
+    // 更新 pixelRatio
+    this.pixelRatio = newPixelRatio;
+    
+    // 使用窗口尺寸变化处理器
+    this.windowResizeHandler.handleResize(newWidth, newHeight, newPixelRatio);
+  }
+  
 }
 

@@ -6,22 +6,23 @@
 import { GameConfig } from '../config/GameConfig';
 import { EconomyConfig } from '../config/EconomyConfig';
 import { EnemyTankConfig } from '../config/enemies/EnemyTankConfig';
-import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
-import { WeaponRenderer } from '../rendering/WeaponRenderer';
+import { BackgroundRenderer } from '../rendering/background/BackgroundRenderer';
+import { WeaponRenderer } from '../rendering/weapons/WeaponRenderer';
 import { WeaponManager } from '../managers/WeaponManager';
 import { EnemyManager } from '../managers/EnemyManager';
 import { GoldManager } from '../managers/GoldManager';
-import { ParticleManager } from '../core/ParticleManager';
+import { ParticleManager } from '../managers/ParticleManager';
 import { LaserBeam } from '../projectiles/LaserBeam';
-import { StartScreen } from '../ui/StartScreen';
-import { HelpScreen } from '../ui/HelpScreen';
-import { LoadingScreen } from '../ui/LoadingScreen';
-import { WeaponContainerUI } from '../ui/WeaponContainerUI';
-import { BattlefieldMinimap } from '../ui/BattlefieldMinimap';
+import { StartScreen } from '../ui/screens/StartScreen';
+import { HelpScreen } from '../ui/screens/HelpScreen';
+import { LoadingScreen } from '../ui/screens/LoadingScreen';
+import { WeaponContainerUI } from '../ui/widgets/WeaponContainerUI';
+import { BattlefieldMinimap } from '../ui/widgets/BattlefieldMinimap';
 import { ObstacleManager } from '../managers/ObstacleManager';
+import { AudioManager } from '../managers/AudioManager';
 import { initCanvasUtils } from '../utils/CanvasUtils';
 import { GameRenderer } from './GameRenderer';
-import { UIRenderer } from '../ui/UIRenderer';
+import { UIRenderer } from '../ui/renderers/UIRenderer';
 import { EffectManager } from '../effects/EffectManager';
 
 export class GameInitializer {
@@ -32,12 +33,10 @@ export class GameInitializer {
    */
   static setupCanvas(canvas, ctx) {
     // 微信小游戏的 Canvas 已经由 wx.createCanvas() 创建
-    // Canvas 尺寸已在 game.js 中通过 wx.getWindowInfo() 设置
+    // Canvas 实际尺寸已在 game.js 中通过 windowWidth * pixelRatio 设置
+    // Context 已通过 ctx.scale(pixelRatio, pixelRatio) 缩放
+    // 因此逻辑尺寸仍然是 windowWidth 和 windowHeight
     
-    console.log('Canvas 设置完成', {
-      width: canvas.width,
-      height: canvas.height
-    });
     
     // 初始化 Canvas 工具（添加 roundRect 等方法）
     initCanvasUtils(ctx);
@@ -89,6 +88,10 @@ export class GameInitializer {
     // 特效管理器
     const effectManager = new EffectManager(ctx);
     
+    // 音频管理器
+    const audioManager = new AudioManager();
+    audioManager.initBackgroundMusic();
+    
     // 初始化UI缓存
     UIRenderer.initCaches();
     
@@ -98,10 +101,15 @@ export class GameInitializer {
     // 更新游戏上下文
     gameContext.weaponManager = weaponManager;
     gameContext.obstacleManager = obstacleManager; // 保存障碍物管理器引用
+    gameContext.audioManager = audioManager; // 保存音频管理器引用
     
     // 设置障碍物管理器引用
     weaponManager.setObstacleManager(obstacleManager);
     enemyManager.setObstacleManager(obstacleManager);
+    
+    // 设置音频管理器引用
+    weaponManager.setAudioManager(audioManager);
+    enemyManager.setAudioManager(audioManager);
     
     return {
       backgroundRenderer,
@@ -110,7 +118,8 @@ export class GameInitializer {
       goldManager,
       particleManager,
       obstacleManager,
-      effectManager
+      effectManager,
+      audioManager
     };
   }
   
@@ -143,7 +152,6 @@ export class GameInitializer {
     const helpScreen = new HelpScreen(ctx);
     // 初始化帮助界面缓存
     HelpScreen.initStaticCache();
-    HelpScreen.initButtonCache();
     
     // 战场小视图
     const battlefieldMinimap = new BattlefieldMinimap(

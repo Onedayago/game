@@ -68,14 +68,30 @@ export class WeaponConfigs {
     return this.CONFIGS.get(type);
   }
   
+  /**
+   * 获取升级成本（递增公式：基础成本 * (1 + level * 0.5)）
+   * 例如：基础50，1级升2级=75，2级升3级=100，3级升4级=125
+   */
   static getUpgradeCost(type, level) {
     const config = this.getConfig(type);
-    return config ? level * config.upgradeCost : 0;
+    if (!config) return 0;
+    // 使用递增公式：基础成本 * (1 + level * 0.5)
+    return Math.floor(config.upgradeCost * (1 + level * 0.5));
   }
   
+  /**
+   * 获取出售收益（购买成本 + 升级成本的50%）
+   */
   static getSellGain(type, level) {
     const config = this.getConfig(type);
-    return config ? level * config.sellGain : 0;
+    if (!config) return 0;
+    // 基础出售收益
+    let totalGain = config.sellGain;
+    // 累加所有升级成本的50%
+    for (let i = 1; i < level; i++) {
+      totalGain += Math.floor(this.getUpgradeCost(type, i) * 0.5);
+    }
+    return totalGain;
   }
 }
 
