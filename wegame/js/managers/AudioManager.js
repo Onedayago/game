@@ -205,7 +205,7 @@ export class AudioManager {
    * 播放射击音效
    */
   playShootSound() {
-    this.playSound('shoot');
+    // this.playSound('shoot');
   }
   
   /**

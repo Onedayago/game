@@ -22,13 +22,19 @@ export class UIComponentRegistry {
     this.uiEventManager.clear();
 
     // 优先级说明：数字越大优先级越高
-    // 优先级 100: 游戏结束界面（最高优先级）
+    // 优先级 110: 引导覆盖层（最高优先级）
+    // 优先级 100: 游戏结束界面
     // 优先级 90: 暂停界面
     // 优先级 80: 帮助界面
     // 优先级 70: 开始界面
     // 优先级 60: 暂停按钮
     // 优先级 50: 武器容器 UI
     // 优先级 40: 战场小地图
+
+    // 引导覆盖层（优先级 110，最高优先级）
+    if (uiComponents.tutorialOverlay && uiComponents.tutorialOverlay.visible) {
+      this.uiEventManager.registerComponent(uiComponents.tutorialOverlay, 110);
+    }
 
     // 游戏结束界面（优先级 100）
     if (this.gameContext.gameOver && this.gameContext.gameStarted) {

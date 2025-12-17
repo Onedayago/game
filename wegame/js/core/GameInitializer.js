@@ -24,6 +24,7 @@ import { initCanvasUtils } from '../utils/CanvasUtils';
 import { GameRenderer } from './GameRenderer';
 import { UIRenderer } from '../ui/renderers/UIRenderer';
 import { EffectManager } from '../effects/EffectManager';
+import { TutorialOverlay } from '../ui/components/TutorialOverlay';
 
 export class GameInitializer {
   /**
@@ -152,6 +153,8 @@ export class GameInitializer {
     const helpScreen = new HelpScreen(ctx);
     // 初始化帮助界面缓存
     HelpScreen.initStaticCache();
+    
+    // 引导覆盖层不再需要静态缓存初始化
     
     // 战场小视图
     const battlefieldMinimap = new BattlefieldMinimap(

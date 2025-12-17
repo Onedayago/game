@@ -43,6 +43,7 @@ export class EnemyManager {
     this.currentWaveEnemyTypes = []; // 当前波次可用的敌人类型池
     this.effectManager = null; // 特效管理器引用
     this.audioManager = null; // 音频管理器引用
+    this.tutorialPaused = false; // 引导期间暂停波次
   }
   
   /**
@@ -301,6 +302,13 @@ export class EnemyManager {
   }
   
   /**
+   * 设置引导暂停状态
+   */
+  setTutorialPaused(paused) {
+    this.tutorialPaused = paused;
+  }
+  
+  /**
    * 更新敌人
    */
   update(deltaTime, deltaMS, weapons) {
@@ -315,6 +323,18 @@ export class EnemyManager {
     // 检查游戏是否已暂停
     if (gameContext.gamePaused) {
       // 游戏已暂停，不更新敌人
+      return;
+    }
+    
+    // 检查是否在引导期间（引导期间暂停波次）
+    if (this.tutorialPaused) {
+      // 引导期间，不生成敌人，但更新现有敌人（如果有）
+      // 只更新现有敌人，不生成新敌人
+      for (let i = this.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.enemies[i];
+        if (!enemy) continue;
+        enemy.update(deltaTime, deltaMS, weapons);
+      }
       return;
     }
     

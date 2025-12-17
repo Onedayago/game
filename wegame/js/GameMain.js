@@ -15,6 +15,8 @@ import { WindowResizeHandler } from './core/WindowResizeHandler';
 import { BattlefieldMinimap } from './ui/widgets/BattlefieldMinimap';
 import { WeaponDragPreview } from './ui/widgets/WeaponDragPreview';
 import { UIEventManager } from './ui/handlers/UIEventManager';
+import { TutorialOverlay } from './ui/components/TutorialOverlay';
+import { TutorialManager } from './utils/TutorialManager';
 import { LogUtils } from './utils/LogUtils';
 
 export default class GameMain {
@@ -42,6 +44,7 @@ export default class GameMain {
     this.helpScreen = null;
     this.weaponContainerUI = null;
     this.battlefieldMinimap = null;
+    this.tutorialOverlay = null;
     
     // 加载状态
     this.isLoading = false;
@@ -109,6 +112,9 @@ export default class GameMain {
     this.startScreen = uiComponents.startScreen;
     this.helpScreen = uiComponents.helpScreen;
     this.battlefieldMinimap = uiComponents.battlefieldMinimap;
+    
+    // 创建引导覆盖层
+    this.tutorialOverlay = new TutorialOverlay(this.ctx);
     
     // 设置战场小视图点击回调
     this.battlefieldMinimap.setOnClick((targetWorldOffsetX, targetWorldOffsetY) => {
@@ -235,9 +241,62 @@ export default class GameMain {
    * 开始按钮点击
    */
   onStartButtonClick() {
+    // 先开始游戏（设置游戏状态）
     this.stateManager.startGame();
     this.registerUIComponents();
     
+    // 检查是否需要显示引导
+    if (TutorialManager.hasCompletedTutorial()) {
+      // 显示引导（引导期间暂停敌人波次）
+      this.showTutorial();
+    } else {
+      // 直接开始游戏流程
+      this.startGameFlow();
+    }
+  }
+  
+  /**
+   * 显示引导
+   */
+  showTutorial() {
+    // 暂停敌人波次
+    if (this.enemyManager) {
+      this.enemyManager.setTutorialPaused(true);
+    }
+    
+    // 显示引导覆盖层
+    this.tutorialOverlay.show(() => {
+      // 引导完成
+      this.onTutorialComplete();
+    });
+    
+    // 注册UI组件（包含引导覆盖层）
+    this.registerUIComponents();
+  }
+  
+  /**
+   * 引导完成
+   */
+  onTutorialComplete() {
+    // 标记引导已完成
+    TutorialManager.markTutorialCompleted();
+    
+    // 恢复敌人波次
+    if (this.enemyManager) {
+      this.enemyManager.setTutorialPaused(false);
+    }
+    
+    // 开始游戏流程
+    this.startGameFlow();
+    
+    // 重新注册UI组件（移除引导覆盖层）
+    this.registerUIComponents();
+  }
+  
+  /**
+   * 开始游戏流程（播放音乐等）
+   */
+  startGameFlow() {
     // 开始播放背景音乐
     if (this.audioManager) {
       this.audioManager.playBackgroundMusic();
@@ -253,7 +312,8 @@ export default class GameMain {
         helpScreen: this.helpScreen,
         startScreen: this.startScreen,
         weaponContainerUI: this.weaponContainerUI,
-        battlefieldMinimap: this.battlefieldMinimap
+        battlefieldMinimap: this.battlefieldMinimap,
+        tutorialOverlay: this.tutorialOverlay
       },
       {
         restartGame: () => this.restartGame(),
@@ -402,6 +462,7 @@ export default class GameMain {
     // 更新UI组件
     this.weaponContainerUI?.update(deltaTime);
     this.startScreen?.update(deltaMS);
+    this.tutorialOverlay?.update(deltaTime);
   }
   
   /**
@@ -422,6 +483,9 @@ export default class GameMain {
       goldManager: this.goldManager,
       battlefieldMinimap: this.battlefieldMinimap
     });
+    
+    // 渲染引导覆盖层（在最上层）
+    this.tutorialOverlay?.render();
   }
   
   /**
