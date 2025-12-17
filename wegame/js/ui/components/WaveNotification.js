@@ -4,17 +4,17 @@
  */
 
 import { GameConfig } from '../../config/GameConfig';
-import { ColorUtils } from '../../config/Colors';
+import { ColorUtils, GameColors } from '../../config/Colors';
 import { UIConfig } from '../../config/UIConfig';
+import { TextRenderer } from '../utils/TextRenderer';
 
 export class WaveNotification {
-  static DURATION = 3000; // 显示3秒
-  static FADE_IN_DURATION = 500; // 淡入时间
-  static FADE_OUT_DURATION = 500; // 淡出时间
-  static SCALE_DURATION = 800; // 缩放时间
+  static DURATION = 2000; // 显示2秒
+  static FADE_IN_DURATION = 300; // 淡入时间
+  static FADE_OUT_DURATION = 300; // 淡出时间
   
   /**
-   * 渲染波次提示（简化版：移除所有动态特效）
+   * 渲染波次提示（优化版：只显示中间文字，无全屏遮罩）
    */
   static render(ctx, waveLevel, elapsed) {
     const duration = this.DURATION;
@@ -27,22 +27,52 @@ export class WaveNotification {
       alpha = (duration - elapsed) / this.FADE_OUT_DURATION;
     }
     
-    ctx.save();
+    // 计算缩放效果（淡入时放大，淡出时缩小）
+    let scale = 1.0;
+    if (elapsed < this.FADE_IN_DURATION) {
+      scale = 0.8 + (elapsed / this.FADE_IN_DURATION) * 0.2; // 从0.8到1.0
+    } else if (elapsed > duration - this.FADE_OUT_DURATION) {
+      const fadeOutProgress = (elapsed - (duration - this.FADE_OUT_DURATION)) / this.FADE_OUT_DURATION;
+      scale = 1.0 - fadeOutProgress * 0.2; // 从1.0到0.8
+    }
     
     const centerX = GameConfig.DESIGN_WIDTH / 2;
-    const centerY = GameConfig.DESIGN_HEIGHT / 2;
+    const centerY = GameConfig.DESIGN_HEIGHT * 0.3; // 稍微靠上一点
     
-    // 绘制半透明遮罩
-    ctx.fillStyle = `rgba(0, 0, 0, ${0.6 * alpha})`;
-    ctx.fillRect(0, 0, GameConfig.DESIGN_WIDTH, GameConfig.DESIGN_HEIGHT);
+    ctx.save();
     
-    // 绘制提示文字
+    // 应用缩放
+    ctx.translate(centerX, centerY);
+    ctx.scale(scale, scale);
+    ctx.translate(-centerX, -centerY);
+    
+    // 使用 TextRenderer 绘制美化的文字
     const text = `第 ${waveLevel} 波`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, alpha);
-    ctx.font = `bold ${UIConfig.BUTTON_FONT_SIZE * 2.2}px Arial`;
-    ctx.fillText(text, centerX, centerY);
+    const fontSize = UIConfig.TITLE_FONT_SIZE * 1.5;
+    
+    TextRenderer.drawText(ctx, text, centerX, centerY, {
+      font: `bold ${fontSize}px Arial`,
+      align: 'center',
+      baseline: 'middle',
+      alpha: alpha,
+      shadow: {
+        color: 'rgba(0, 0, 0, 0.9)',
+        blur: 15,
+        offsetX: 0,
+        offsetY: 5
+      },
+      gradient: {
+        x0: centerX - 150,
+        y0: centerY - 30,
+        x1: centerX + 150,
+        y1: centerY + 30,
+        stops: [
+          { offset: 0, color: GameColors.ROCKET_TOWER, alpha: alpha },
+          { offset: 0.5, color: 0xffaa44, alpha: alpha },
+          { offset: 1, color: GameColors.ROCKET_TOWER, alpha: alpha }
+        ]
+      }
+    });
     
     ctx.restore();
   }

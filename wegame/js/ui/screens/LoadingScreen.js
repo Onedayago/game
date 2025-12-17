@@ -102,7 +102,7 @@ export class LoadingScreen {
   }
   
   /**
-   * 渲染加载界面（简化版：移除所有动态特效）
+   * 渲染加载界面（优化版：添加动画效果和更好的视觉效果）
    */
   render() {
     if (!this.visible) return;
@@ -117,21 +117,51 @@ export class LoadingScreen {
     }
     ctx.drawImage(LoadingScreen._bgCache, 0, 0, width, height);
     
-    // 绘制标题
-    const titleFontSize = UIConfig.TITLE_FONT_SIZE;
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_MAIN);
-    ctx.font = `bold ${titleFontSize * 1.3}px Arial`;
+    // 绘制标题（带渐变和阴影效果）
+    const titleFontSize = UIConfig.TITLE_FONT_SIZE * 1.3;
+    const titleY = height * 0.3;
+    
+    ctx.save();
+    // 添加阴影
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 5;
+    
+    // 创建渐变
+    const titleGradient = ctx.createLinearGradient(
+      width / 2 - 150, titleY - 30,
+      width / 2 + 150, titleY + 30
+    );
+    titleGradient.addColorStop(0, ColorUtils.hexToCanvas(GameColors.ROCKET_TOWER, 1.0));
+    titleGradient.addColorStop(0.5, ColorUtils.hexToCanvas(0xffaa44, 1.0));
+    titleGradient.addColorStop(1, ColorUtils.hexToCanvas(GameColors.ROCKET_TOWER, 1.0));
+    
+    ctx.fillStyle = titleGradient;
+    ctx.font = `bold ${titleFontSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('塔防游戏', width / 2, height * 0.3);
+    ctx.fillText('塔防游戏', width / 2, titleY);
+    ctx.restore();
     
-    // 绘制加载文本
+    // 绘制加载文本（带脉冲动画）
     const textFontSize = UIConfig.SUBTITLE_FONT_SIZE;
-    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_LIGHT);
-    ctx.font = `${textFontSize}px Arial`;
-    ctx.fillText(this.loadingText, width / 2, height * 0.5);
+    const pulse = Math.sin(this.animationTime * 0.003) * 0.3 + 0.7; // 0.4 到 1.0 之间脉冲
+    const textY = height * 0.5;
     
-    // 绘制进度条
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = ColorUtils.hexToCanvas(GameColors.TEXT_LIGHT, pulse);
+    ctx.font = `${textFontSize}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.loadingText, width / 2, textY);
+    ctx.restore();
+    
+    // 绘制进度条（带发光效果）
     const progressBarWidth = width * 0.6;
     const progressBarHeight = height * 0.05;
     const progressBarX = (width - progressBarWidth) / 2;
@@ -140,26 +170,62 @@ export class LoadingScreen {
     
     polyfillRoundRect(ctx);
     
-    // 进度条背景
-    ctx.fillStyle = 'rgba(30, 30, 40, 0.9)';
+    // 进度条背景（带边框和阴影）
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 3;
+    ctx.fillStyle = 'rgba(30, 30, 40, 0.95)';
     ctx.beginPath();
     ctx.roundRect(progressBarX, progressBarY, progressBarWidth, progressBarHeight, progressBarRadius);
     ctx.fill();
+    ctx.restore();
     
-    // 进度条前景
+    // 进度条边框
+    ctx.strokeStyle = ColorUtils.hexToCanvas(0x666666, 0.5);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // 进度条前景（带渐变和发光）
     const progressWidth = progressBarWidth * this.progress;
     if (progressWidth > 0) {
-      ctx.fillStyle = ColorUtils.hexToCanvas(0x00ff41);
+      ctx.save();
+      // 发光效果
+      ctx.shadowColor = ColorUtils.hexToCanvas(0x00ff41, 0.8);
+      ctx.shadowBlur = 15;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      
+      // 渐变填充
+      const progressGradient = ctx.createLinearGradient(
+        progressBarX, progressBarY,
+        progressBarX, progressBarY + progressBarHeight
+      );
+      progressGradient.addColorStop(0, ColorUtils.hexToCanvas(0x00ff88, 1.0));
+      progressGradient.addColorStop(1, ColorUtils.hexToCanvas(0x00cc44, 1.0));
+      
+      ctx.fillStyle = progressGradient;
       ctx.beginPath();
       ctx.roundRect(progressBarX + 2, progressBarY + 2, progressWidth - 4, progressBarHeight - 4, progressBarRadius - 1);
       ctx.fill();
+      ctx.restore();
     }
     
-    // 绘制进度百分比
+    // 绘制进度百分比（带阴影）
     const percentText = Math.floor(this.progress * 100) + '%';
-    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff);
+    const percentY = progressBarY + progressBarHeight + textFontSize + 10;
+    
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = ColorUtils.hexToCanvas(0xffffff, 1.0);
     ctx.font = `bold ${textFontSize * 1.2}px Arial`;
-    ctx.fillText(percentText, width / 2, progressBarY + progressBarHeight + textFontSize + 10);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(percentText, width / 2, percentY);
+    ctx.restore();
   }
 }
-

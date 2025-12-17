@@ -236,7 +236,7 @@ export default class GameMain {
       });
     }
   }
-
+  
   /**
    * 开始按钮点击
    */
@@ -245,14 +245,15 @@ export default class GameMain {
     this.stateManager.startGame();
     this.registerUIComponents();
     
-    // 检查是否需要显示引导
-    if (TutorialManager.hasCompletedTutorial()) {
-      // 显示引导（引导期间暂停敌人波次）
-      this.showTutorial();
-    } else {
-      // 直接开始游戏流程
-      this.startGameFlow();
-    }
+    this.showTutorial();
+    // // 检查是否需要显示引导
+    // if (TutorialManager.hasCompletedTutorial()) {
+    //   // 显示引导（引导期间暂停敌人波次）
+      
+    // } else {
+    //   // 直接开始游戏流程
+    //   this.startGameFlow();
+    // }
   }
   
   /**
@@ -441,7 +442,7 @@ export default class GameMain {
     this.render(deltaTime, deltaMS);
   }
   
-
+  
   /**
    * 更新游戏逻辑
    */
@@ -468,24 +469,22 @@ export default class GameMain {
   /**
    * 渲染游戏
    */
-  render(deltaTime, deltaMS) {
+  render(deltaTime, deltaMS) { 
     this.gameRenderer?.render(deltaTime, deltaMS, {
-      backgroundRenderer: this.backgroundRenderer,
-      weaponManager: this.weaponManager,
-      enemyManager: this.enemyManager,
-      particleManager: this.particleManager,
-      obstacleManager: this.obstacleManager,
-      effectManager: this.effectManager,
-      weaponContainerUI: this.weaponContainerUI,
-      loadingScreen: this.loadingScreen,
-      startScreen: this.startScreen,
-      helpScreen: this.helpScreen,
-      goldManager: this.goldManager,
-      battlefieldMinimap: this.battlefieldMinimap
-    });
-    
-    // 渲染引导覆盖层（在最上层）
-    this.tutorialOverlay?.render();
+        backgroundRenderer: this.backgroundRenderer,
+        weaponManager: this.weaponManager,
+        enemyManager: this.enemyManager,
+        particleManager: this.particleManager,
+        obstacleManager: this.obstacleManager,
+        effectManager: this.effectManager,
+        weaponContainerUI: this.weaponContainerUI,
+        loadingScreen: this.loadingScreen,
+        startScreen: this.startScreen,
+        helpScreen: this.helpScreen,
+        goldManager: this.goldManager,
+        battlefieldMinimap: this.battlefieldMinimap,
+        tutorialOverlay: this.tutorialOverlay
+      });
   }
   
   /**
@@ -503,7 +502,7 @@ export default class GameMain {
   onTouchMove(e) {
     // UI事件优先级高于游戏事件
     if (!this.uiEventManager.onTouchMove(e)) {
-      this.inputHandler.onTouchMove(e);
+    this.inputHandler.onTouchMove(e);
     }
   }
   
@@ -513,7 +512,7 @@ export default class GameMain {
   onTouchEnd(e) {
     // UI事件优先级高于游戏事件
     if (!this.uiEventManager.onTouchEnd(e)) {
-      this.inputHandler.onTouchEnd(e, this.weaponManager);
+    this.inputHandler.onTouchEnd(e, this.weaponManager);
     }
   }
   

@@ -141,21 +141,24 @@ export class GameRenderer {
         goldManager.render(this.ctx);
       }
       
-      // 渲染波次信息
-      if (enemyManager) {
-        UIRenderer.renderWaveInfo(this.ctx, enemyManager);
-        // 渲染波次开始提示
-        if (enemyManager.shouldShowWaveNotification()) {
-          UIRenderer.renderWaveNotification(this.ctx, enemyManager);
-        }
-      }
-      
       // 渲染暂停按钮
       UIRenderer.renderPauseButton(this.ctx);
       
       // 渲染战场小视图
       if (managers.battlefieldMinimap) {
         managers.battlefieldMinimap.render();
+      }
+      
+      // 渲染波次信息（引导期间也显示）
+      const tutorialOverlay = managers.tutorialOverlay;
+      if (enemyManager) {
+        // 顶部波次信息始终显示
+        UIRenderer.renderWaveInfo(this.ctx, enemyManager);
+        
+        // 波次提示只在引导结束后显示
+        if ((!tutorialOverlay || !tutorialOverlay.visible) && enemyManager.shouldShowWaveNotification()) {
+          UIRenderer.renderWaveNotification(this.ctx, enemyManager);
+        }
       }
       
       // 渲染游戏结束界面（优先级最高，覆盖其他UI）
@@ -167,6 +170,11 @@ export class GameRenderer {
       // 渲染暂停界面（如果游戏已暂停且未结束）
       if (this.gameContext.gamePaused) {
         UIRenderer.renderPauseScreen(this.ctx);
+      }
+      
+      // 渲染引导覆盖层（最后渲染，覆盖在其他UI之上，但不覆盖结束界面和暂停界面）
+      if (tutorialOverlay && tutorialOverlay.visible) {
+        tutorialOverlay.render();
       }
     }
   }
